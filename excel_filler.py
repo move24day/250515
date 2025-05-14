@@ -13,10 +13,9 @@ try:
     import data
 except ImportError:
     st.error("data.py 파일을 찾을 수 없습니다. excel_filler.py와 같은 폴더에 있는지 확인하세요.")
-    data = None # data 모듈 로드 실패 시 None으로 설정하여 이후 코드에서 확인 가능하도록 함
+    data = None
 
 def get_tv_qty(state_data):
-    """모든 크기의 TV 수량을 합산하여 반환 (utils.get_item_qty 사용)"""
     if not data or not hasattr(data, 'items') or not isinstance(data.items, dict):
         return 0
     total_tv_qty = 0
@@ -25,11 +24,15 @@ def get_tv_qty(state_data):
         total_tv_qty += utils.get_item_qty(state_data, tv_item_name)
     return total_tv_qty
 
-def fill_final_excel_template(state_data, calculated_cost_items, total_cost, personnel_info):
-    """
-    final.xlsx 템플릿을 열고 요청된 셀에 값을 채웁니다.
-    """
-    if not data: # data 모듈이 성공적으로 로드되었는지 확인
+def get_method_label_prefix(method_string):
+    """ "사다리차 🪜" -> "사다리", "스카이 🏗️" -> "스카이" """
+    if not method_string or not isinstance(method_string, str):
+        return ""
+    return method_string.split(" ")[0]
+
+
+def fill_final_excel_template(state_data, calculated_cost_items, total_cost_overall, personnel_info):
+    if not data:
         st.error("data.py 모듈 로드 실패로 Excel 생성을 진행할 수 없습니다.")
         return None
 
@@ -54,11 +57,11 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
         if has_via_point: move_type_parts.append("경유")
         if is_long_distance: move_type_parts.append("장거리")
         
-        base_move_type = state_data.get('base_move_type', "")
-        if "사무실" in base_move_type: move_type_parts.append("사무실")
-        elif "가정" in base_move_type: move_type_parts.append("가정")
+        base_move_type_from_state = state_data.get('base_move_type', "") # state_data에서 가져옴
+        if "사무실" in base_move_type_from_state: move_type_parts.append("사무실")
+        elif "가정" in base_move_type_from_state: move_type_parts.append("가정")
         
-        move_type_str = " ".join(move_type_parts).strip() or base_move_type
+        move_type_str = " ".join(move_type_parts).strip() or base_move_type_from_state
         ws['J1'] = move_type_str
 
         ws['C2'] = state_data.get('customer_name', '')
@@ -79,7 +82,7 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
         if has_via_point:
             ws['G4'] = state_data.get('via_point_location', '')
         else:
-            ws['G4'] = ''
+            ws['G4'] = '' # 값이 없을 때 G4 셀을 비움
 
         p_info = personnel_info if isinstance(personnel_info, dict) else {}
         try: ws['L5'] = int(p_info.get('final_men', 0) or 0)
@@ -92,6 +95,7 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
         to_floor_str = str(state_data.get('to_floor', '')).strip()
         ws['D6'] = f"{to_floor_str}층" if to_floor_str else ''
         
+        # E5, E6는 출발지/도착지 전체 작업 방법 문자열 (예: "사다리차 🪜")
         ws['E5'] = state_data.get('from_method', '')
         ws['E6'] = state_data.get('to_method', '')
         
@@ -112,9 +116,9 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
                     vehicle_tonnage = vehicle_tonnage_cleaned if vehicle_tonnage_cleaned else ''
             except Exception:
                 vehicle_tonnage = ''
-        elif selected_vehicle:
+        elif selected_vehicle: # 숫자가 아닌 다른 타입일 경우 문자열로 변환
              vehicle_tonnage = str(selected_vehicle)
-        ws['B7'] = vehicle_tonnage
+        ws['B7'] = vehicle_tonnage # "톤" 글자 제외하고 숫자만
 
         dispatched_parts = []
         dispatched_1t = state_data.get('dispatched_1t', 0)
@@ -136,18 +140,15 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
         if dispatched_5t > 0: dispatched_parts.append(f"5톤: {dispatched_5t}")
         ws['H7'] = ", ".join(dispatched_parts) if dispatched_parts else ''
 
+
         # --- 2. 비용 정보 입력 (수정됨) ---
-        basic_fare = 0
-        departure_cost = 0
-        departure_label = ""
-        arrival_cost = 0
-        arrival_label = ""
-        storage_fee = 0
-        adjustment_total = 0 # '조정 금액' 항목을 위해 누적
+        total_moving_expenses_f22 = 0 # F22에 들어갈 총괄 이사 비용 (VAT, 카드수수료, 작업비, 보관료 제외)
+        
+        departure_work_cost_f23 = 0
+        arrival_work_cost_f24 = 0
+        storage_fee_j22 = 0
 
-        # 기타 비용들은 필요시 여기에 추가 (현재 요청은 특정 셀에 집중)
-        # long_dist_cost = 0; waste_cost = 0; add_person_cost = 0; date_surcharge = 0; etc.
-
+        # calculated_cost_items를 순회하며 비용 집계
         if calculated_cost_items and isinstance(calculated_cost_items, list):
             for item in calculated_cost_items:
                 if isinstance(item, (list, tuple)) and len(item) >= 2:
@@ -156,93 +157,100 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
                         amount = int(item[1] or 0)
                     except (ValueError, TypeError):
                         amount = 0
-                    
+
+                    # F22 총괄 이사 비용에 포함될 항목들
                     if label == '기본 운임':
-                        basic_fare = amount
-                    elif label == '출발지 사다리차':
-                        departure_cost = amount
-                        departure_label = "출발사다리"
-                    elif label == '출발지 스카이 장비':
-                        departure_cost = amount
-                        departure_label = "출발스카이"
-                    elif label == '도착지 사다리차':
-                        arrival_cost = amount
-                        arrival_label = "도착사다리"
-                    elif label == '도착지 스카이 장비':
-                        arrival_cost = amount
-                        arrival_label = "도착스카이"
+                        total_moving_expenses_f22 += amount
+                    elif label == '날짜 할증':
+                        total_moving_expenses_f22 += amount
+                    elif "조정 금액" in label: # "할증 조정 금액", "할인 조정 금액"
+                        total_moving_expenses_f22 += amount
+                    elif label == '장거리 운송료':
+                        total_moving_expenses_f22 += amount
+                    elif label == '폐기물 처리' or label == '폐기물 처리(톤)': # calculations.py의 레이블 확인 필요
+                        total_moving_expenses_f22 += amount
+                    elif label == '추가 인력':
+                        total_moving_expenses_f22 += amount
+                    elif label == '지방 사다리 추가요금':
+                        total_moving_expenses_f22 += amount
+                    elif label == '경유지 추가요금':
+                        total_moving_expenses_f22 += amount
+                    
+                    # F23, F24 작업 비용 항목들
+                    elif label == '출발지 사다리차' or label == '출발지 스카이 장비':
+                        departure_work_cost_f23 = amount
+                    elif label == '도착지 사다리차' or label == '도착지 스카이 장비':
+                        arrival_work_cost_f24 = amount
+                    
+                    # J22 보관료 항목
                     elif label == '보관료':
-                        storage_fee = amount
-                    elif "조정 금액" in label: # "할증 조정 금액", "할인 조정 금액" 모두 포함
-                        adjustment_total += amount
-                    # 여기에 다른 비용 항목들(장거리, 폐기물 등)을 처리하는 로직 추가 가능
-                    # (현재 요청은 특정 셀에만 집중되어 있어 생략)
+                        storage_fee_j22 = amount
+                    
+                    # VAT 및 카드 수수료는 total_cost_overall에 이미 반영되어 있으므로 F25에서 사용, 여기서는 합산 안함
 
-        ws['F22'] = basic_fare # 기본 운임
+        # F22 셀: 총괄 이사 비용 (작업비, 보관료, VAT, 카드수수료 제외)
+        ws['F22'] = total_moving_expenses_f22
 
-        if departure_label: # 출발지 요금이 있을 경우
-            ws['B23'] = departure_label
-            ws['F23'] = departure_cost
-        else: # 없을 경우 해당 셀 비움
-            ws['B23'] = ""
-            ws['F23'] = 0 
+        # B23, F23 셀: 출발지 작업 방식 및 비용
+        from_method_str = state_data.get('from_method', '')
+        ws['B23'] = "출발" + get_method_label_prefix(from_method_str) if from_method_str else "출발작업"
+        ws['F23'] = departure_work_cost_f23
 
-        if arrival_label: # 도착지 요금이 있을 경우
-            ws['B24'] = arrival_label
-            ws['F24'] = arrival_cost
-        else: # 없을 경우 해당 셀 비움
-            ws['B24'] = ""
-            ws['F24'] = 0
+        # B24, F24 셀: 도착지 작업 방식 및 비용
+        to_method_str = state_data.get('to_method', '')
+        ws['B24'] = "도착" + get_method_label_prefix(to_method_str) if to_method_str else "도착작업"
+        ws['F24'] = arrival_work_cost_f24
             
-        if storage_fee > 0: # 보관료가 발생한 경우
+        # H22, J22 셀: 보관료
+        if storage_fee_j22 > 0 or is_storage: # 보관이사일 경우 항상 레이블 표시, 비용은 있을 때만
             ws['H22'] = "보관료"
-            ws['J22'] = storage_fee
-        else: # 없을 경우 해당 셀 비움
+            ws['J22'] = storage_fee_j22
+        else:
             ws['H22'] = ""
             ws['J22'] = 0
         
-        # 조정 금액 (예시로 F2X 셀에 넣는다고 가정, 실제 템플릿에 맞게 수정 필요)
-        # ws['F2X_ADJUST_LABEL'] = "조정 금액" # 필요시 레이블 셀
-        # ws['F2X_ADJUST_VALUE'] = adjustment_total # 실제 값 셀
-
+        # 계약금, 잔금, 총액 (VAT 및 카드 수수료 포함된 최종 금액 기준)
         deposit_amount_raw = state_data.get('deposit_amount', state_data.get('tab3_deposit_amount', 0))
         try:
             deposit_amount = int(deposit_amount_raw or 0)
         except (ValueError, TypeError):
             deposit_amount = 0
-        ws['J23'] = deposit_amount
+        ws['J23'] = deposit_amount # 계약금
 
-        try:
-            total_cost_num = int(total_cost or 0)
+        try: # total_cost_overall은 calculations.py에서 반환된 최종 금액
+            total_cost_num_overall = int(total_cost_overall or 0)
         except (ValueError, TypeError):
-            total_cost_num = 0
-        ws['F25'] = total_cost_num # 총액
-        remaining_balance = total_cost_num - deposit_amount
+            total_cost_num_overall = 0
+        ws['F25'] = total_cost_num_overall # 총액 (VAT/카드수수료 포함)
+
+        remaining_balance = total_cost_num_overall - deposit_amount
         ws['J24'] = remaining_balance # 잔금
+
 
         # --- 3. 고객 요구사항 입력 ---
         special_notes_str = state_data.get('special_notes', '')
-        start_row_notes = 26
-        max_possible_note_lines = 20
+        start_row_notes = 26 # B26부터 시작
+        max_possible_note_lines = 20 # 예시: 최대 20줄
 
+        # 기존 내용 지우기 (선택적)
         for i in range(max_possible_note_lines):
              clear_cell_addr = f"B{start_row_notes + i}"
              try:
-                 if ws[clear_cell_addr].value is not None:
+                 if ws[clear_cell_addr].value is not None: # 셀이 존재하고 값이 있을 때만 None으로 설정
                      ws[clear_cell_addr].value = None
              except Exception:
                  pass # 셀이 없거나 접근 불가시 무시
 
         if special_notes_str:
-            notes_parts = [part.strip() for part in special_notes_str.split('.') if part.strip()]
+            notes_parts = [part.strip() for part in special_notes_str.split('.') if part.strip()] # '.' 기준으로 나누고 공백 제거
             for i, part in enumerate(notes_parts):
-                if i < max_possible_note_lines:
+                if i < max_possible_note_lines: # 최대 줄 수 넘지 않도록
                     target_cell_notes = f"B{start_row_notes + i}"
                     try:
                         ws[target_cell_notes] = part
-                    except Exception as e:
-                         print(f"ERROR [Excel Filler B26+]: Failed to write note to {target_cell_notes}: {e}")
-        else:
+                    except Exception as e_note:
+                         print(f"ERROR [Excel Filler B26+]: Failed to write note to {target_cell_notes}: {e_note}")
+        else: # 고객 요구사항이 없을 경우, 첫 줄만 비움 (이미 위에서 처리됨)
              try:
                  if ws['B26'].value is not None: ws['B26'] = None
              except Exception: pass
@@ -252,12 +260,12 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
         original_jangrong_qty = utils.get_item_qty(state_data, '장롱')
         jangrong_formatted_qty = "0.0"
         try:
-            calculated_qty = original_jangrong_qty / 3.0
+            calculated_qty = original_jangrong_qty / 3.0 # 장롱은 3으로 나눈 값을 소수점 첫째 자리까지 표시
             jangrong_formatted_qty = f"{calculated_qty:.1f}"
-        except ZeroDivisionError:
+        except ZeroDivisionError: # 0으로 나누는 경우 (거의 발생 안 함)
             jangrong_formatted_qty = "0.0"
         except Exception:
-            jangrong_formatted_qty = "Error"
+            jangrong_formatted_qty = "Error" # 오류 발생 시 "Error" 표시
         ws['D8'] = jangrong_formatted_qty
 
         ws['D9'] = utils.get_item_qty(state_data, '더블침대')
@@ -278,22 +286,23 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost, per
         ws['H10'] = utils.get_item_qty(state_data, '책상&의자')
         ws['H11'] = utils.get_item_qty(state_data, '책장')
         ws['H15'] = utils.get_item_qty(state_data, '바구니')
-        ws['H16'] = utils.get_item_qty(state_data, '중박스')
+        ws['H16'] = utils.get_item_qty(state_data, '중박스') # data.py 정의에 따라 '중자바구니' 또는 '중박스' 확인
         ws['H19'] = utils.get_item_qty(state_data, '화분')
         ws['H20'] = utils.get_item_qty(state_data, '책바구니')
 
         ws['L8'] = utils.get_item_qty(state_data, '스타일러')
         ws['L9'] = utils.get_item_qty(state_data, '안마기')
         ws['L10'] = utils.get_item_qty(state_data, '피아노(일반)')
-        ws['L12'] = get_tv_qty(state_data)
+        ws['L12'] = get_tv_qty(state_data) # 수정된 get_tv_qty 호출 (모든 TV 합산)
         ws['L16'] = utils.get_item_qty(state_data, '금고')
         ws['L17'] = utils.get_item_qty(state_data, '앵글')
+
 
         # --- 5. 완료된 엑셀 파일을 메모리에 저장 ---
         output = io.BytesIO()
         wb.save(output)
-        output.seek(0)
-        return output.getvalue()
+        output.seek(0) # 버퍼 포인터 리셋
+        return output.getvalue() # 바이트 데이터 반환
 
     except FileNotFoundError:
         st.error(f"Excel 템플릿 파일 '{final_xlsx_path}'을(를) 찾을 수 없습니다.")
