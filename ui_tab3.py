@@ -63,14 +63,25 @@ def get_validation_warnings(state):
     if not to_floor:
         warnings.append("도착지 층수 정보가 입력되지 않았습니다. '고객 정보' 탭에서 입력해주세요.")
 
-    final_selected_vehicle = state.get('final_selected_vehicle')
-    if not final_selected_vehicle:
-        warnings.append("차량 종류가 선택되지 않았습니다. '차량 선택' 섹션에서 알맞은 차량을 선택하거나, 물품을 추가하여 자동 추천을 받아주세요.")
+    # 견적 계산용 차량 선택 확인
+    final_selected_vehicle_for_calc = state.get('final_selected_vehicle')
+    if not final_selected_vehicle_for_calc:
+        warnings.append("견적 계산용 차량 종류가 선택되지 않았습니다. '차량 선택' 섹션에서 차량을 선택해주세요.")
 
     to_location = str(state.get('to_location', '')).strip()
     if not to_location:
         warnings.append("도착지 주소 정보가 입력되지 않았습니다. '고객 정보' 탭에서 입력해주세요.")
-        
+
+    # 실제 투입 차량 입력 확인 (견적 계산용 차량이 선택된 경우에만 이 경고가 의미 있음)
+    if final_selected_vehicle_for_calc: # 견적 계산용 차량이 있어야 실제 투입 차량을 따지는게 의미있음
+        dispatched_1t = state.get('dispatched_1t', 0)
+        dispatched_2_5t = state.get('dispatched_2_5t', 0)
+        dispatched_3_5t = state.get('dispatched_3_5t', 0)
+        dispatched_5t = state.get('dispatched_5t', 0)
+        total_dispatched_trucks = dispatched_1t + dispatched_2_5t + dispatched_3_5t + dispatched_5t
+        if total_dispatched_trucks == 0:
+            warnings.append("실제 투입 차량 대수가 입력되지 않았습니다. '실제 투입 차량' 섹션에서 각 톤수별 차량 대수를 입력해주세요.")
+            
     return warnings
 
 def render_tab3():
@@ -105,7 +116,7 @@ def render_tab3():
     st.divider()
 
     with st.container(border=True):
-        st.subheader("🚚 차량 선택")
+        st.subheader("🚚 차량 선택 (견적 계산용)") # 제목 수정하여 명확화
         col_v1_widget, col_v2_widget = st.columns([1, 2])
         with col_v1_widget:
             st.radio("차량 선택 방식:", ["자동 추천 차량 사용", "수동으로 차량 선택"], key="vehicle_select_radio", on_change=update_basket_quantities_callback)
@@ -191,13 +202,13 @@ def render_tab3():
         col_add1.number_input("추가 남성 인원 👨", min_value=0, step=1, key="add_men")
         col_add2.number_input("추가 여성 인원 👩", min_value=0, step=1, key="add_women")
         st.write("")
-        st.subheader("🚚 실제 투입 차량 ")
+        st.subheader("🚚 실제 투입 차량 (견적서 및 내부 기록용)") # 제목 수정
         dispatched_cols = st.columns(4)
         dispatched_cols[0].number_input("1톤", min_value=0, step=1, key="dispatched_1t")
         dispatched_cols[1].number_input("2.5톤", min_value=0, step=1, key="dispatched_2_5t")
         dispatched_cols[2].number_input("3.5톤", min_value=0, step=1, key="dispatched_3_5t")
         dispatched_cols[3].number_input("5톤", min_value=0, step=1, key="dispatched_5t")
-        st.caption("견적 계산과 별개로, 실제 현장에 투입될 차량 대수를 입력합니다.")
+        st.caption("실제 현장에 투입될 차량 대수를 입력합니다. (견적 계산 자체에는 직접 영향 없음)") # 설명 수정
         st.write("")
 
         show_remove_housewife_option = False
@@ -275,12 +286,14 @@ def render_tab3():
         st.markdown(warning_html, unsafe_allow_html=True)
 
     st.header("💵 최종 견적 결과")
-    final_selected_vehicle_calc = st.session_state.get("final_selected_vehicle")
+    final_selected_vehicle_for_calc = st.session_state.get("final_selected_vehicle") # 견적 계산용 차량
     total_cost_display, cost_items_display, personnel_info_display, has_cost_error = 0, [], {}, False
 
-    if not final_selected_vehicle_calc and not validation_messages:
+    # 견적 계산용 차량이 선택되지 않았고, 다른 유효성 검사 메시지도 없을 때만 안내 메시지 표시
+    if not final_selected_vehicle_for_calc and not validation_messages:
         st.info("차량을 선택하고 필수 정보(주소, 층수 등)를 입력하시면 최종 견적 결과를 확인할 수 있습니다.")
-    elif final_selected_vehicle_calc:
+    # 견적 계산용 차량이 선택된 경우에만 비용 계산 및 결과 표시 로직 진행
+    elif final_selected_vehicle_for_calc:
         try:
             if st.session_state.get("is_storage_move"):
                 m_dt = st.session_state.get("moving_date")
@@ -338,7 +351,7 @@ def render_tab3():
                 st.info(special_notes)
 
             st.subheader("📋 이사 정보 요약")
-            summary_display_possible = bool(final_selected_vehicle_calc) and not has_cost_error
+            summary_display_possible = bool(final_selected_vehicle_for_calc) and not has_cost_error
 
             if summary_display_possible:
                 try:
@@ -346,7 +359,7 @@ def render_tab3():
                     phone_summary = st.session_state.get('customer_phone', '')
                     email_summary = st.session_state.get('customer_email', '')
 
-                    vehicle_type_summary = final_selected_vehicle_calc
+                    vehicle_type_summary = final_selected_vehicle_for_calc
                     vehicle_tonnage_summary = ""
                     if isinstance(vehicle_type_summary, str):
                         match_summary = re.search(r'(\d+(\.\d+)?\s*톤)', vehicle_type_summary)
@@ -470,14 +483,14 @@ def render_tab3():
                 except Exception as e_summary_direct:
                     st.error(f"❌ 요약 정보 생성 중 오류: {e_summary_direct}"); traceback.print_exc()
                     st.info("ℹ️ 요약 정보 표시 불가 (데이터 오류).")
-            elif not final_selected_vehicle_calc:
-                if not validation_messages or not any("차량 종류가 선택되지 않았습니다" in msg for msg in validation_messages):
-                    st.info("ℹ️ 차량 미선택으로 요약 정보 표시 불가.")
-
+            elif not final_selected_vehicle_for_calc:
+                if not validation_messages or not any("차량 종류가 선택되지 않았습니다" in msg for msg in validation_messages): # 수정된 부분
+                    st.info("ℹ️ 견적 계산용 차량 미선택으로 요약 정보 표시 불가.")
+            
             st.divider()
 
             st.subheader("📄 견적서 생성, 발송 및 다운로드")
-            can_generate_anything = bool(final_selected_vehicle_calc) and not has_cost_error and \
+            can_generate_anything = bool(final_selected_vehicle_for_calc) and not has_cost_error and \
                                   st.session_state.get("calculated_cost_items_for_pdf") and \
                                   st.session_state.get("total_cost_for_pdf", 0) > 0
             
@@ -509,7 +522,7 @@ def render_tab3():
 
             with cols_actions_main[1]:
                 st.markdown("**② 견적서 파일 생성 (Excel, 이미지)**")
-                excel_possible = hasattr(excel_filler, "fill_final_excel_template") and bool(final_selected_vehicle_calc)
+                excel_possible = hasattr(excel_filler, "fill_final_excel_template") and bool(final_selected_vehicle_for_calc)
                 pdf_possible_for_image = hasattr(pdf_generator, "generate_pdf") and can_generate_anything
                 image_conversion_possible = hasattr(pdf_generator, "generate_quote_image_from_pdf") and pdf_generator._PDF2IMAGE_AVAILABLE and pdf_generator._PILLOW_AVAILABLE
 
@@ -540,10 +553,10 @@ def render_tab3():
                                 actions_success_image = True
                             else: 
                                 st.error("❌ 견적서 이미지 변환 실패.")
-                                if 'quote_image_data_for_download' in st.session_state: del st.session_state['quote_image_data_for_download'] # 수정된 부분
+                                if 'quote_image_data_for_download' in st.session_state: del st.session_state['quote_image_data_for_download']
                         else: 
                             st.error("❌ 견적서 PDF 생성 실패 (이미지용).")
-                            if 'quote_image_data_for_download' in st.session_state: del st.session_state['quote_image_data_for_download'] # 수정된 부분
+                            if 'quote_image_data_for_download' in st.session_state: del st.session_state['quote_image_data_for_download']
                     elif not pdf_possible_for_image: st.warning("견적서 이미지를 생성할 수 없습니다. (PDF 생성 조건 미충족)")
                     elif not image_conversion_possible: st.warning("견적서 이미지를 생성할 수 없습니다. (이미지 변환 모듈 또는 라이브러리 문제)")
                     
@@ -587,5 +600,7 @@ def render_tab3():
         except Exception as calc_err_outer_display:
             st.error(f"최종 견적 표시 중 외부 오류 발생: {calc_err_outer_display}")
             traceback.print_exc()
-    elif not validation_messages :
+    # validation_messages가 있을 경우, 해당 경고가 이미 위에서 표시되었으므로 추가 메시지 불필요
+    # 단, 차량 미선택이면서 다른 validation_messages가 없는 경우 (예: 처음 로드 시)는 메시지를 보여줄 수 있음
+    elif not final_selected_vehicle_for_calc and not validation_messages:
          st.info("차량을 선택하고 필수 정보(주소, 층수 등)를 입력하시면 최종 견적 결과를 확인할 수 있습니다.")
