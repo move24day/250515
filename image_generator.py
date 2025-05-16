@@ -36,7 +36,7 @@ costs_yellow_box_x_align_right_val = 166
 
 FIELD_MAP = {
     "customer_name":  {"x": 175, "y": 130, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "customer_phone": {"x": 515, "y": 130, "size": 17, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "customer_phone": {"x": 415, "y": 130, "size": 17, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 680, "y": 130, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "moving_date":    {"x": 680, "y": 161, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "move_time_am_checkbox":   {"x": 708, "y": 188, "size": 15, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
