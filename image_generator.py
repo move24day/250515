@@ -22,14 +22,14 @@ FIELD_MAP = {
     # 상단 정보 (Y 좌표는 텍스트 베이스라인 기준으로 추정)
     "customer_name":  {"x": 175, "y": 132, "size": 20, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 475, "y": 132, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "quote_date":     {"x": 750, "y": 132, "size": 18, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "moving_date":    {"x": 750, "y": 160, "size": 18, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "quote_date":     {"x": 700, "y": 132, "size": 18, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "moving_date":    {"x": 700, "y": 160, "size": 18, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     
     "move_time_am_checkbox":   {"x": 705, "y": 188, "size": 16, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V"},
     "move_time_pm_checkbox":   {"x": 800, "y": 188, "size": 16, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V"},
 
-    "from_location":  {"x": 175, "y": 188, "size": 17, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 400, "line_spacing": 5},
-    "to_location":    {"x": 175, "y": 217, "size": 17, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 400, "line_spacing": 5},
+    "from_location":  {"x": 175, "y": 175, "size": 17, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 400, "line_spacing": 5},
+    "to_location":    {"x": 175, "y": 200, "size": 17, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 400, "line_spacing": 5},
     
     "from_floor":     {"x": 225, "y": 247, "size": 17, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 225, "y": 275, "size": 17, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
