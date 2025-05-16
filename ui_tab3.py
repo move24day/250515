@@ -12,16 +12,18 @@ try:
     import data
     import utils
     import calculations
-    import pdf_generator
+    import pdf_generator # PDF 다운로드 기능은 유지할 수 있음
     import excel_filler
     import email_utils
     import callbacks
     from state_manager import MOVE_TYPE_OPTIONS
+    import image_generator # 새로 추가된 이미지 생성 모듈
 except ImportError as e:
     st.error(f"UI Tab 3: 필수 모듈 로딩 실패 - {e}")
     if hasattr(e, "name"):
         if e.name == "email_utils": st.warning("email_utils.py 로드 실패. 이메일 발송 비활성화.")
-        elif e.name == "pdf_generator": st.error("pdf_generator.py 로드 실패. PDF/이미지 생성 비활성화.")
+        elif e.name == "pdf_generator": st.warning("pdf_generator.py 로드 실패. PDF 관련 기능 제한 가능.")
+        elif e.name == "image_generator": st.error("image_generator.py 로드 실패! 양식 기반 이미지 생성 비활성화.")
     if "MOVE_TYPE_OPTIONS" not in globals():
         MOVE_TYPE_OPTIONS = ["가정 이사 🏠", "사무실 이사 🏢"]
     if not all(module_name in globals() for module_name in ["data", "utils", "calculations", "callbacks", "state_manager"]):
@@ -63,7 +65,6 @@ def get_validation_warnings(state):
     if not to_floor:
         warnings.append("도착지 층수 정보가 입력되지 않았습니다. '고객 정보' 탭에서 입력해주세요.")
 
-    # 견적 계산용 차량 선택 확인
     final_selected_vehicle_for_calc = state.get('final_selected_vehicle')
     if not final_selected_vehicle_for_calc:
         warnings.append("견적 계산용 차량 종류가 선택되지 않았습니다. '차량 선택' 섹션에서 차량을 선택해주세요.")
@@ -72,13 +73,12 @@ def get_validation_warnings(state):
     if not to_location:
         warnings.append("도착지 주소 정보가 입력되지 않았습니다. '고객 정보' 탭에서 입력해주세요.")
 
-    # 실제 투입 차량 입력 확인 (견적 계산용 차량이 선택된 경우에만 이 경고가 의미 있음)
-    if final_selected_vehicle_for_calc: # 견적 계산용 차량이 있어야 실제 투입 차량을 따지는게 의미있음
+    if final_selected_vehicle_for_calc:
         dispatched_1t = state.get('dispatched_1t', 0)
         dispatched_2_5t = state.get('dispatched_2_5t', 0)
         dispatched_3_5t = state.get('dispatched_3_5t', 0)
         dispatched_5t = state.get('dispatched_5t', 0)
-        total_dispatched_trucks = dispatched_1t + dispatched_2_5t + dispatched_3_5t + dispatched_5t
+        total_dispatched_trucks = (dispatched_1t or 0) + (dispatched_2_5t or 0) + (dispatched_3_5t or 0) + (dispatched_5t or 0)
         if total_dispatched_trucks == 0:
             warnings.append("실제 투입 차량 대수가 입력되지 않았습니다. '실제 투입 차량' 섹션에서 각 톤수별 차량 대수를 입력해주세요.")
             
@@ -116,7 +116,7 @@ def render_tab3():
     st.divider()
 
     with st.container(border=True):
-        st.subheader("🚚 차량 선택 (견적 계산용)") # 제목 수정하여 명확화
+        st.subheader("🚚 차량 선택 (견적 계산용)")
         col_v1_widget, col_v2_widget = st.columns([1, 2])
         with col_v1_widget:
             st.radio("차량 선택 방식:", ["자동 추천 차량 사용", "수동으로 차량 선택"], key="vehicle_select_radio", on_change=update_basket_quantities_callback)
@@ -202,13 +202,13 @@ def render_tab3():
         col_add1.number_input("추가 남성 인원 👨", min_value=0, step=1, key="add_men")
         col_add2.number_input("추가 여성 인원 👩", min_value=0, step=1, key="add_women")
         st.write("")
-        st.subheader("🚚 실제 투입 차량 (견적서 및 내부 기록용)") # 제목 수정
+        st.subheader("🚚 실제 투입 차량 (견적서 및 내부 기록용)")
         dispatched_cols = st.columns(4)
         dispatched_cols[0].number_input("1톤", min_value=0, step=1, key="dispatched_1t")
         dispatched_cols[1].number_input("2.5톤", min_value=0, step=1, key="dispatched_2_5t")
         dispatched_cols[2].number_input("3.5톤", min_value=0, step=1, key="dispatched_3_5t")
         dispatched_cols[3].number_input("5톤", min_value=0, step=1, key="dispatched_5t")
-        st.caption("실제 현장에 투입될 차량 대수를 입력합니다. (견적 계산 자체에는 직접 영향 없음)") # 설명 수정
+        st.caption("실제 현장에 투입될 차량 대수를 입력합니다.")
         st.write("")
 
         show_remove_housewife_option = False
@@ -286,13 +286,11 @@ def render_tab3():
         st.markdown(warning_html, unsafe_allow_html=True)
 
     st.header("💵 최종 견적 결과")
-    final_selected_vehicle_for_calc = st.session_state.get("final_selected_vehicle") # 견적 계산용 차량
+    final_selected_vehicle_for_calc = st.session_state.get("final_selected_vehicle")
     total_cost_display, cost_items_display, personnel_info_display, has_cost_error = 0, [], {}, False
 
-    # 견적 계산용 차량이 선택되지 않았고, 다른 유효성 검사 메시지도 없을 때만 안내 메시지 표시
     if not final_selected_vehicle_for_calc and not validation_messages:
         st.info("차량을 선택하고 필수 정보(주소, 층수 등)를 입력하시면 최종 견적 결과를 확인할 수 있습니다.")
-    # 견적 계산용 차량이 선택된 경우에만 비용 계산 및 결과 표시 로직 진행
     elif final_selected_vehicle_for_calc:
         try:
             if st.session_state.get("is_storage_move"):
@@ -484,7 +482,7 @@ def render_tab3():
                     st.error(f"❌ 요약 정보 생성 중 오류: {e_summary_direct}"); traceback.print_exc()
                     st.info("ℹ️ 요약 정보 표시 불가 (데이터 오류).")
             elif not final_selected_vehicle_for_calc:
-                if not validation_messages or not any("차량 종류가 선택되지 않았습니다" in msg for msg in validation_messages): # 수정된 부분
+                if not validation_messages or not any("차량 종류가 선택되지 않았습니다" in msg for msg in validation_messages):
                     st.info("ℹ️ 견적 계산용 차량 미선택으로 요약 정보 표시 불가.")
             
             st.divider()
@@ -499,7 +497,7 @@ def render_tab3():
             cols_actions_main = st.columns(2)
             cols_actions_email = st.columns(1)
 
-            with cols_actions_main[0]:
+            with cols_actions_main[0]: # PDF 다운로드 (기존 pdf_generator 사용)
                 st.markdown("**① 고객용 견적서 (PDF)**")
                 pdf_possible = hasattr(pdf_generator, "generate_pdf") and can_generate_anything
                 if pdf_possible:
@@ -520,19 +518,20 @@ def render_tab3():
                 elif not can_generate_anything: st.caption("견적 내용 확인 필요")
                 else: st.caption("PDF 생성 불가")
 
-            with cols_actions_main[1]:
-                st.markdown("**② 견적서 파일 생성 (Excel, 이미지)**")
+            with cols_actions_main[1]: # Excel 다운로드 및 양식 기반 이미지 생성
+                st.markdown("**② 파일 생성 (Excel, 양식 이미지)**")
                 excel_possible = hasattr(excel_filler, "fill_final_excel_template") and bool(final_selected_vehicle_for_calc)
-                pdf_possible_for_image = hasattr(pdf_generator, "generate_pdf") and can_generate_anything
-                image_conversion_possible = hasattr(pdf_generator, "generate_quote_image_from_pdf") and pdf_generator._PDF2IMAGE_AVAILABLE and pdf_generator._PILLOW_AVAILABLE
+                form_image_possible = hasattr(image_generator, "create_quote_image") and can_generate_anything
 
-                if st.button("📊 Excel 및 견적 이미지 생성", key="generate_excel_and_image_main", disabled=actions_disabled):
+                if st.button("📊 Excel 및 양식 이미지 생성", key="generate_excel_and_form_image", disabled=actions_disabled):
                     actions_success_excel = False
-                    actions_success_image = False
+                    actions_success_form_image = False
+                    
+                    # Excel 생성
                     if excel_possible:
-                        latest_total_cost_excel, latest_cost_items_excel, latest_personnel_info_excel = calculations.calculate_total_moving_cost(st.session_state.to_dict())
+                        _total_cost_excel, _cost_items_excel, _personnel_info_excel = calculations.calculate_total_moving_cost(st.session_state.to_dict())
                         with st.spinner("Excel 파일 생성 중..."):
-                            filled_excel_data_dl = excel_filler.fill_final_excel_template(st.session_state.to_dict(), latest_cost_items_excel, latest_total_cost_excel, latest_personnel_info_excel)
+                            filled_excel_data_dl = excel_filler.fill_final_excel_template(st.session_state.to_dict(), _cost_items_excel, _total_cost_excel, _personnel_info_excel)
                         if filled_excel_data_dl:
                             st.session_state['final_excel_data_for_download'] = filled_excel_data_dl
                             st.success("✅ Excel 생성 완료!")
@@ -542,48 +541,55 @@ def render_tab3():
                             if 'final_excel_data_for_download' in st.session_state: del st.session_state['final_excel_data_for_download']
                     else: st.warning("Excel을 생성할 수 없습니다. (조건 미충족)")
 
-                    if pdf_possible_for_image and image_conversion_possible:
-                        pdf_args_img = {"state_data": st.session_state.to_dict(), "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []), "total_cost": st.session_state.get("total_cost_for_pdf", 0), "personnel_info": st.session_state.get("personnel_info_for_pdf", {})}
-                        with st.spinner("견적서 PDF 생성 중 (이미지용)..."): pdf_bytes_img = pdf_generator.generate_pdf(**pdf_args_img)
-                        if pdf_bytes_img:
-                            with st.spinner("PDF를 이미지로 변환 중..."): image_bytes_converted = pdf_generator.generate_quote_image_from_pdf(pdf_bytes_img, poppler_path=None, image_format='JPEG')
-                            if image_bytes_converted:
-                                st.session_state['quote_image_data_for_download'] = image_bytes_converted
-                                st.success("✅ 견적서 이미지 변환 완료!")
-                                actions_success_image = True
-                            else: 
-                                st.error("❌ 견적서 이미지 변환 실패.")
-                                if 'quote_image_data_for_download' in st.session_state: del st.session_state['quote_image_data_for_download']
-                        else: 
-                            st.error("❌ 견적서 PDF 생성 실패 (이미지용).")
-                            if 'quote_image_data_for_download' in st.session_state: del st.session_state['quote_image_data_for_download']
-                    elif not pdf_possible_for_image: st.warning("견적서 이미지를 생성할 수 없습니다. (PDF 생성 조건 미충족)")
-                    elif not image_conversion_possible: st.warning("견적서 이미지를 생성할 수 없습니다. (이미지 변환 모듈 또는 라이브러리 문제)")
+                    # 양식 기반 이미지 생성 (image_generator.py 사용)
+                    if form_image_possible:
+                        _total_cost_img, _cost_items_img, _personnel_info_img = calculations.calculate_total_moving_cost(st.session_state.to_dict())
+                        with st.spinner("양식 기반 견적 이미지 생성 중..."):
+                            generated_image_bytes = image_generator.create_quote_image(
+                                st.session_state.to_dict(),
+                                _cost_items_img,
+                                _total_cost_img,
+                                _personnel_info_img
+                            )
+                        if generated_image_bytes:
+                            st.session_state['quote_form_image_data_for_download'] = generated_image_bytes # 다른 키 사용
+                            st.success("✅ 양식 기반 견적 이미지 생성 완료!")
+                            actions_success_form_image = True
+                        else:
+                            st.error("❌ 양식 기반 견적 이미지 생성 실패.")
+                            if 'quote_form_image_data_for_download' in st.session_state: del st.session_state['quote_form_image_data_for_download']
+                    elif not hasattr(image_generator, 'create_quote_image'):
+                         st.warning("이미지 생성 모듈(image_generator.py)을 찾을 수 없습니다.")
+                    else: # can_generate_anything is False
+                         st.warning("이미지 생성을 위한 충분한 견적 정보가 없습니다.")
                     
-                    if not actions_success_excel and not actions_success_image : st.error("Excel과 이미지 파일 생성 모두 실패했습니다.")
+                    if not actions_success_excel and not actions_success_form_image : st.error("Excel과 양식 이미지 파일 생성 모두 실패했습니다.")
                     elif not actions_success_excel : st.warning("Excel 파일 생성에 실패했습니다.")
-                    elif not actions_success_image : st.warning("견적서 이미지 생성에 실패했습니다.")
+                    elif not actions_success_form_image : st.warning("양식 이미지 생성에 실패했습니다.")
 
+                # 다운로드 버튼들
                 if st.session_state.get('final_excel_data_for_download') and excel_possible:
-                    fname_excel_dl = f"최종견적서_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.xlsx"
+                    fname_excel_dl = f"견적서_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.xlsx" # 파일명 변경 가능
                     st.download_button(label="📥 다운로드 (Excel)", data=st.session_state['final_excel_data_for_download'], file_name=fname_excel_dl, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key='dl_btn_excel_final_section', disabled=actions_disabled)
-                elif excel_possible : st.caption("파일 생성 버튼을 눌러 Excel 파일을 준비하세요.")
+                elif excel_possible : st.caption("생성 버튼을 눌러 Excel 파일을 준비하세요.")
                 else: st.caption("Excel 생성 불가 (견적 내용 또는 모듈 확인)")
 
-                if st.session_state.get('quote_image_data_for_download') and pdf_possible_for_image and image_conversion_possible:
-                    image_format_ext = 'jpg'
-                    fname_image_dl = f"견적서이미지_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.{image_format_ext}"
-                    st.download_button(label=f"🖼️ 다운로드 (견적서 이미지 .{image_format_ext})", data=st.session_state['quote_image_data_for_download'], file_name=fname_image_dl, mime=f"image/{image_format_ext.lower()}", key='dl_btn_quote_image_final_section', disabled=actions_disabled)
-                elif pdf_possible_for_image and image_conversion_possible: st.caption("파일 생성 버튼을 눌러 견적서 이미지를 준비하세요.")
-                else: st.caption("견적서 이미지 생성 불가 (견적 내용 또는 PDF/이미지 변환 모듈 확인)")
+                if st.session_state.get('quote_form_image_data_for_download') and form_image_possible:
+                    fname_form_image_dl = f"양식견적서_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.png" # PNG로 저장 가정
+                    st.download_button(label="🖼️ 다운로드 (양식 이미지)", data=st.session_state['quote_form_image_data_for_download'], file_name=fname_form_image_dl, mime="image/png", key='dl_btn_quote_form_image', disabled=actions_disabled)
+                elif form_image_possible: st.caption("생성 버튼을 눌러 양식 이미지를 준비하세요.")
+                else: st.caption("양식 이미지 생성 불가 (견적 내용 또는 모듈 확인)")
+
 
             with cols_actions_email[0]:
-                st.markdown("**③ 견적서 이메일 발송 (PDF 첨부)**")
+                st.markdown("**③ 견적서 이메일 발송 (PDF 첨부)**") # PDF 기반 견적서 발송 유지
                 email_possible = (hasattr(email_utils, "send_quote_email") and hasattr(pdf_generator, "generate_pdf") and can_generate_anything and st.session_state.get("customer_email"))
                 if email_possible:
                     if st.button("📧 이메일 발송", key="email_send_button_main", disabled=actions_disabled):
                         recipient_email_send, customer_name_send = st.session_state.get("customer_email"), st.session_state.get("customer_name", "고객")
-                        pdf_args_email = {"state_data": st.session_state.to_dict(), "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []), "total_cost": st.session_state.get("total_cost_for_pdf", 0), "personnel_info": st.session_state.get("personnel_info_for_pdf", {})}
+                        # 이메일에는 pdf_generator로 생성된 PDF를 첨부
+                        _total_cost_email, _cost_items_email, _personnel_info_email = calculations.calculate_total_moving_cost(st.session_state.to_dict())
+                        pdf_args_email = {"state_data": st.session_state.to_dict(), "calculated_cost_items": _cost_items_email, "total_cost": _total_cost_email, "personnel_info": _personnel_info_email}
                         with st.spinner("이메일 발송용 PDF 생성 중..."): pdf_email_bytes_send = pdf_generator.generate_pdf(**pdf_args_email)
                         if pdf_email_bytes_send:
                             subject_send, body_send, pdf_filename_send = f"[{customer_name_send}님] 이삿날 이사 견적서입니다.", f"{customer_name_send}님,\n\n요청하신 이사 견적서를 첨부 파일로 보내드립니다.\n\n감사합니다.\n이삿날 드림", f"견적서_{customer_name_send}_{utils.get_current_kst_time_str('%Y%m%d')}.pdf"
@@ -600,7 +606,5 @@ def render_tab3():
         except Exception as calc_err_outer_display:
             st.error(f"최종 견적 표시 중 외부 오류 발생: {calc_err_outer_display}")
             traceback.print_exc()
-    # validation_messages가 있을 경우, 해당 경고가 이미 위에서 표시되었으므로 추가 메시지 불필요
-    # 단, 차량 미선택이면서 다른 validation_messages가 없는 경우 (예: 처음 로드 시)는 메시지를 보여줄 수 있음
-    elif not final_selected_vehicle_for_calc and not validation_messages:
+    elif not validation_messages :
          st.info("차량을 선택하고 필수 정보(주소, 층수 등)를 입력하시면 최종 견적 결과를 확인할 수 있습니다.")
