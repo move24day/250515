@@ -13,6 +13,18 @@ FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 TEXT_COLOR_DEFAULT = (20, 20, 20)
 TEXT_COLOR_YELLOW_BG = (0,0,0)
 
+# --- FIELD_MAP: 모든 x, y, size 값을 숫자로 명시 ---
+# (image_6e36be.png 또는 유사한 900x1000px 이미지 기준 추정치, 세밀한 조정 필요)
+# 품목 Y 좌표 계산용 변수 (FIELD_MAP 외부 또는 상단에 정의)
+item_y_start_val = 334
+item_y_spacing_val = 28.8 # 실제 이미지의 줄 간격에 맞춰 조정
+item_font_size_val = 14
+item_x_col1_val = 226
+item_x_col2_baskets_val = 491
+item_x_col2_others_val = 521
+item_x_col3_val = 806
+
+
 FIELD_MAP = {
     "customer_name":  {"x": 175, "y": 130, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 415, "y": 130, "size": 18, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -28,57 +40,49 @@ FIELD_MAP = {
     "workers_male":   {"x": 858, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 858, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "item_y_start": 334, 
-    "item_y_spacing": 28.8, 
-    "item_x_col1": 226,
-    "item_x_col2_baskets": 491, 
-    "item_x_col2_others": 521,  
-    "item_x_col3": 806,
-    "item_font_size": 14,
-
-    "item_jangrong":    {"x": 226, "y": 334, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 변수 사용 전 값으로 유지
-    "item_double_bed":  {"x": 226, "y": int(334 + 28.8*1), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_5dan": {"x": 226, "y": int(334 + 28.8*2), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_3dan": {"x": 226, "y": int(334 + 28.8*3), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_fridge_4door":{"x": 226, "y": int(334 + 28.8*4), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_normal": {"x": 226, "y": int(334 + 28.8*5), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_stand": {"x": 226, "y": int(334 + 28.8*6), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": 226, "y": int(334 + 28.8*7), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_1seater":{"x": 226, "y": int(334 + 28.8*8), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_dining_table":{"x": 226, "y": int(334 + 28.8*9), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_left":     {"x": 226, "y": int(334 + 28.8*10), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": 226, "y": int(334 + 28.8*11), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_digital": {"x": 226, "y": int(334 + 28.8*12), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_washing_machine": {"x": 226, "y": int(334 + 28.8*13), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_jangrong":    {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*0), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_3dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_fridge_4door":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*7), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_1seater":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_dining_table":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_left":     {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_digital": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_washing_machine": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*13), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
-    "item_computer":    {"x": 521, "y": 334, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_executive_desk": {"x": 521, "y": int(334 + 28.8*1), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_desk":        {"x": 521, "y": int(334 + 28.8*2), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_bookshelf":   {"x": 521, "y": int(334 + 28.8*3), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_chair":       {"x": 521, "y": int(334 + 28.8*4), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_table":       {"x": 521, "y": int(334 + 28.8*5), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_blanket":     {"x": 521, "y": int(334 + 28.8*6), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_basket":      {"x": 491, "y": int(334 + 28.8*7), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_medium_box":  {"x": 491, "y": int(334 + 28.8*8), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_large_box":   {"x": 491, "y": int(334 + 28.8*9), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_book_box":    {"x": 491, "y": int(334 + 28.8*10), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_plant_box":   {"x": 521, "y": int(334 + 28.8*11), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_clothes_box": {"x": 521, "y": int(334 + 28.8*12), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_duvet_box":   {"x": 521, "y": int(334 + 28.8*13), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_computer":    {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*0), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_executive_desk": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_desk":        {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_bookshelf":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_chair":       {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_table":       {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_blanket":     {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_basket":      {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*7), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_medium_box":  {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_plant_box":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_clothes_box": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_duvet_box":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*13), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
-    "item_styler":      {"x": 806, "y": 334, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_massage_chair":{"x": 806, "y": int(334 + 28.8*1), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_acoustic":{"x": 806, "y": int(334 + 28.8*2), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_copier":      {"x": 806, "y": int(334 + 28.8*3), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_45":       {"x": 806, "y": int(334 + 28.8*4), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_stand":    {"x": 806, "y": int(334 + 28.8*5), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_wall_mount_item": {"x": 806, "y": int(334 + 28.8*6), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": 806, "y": int(334 + 28.8*8), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_angle_shelf": {"x": 806, "y": int(334 + 28.8*9), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_partition":   {"x": 806, "y": int(334 + 28.8*10), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_5ton_access": {"x": 806, "y": int(334 + 28.8*11), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_right":    {"x": 806, "y": int(334 + 28.8*12), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "fee_value_next_to_ac_right": {"x": 865, "y": int(334 + 28.8*12), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    "item_styler":      {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*0), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_massage_chair":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_acoustic":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_copier":      {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_45":       {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_stand":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_wall_mount_item": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_partition":   {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "fee_value_next_to_ac_right": {"x": 865, "y": int(item_y_start_val + item_y_spacing_val*12), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
     "storage_fee":      {"x": 865, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "deposit_amount":   {"x": 865, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
@@ -91,22 +95,17 @@ ITEM_KEY_MAP = {
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door", 
     "김치냉장고(일반형)": "item_kimchi_fridge_normal", "김치냉장고(스탠드형)": "item_kimchi_fridge_stand", 
     "소파(3인용)": "item_sofa_3seater", "소파(1인용)": "item_sofa_1seater", 
-    "식탁(4인)": "item_dining_table", 
-    "에어컨": "item_ac_left", 
-    "거실장": "item_living_room_cabinet", 
-    "피아노(디지털)": "item_piano_digital", "세탁기 및 건조기": "item_washing_machine",
-    "컴퓨터&모니터": "item_computer", "중역책상": "item_executive_desk", 
-    "책상&의자": "item_desk",
-    "책장": "item_bookshelf", "의자": "item_chair", "테이블": "item_table",
-    "담요": "item_blanket", "바구니": "item_basket", "중박스": "item_medium_box", 
-    "중대박스": "item_large_box", 
-    "책바구니": "item_book_box", 
-    "화분": "item_plant_box", "옷행거": "item_clothes_box",
+    "식탁(4인)": "item_dining_table", "에어컨": "item_ac_left", 
+    "거실장": "item_living_room_cabinet", "피아노(디지털)": "item_piano_digital", 
+    "세탁기 및 건조기": "item_washing_machine", "컴퓨터&모니터": "item_computer", 
+    "중역책상": "item_executive_desk", "책상&의자": "item_desk", "책장": "item_bookshelf", 
+    "의자": "item_chair", "테이블": "item_table", "담요": "item_blanket", 
+    "바구니": "item_basket", "중박스": "item_medium_box", "중대박스": "item_large_box", 
+    "책바구니": "item_book_box", "화분": "item_plant_box", "옷행거": "item_clothes_box",
     "이불박스": "item_duvet_box", "스타일러": "item_styler", "안마기": "item_massage_chair", 
     "피아노(일반)": "item_piano_acoustic", "복합기": "item_copier", "TV(45인치)": "item_tv_45", 
     "TV다이": "item_tv_stand", "벽걸이": "item_wall_mount_item", "금고": "item_safe", 
-    "앵글": "item_angle_shelf", "파티션": "item_partition", 
-    "5톤진입": "item_5ton_access", 
+    "앵글": "item_angle_shelf", "파티션": "item_partition", "5톤진입": "item_5ton_access", 
     "에어컨 실외기": "item_ac_right",
 }
 
@@ -120,7 +119,7 @@ def get_text_dimensions(text_string, font):
             height = ascent + descent 
         except Exception: 
             if hasattr(font, 'getlength'): width = font.getlength(str(text_string))
-            else: width = len(str(text_string)) * font.size / 2 
+            else: width = len(str(text_string)) * (font.size if hasattr(font, 'size') else 10) / 2 
             ascent, descent = font.getmetrics()
             height = ascent + descent
     elif hasattr(font, 'getmask'):
@@ -306,11 +305,9 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         if hasattr(data, 'item_definitions') and current_move_type in data.item_definitions:
             item_defs_for_current_type = data.item_definitions[current_move_type]
 
-        # FIELD_MAP에 정의된 모든 아이템 키에 대해 기본값 (빈 문자열) 설정
         for key in ITEM_KEY_MAP.values():
-            if key.startswith("item_") and key not in data_to_draw : # 아직 그려질 데이터가 없는 품목칸
+            if key.startswith("item_") and key not in data_to_draw : 
                  data_to_draw[key] = ""
-
 
         for section_name, item_list_in_section in item_defs_for_current_type.items():
             if not isinstance(item_list_in_section, list): continue
@@ -328,38 +325,34 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                             try: text_val = f"{(float(qty_int) / 3.0):.1f}"
                             except: text_val = str(qty_int)
                         data_to_draw[field_map_key] = text_val
-                    # 수량이 0이어도 위에서 기본값 "" 이 설정되었으므로 별도 처리 안함
                         
     except Exception as e_item:
         print(f"Error processing item quantities for image: {e_item}")
 
-    # FIELD_MAP에 정의된 변수들을 사용하여 X, Y 좌표 계산
-    # 이 부분은 FIELD_MAP 정의 시점에 이미 숫자 값으로 확정되어야 함
-    # 아래 코드는 FIELD_MAP의 값이 문자열 "{변수}" 형태일 때를 가정한 것이나,
-    # 현재 FIELD_MAP은 이미 숫자값을 가지고 있으므로, 이 eval 부분은 필요 없음.
-    # 대신, FIELD_MAP 정의 시점에 item_y_start, item_y_spacing 등을 사용하여 계산된 값을 넣어야 함.
-    # 예시: "item_double_bed":  {"x": 226, "y": int(334 + 28.8*1), ...}
-
-    # --- FIELD_MAP에 정의된 내용 그리기 ---
-    for key, M in FIELD_MAP.items():
-        # 변수 값들을 FIELD_MAP 정의에서 직접 사용하거나, 여기서 해석
-        current_x = M["x"]
-        current_y = M["y"]
-        current_size = M["size"]
-        # 예시: if isinstance(M["x"], str) and M["x"].startswith("{"): current_x = eval(M["x"][1:-1], {}, FIELD_MAP)
+    for key, M_raw in FIELD_MAP.items():
+        # FIELD_MAP의 값이 숫자인지 확인하고 int로 변환
+        M = {}
+        for k_map, v_map in M_raw.items():
+            if k_map in ["x", "y", "size"]:
+                try:
+                    M[k_map] = int(v_map)
+                except (ValueError, TypeError): # 숫자로 변환 안되면 원래 값 사용 (예: 변수 문자열)
+                    M[k_map] = v_map # 이 경우는 eval 등으로 처리해야 하나, 지금은 숫자로 가정
+            else:
+                M[k_map] = v_map
         
         text_content = data_to_draw.get(key) 
         if key.endswith("_checkbox"): 
-            text_content = data_to_draw.get(key, M.get("text_if_false", "□")) # 기본값 □
+            text_content = data_to_draw.get(key, M.get("text_if_false", "□"))
         
         if text_content is not None and str(text_content).strip() != "": 
-            font_obj = _get_font(font_type=M.get("font", "regular"), size=int(current_size))
+            font_obj = _get_font(font_type=M.get("font", "regular"), size=M.get("size", 12))
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
             align_val = M.get("align", "left")
             max_w_val = M.get("max_width")
             line_spacing_factor = M.get("line_spacing_factor", 1.15) 
             
-            _draw_text_with_alignment(draw, str(text_content), int(current_x), int(current_y), font_obj, color_val, align_val, max_w_val, line_spacing_factor)
+            _draw_text_with_alignment(draw, str(text_content), M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
 
     img_byte_arr = io.BytesIO()
     img.save(img_byte_arr, format='PNG')
@@ -376,44 +369,43 @@ if __name__ == '__main__':
             'moving_date': date(2025, 5, 30),
             'from_location': '화양동 16-56 출발지 주소입니다 길어질 경우를 테스트합니다.', 
             'to_location': '서울시 성동구 금정로5길 10 4층 도착지 주소입니다 이것도 길어지면 어떻게 나오는지 테스트',
-            'from_floor': '3', 'to_floor': '42', # 층수 테스트
-            'final_selected_vehicle': '5톤 탑윙바디', # 차량 종류 길이 테스트
+            'from_floor': '3', 'to_floor': '42',
+            'final_selected_vehicle': '5톤 탑윙바디',
             'deposit_amount': 2300000,
             'base_move_type': "가정 이사 🏠",
             'qty_가정 이사 🏠_주요 품목_장롱': 10,
             'qty_가정 이사 🏠_주요 품목_더블침대': 1,
-            'qty_가정 이사 🏠_서랍장(5단)_서랍5단': 1, 
-            'qty_가정 이사 🏠_서랍장(3단)_서랍3단': 1, 
-            'qty_가정 이사 🏠_4도어 냉장고_냉장고4': 1, 
-            'qty_가정 이사 🏠_김치냉장고(일반형)_김냉일반': 1,
-            'qty_가정 이사 🏠_김치냉장고(스탠드형)_김냉스탠': 1,
-            'qty_가정 이사 🏠_소파(3인용)_소파3': 1,
-            'qty_가정 이사 🏠_소파(1인용)_소파1': 1,
-            'qty_가정 이사 🏠_식탁(4인)_식탁': 1,
+            'qty_가정 이사 🏠_서랍장(5단)_서랍장(5단)': 1, # ITEM_KEY_MAP 과 data.py 키 일치 필요
+            'qty_가정 이사 🏠_서랍장(3단)_서랍장(3단)': 1, # ITEM_KEY_MAP 과 data.py 키 일치 필요
+            'qty_가정 이사 🏠_4도어 냉장고_4도어 냉장고': 1,
+            'qty_가정 이사 🏠_김치냉장고(일반형)_김치냉장고(일반형)': 1,
+            'qty_가정 이사 🏠_김치냉장고(스탠드형)_김치냉장고(스탠드형)': 1,
+            'qty_가정 이사 🏠_소파(3인용)_소파(3인용)': 1,
+            'qty_가정 이사 🏠_소파(1인용)_소파(1인용)': 1,
+            'qty_가정 이사 🏠_식탁(4인)_식탁(4인)': 1,
             'qty_가정 이사 🏠_에어컨_에어컨': 1, 
             'qty_가정 이사 🏠_거실장_거실장': 1,
-            'qty_가정 이사 🏠_피아노(디지털)_피아노D': 1,
+            'qty_가정 이사 🏠_피아노(디지털)_피아노(디지털)': 1,
             'qty_가정 이사 🏠_포장 자재 📦_바구니': 35,
             'qty_가정 이사 🏠_포장 자재 📦_중박스': 20,
-            'qty_가정 이사 🏠_포장 자재 📦_중대박스': 5, # ITEM_KEY_MAP에 "중대박스" 추가됨
-            'qty_가정 이사 🏠_포장 자재 📦_책바구니': 7, # ITEM_KEY_MAP에 "책바구니"
+            'qty_가정 이사 🏠_포장 자재 📦_중대박스': 5,
+            'qty_가정 이사 🏠_포장 자재 📦_책바구니': 7, 
             'qty_가정 이사 🏠_기타_스타일러': 1,
             'qty_가정 이사 🏠_기타_안마기': 1,
-            'qty_가정 이사 🏠_기타_피아노(일반)': 1, 
+            'qty_가정 이사 🏠_기타_피아노(일반)': 1,
             'qty_가정 이사 🏠_기타_TV(45인치)': 1,
             'qty_가정 이사 🏠_기타_금고': 1,
-            'qty_가정 이사 🏠_기타_에어컨 실외기': 1, # item_ac_right와 연결
-            'move_time_option_key_in_state': '오후', 
+            'qty_가정 이사 🏠_기타_에어컨 실외기': 1,
+            # 'move_time_option_key_in_state': '오후', 
         }
-        sample_personnel_info = {'final_men': 3, 'final_women': 2}
+        sample_personnel_info = {'final_men': 3, 'final_women': 0}
         sample_calculated_cost_items = [
             ('기본 운임', 500000, ''), 
-            ('에어컨 설치 및 이전 비용', 1600000, '파손주의'), # option_ac_cost_val
+            ('에어컨 설치 및 이전 비용', 1600000, '파손주의'), 
             ('보관료', 0, ''), 
             ('조정 금액', -50000, '특별 할인')
         ]
-        # total_cost_overall: 모든 비용 (VAT, 카드수수료 등 포함)이 합산된 최종 금액
-        sample_total_cost_overall = (500000 + 1600000 + 0 - 50000) # 예시. 실제로는 VAT 등 포함되어야 함.
+        sample_total_cost_overall = 2300000 
         
         try:
             import data 
