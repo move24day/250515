@@ -6,21 +6,32 @@ from datetime import date
 import math
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png")
+BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png") # 이미지 파일명 확인
 FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
 FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 TEXT_COLOR_DEFAULT = (20, 20, 20)
 TEXT_COLOR_YELLOW_BG = (0,0,0)
 
+# 좌표 계산용 기준값 (이미지 및 요청에 따라 지속적 미세조정 필요)
 item_y_start_val = 334
 item_y_spacing_val = 28.8 
 item_font_size_val = 14
-item_x_col1_val = 226
+item_x_col1_val = 226       # 장롱, 더블침대 등 첫번째 열 X좌표
 item_x_col2_baskets_val = 491 
 item_x_col2_others_val = 521  
 item_x_col3_val = 806
-costs_x_align_right_val = 780 # 이사비용 및 하단 금액 X축 (오른쪽 정렬 기준)
+
+# 차량톤수 X 좌표: 층수 X (180) 보다 왼쪽 (예: 120)
+vehicle_x_val = 120 
+# 차량톤수 Y 좌표: 도착지 층수 Y (275) 아래 (예: 275 + 28.8 = 303.8)
+vehicle_y_val = int(275 + item_y_spacing_val) 
+
+# "이사비용" (에어컨 옆 금액) X 좌표: 장롱 X(226) - 60 = 166 (오른쪽 정렬 기준)
+fee_ac_option_x_align_right_val = 166 
+
+# 하단 노란색 비용 항목들의 X 좌표: 위와 동일하게 166 (오른쪽 정렬 기준)
+costs_yellow_box_x_align_right_val = 166
 
 
 FIELD_MAP = {
@@ -34,7 +45,7 @@ FIELD_MAP = {
     "to_location":    {"x": 175, "y": 213, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "from_floor":     {"x": 180, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "vehicle_type":   {"x": 525, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center", "max_width": 260},
+    "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 150}, # X,Y, max_width 수정
     "workers_male":   {"x": 858, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 858, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
@@ -81,12 +92,15 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
-    "fee_value_next_to_ac_right": {"x": costs_x_align_right_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    # "이사비용" (에어컨 옆 금액)의 X 좌표를 왼쪽으로 이동
+    "fee_value_next_to_ac_right": {"x": fee_ac_option_x_align_right_val, "y": int(item_y_start_val + item_y_spacing_val*13), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"}, # Y 좌표는 마지막 품목 라인과 맞춤
 
-    "storage_fee":      {"x": costs_x_align_right_val, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "deposit_amount":   {"x": costs_x_align_right_val, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "remaining_balance":{"x": costs_x_align_right_val, "y": 772, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_x_align_right_val, "y": 808, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    # 하단 노란색 비용 박스: X 좌표를 costs_yellow_box_x_align_right_val 로 변경
+    "main_fee_yellow_box": {"x": costs_yellow_box_x_align_right_val, "y": 686, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # "이사비용" 레이블 옆 실제 값
+    "storage_fee":      {"x": costs_yellow_box_x_align_right_val, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "deposit_amount":   {"x": costs_yellow_box_x_align_right_val, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "remaining_balance":{"x": costs_yellow_box_x_align_right_val, "y": 772, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "grand_total":      {"x": costs_yellow_box_x_align_right_val, "y": 808, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
 ITEM_KEY_MAP = {
@@ -105,8 +119,8 @@ ITEM_KEY_MAP = {
     "피아노(일반)": "item_piano_acoustic", "복합기": "item_copier", "TV(45인치)": "item_tv_45", 
     "TV다이": "item_tv_stand", "벽걸이": "item_wall_mount_item", "금고": "item_safe", 
     "앵글": "item_angle_shelf", "파티션": "item_partition", "5톤진입": "item_5ton_access", 
-    "에어컨 실외기": "item_ac_right", # 이 키가 data.py에도 있는지 확인
-    # "에어컨옵션": "fee_value_next_to_ac_right", # 만약 이 금액이 품목 수량에서 오는게 아니라면, create_quote_image에서 별도 처리
+    "에어컨 실외기": "item_ac_right", 
+    # "에어컨옵션": "fee_value_next_to_ac_right", # create_quote_image에서 직접 매핑
 }
 
 def get_text_dimensions(text_string, font):
@@ -265,7 +279,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 total_moving_expenses_f22 += amount
             elif label == '보관료':
                 storage_fee_j22 = amount
-            elif label == '에어컨 설치 및 이전 비용': # 실제 레이블 확인 필요
+            elif label == '에어컨 설치 및 이전 비용': 
                 option_ac_cost_val = amount
     
     deposit_amount_raw = state_data.get('deposit_amount', state_data.get('tab3_deposit_amount', 0))
@@ -281,6 +295,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "vehicle_type": vehicle_type,
         "workers_male": workers_male, "workers_female": workers_female,
         "fee_value_next_to_ac_right": _format_currency(option_ac_cost_val) if option_ac_cost_val > 0 else "",
+        "main_fee_yellow_box": _format_currency(total_moving_expenses_f22), # "이사비용" 레이블 옆
         "storage_fee": _format_currency(storage_fee_j22) if storage_fee_j22 > 0 else "0",
         "deposit_amount": _format_currency(deposit_amount),
         "remaining_balance": _format_currency(remaining_balance_num),
@@ -288,10 +303,10 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     }
     
     move_time_option_from_state = state_data.get('move_time_option_key_in_state', None) 
-    if move_time_option_from_state == '오전': # 실제 state_data 키와 값으로 변경
+    if move_time_option_from_state == '오전':
          data_to_draw["move_time_am_checkbox"] = FIELD_MAP["move_time_am_checkbox"].get("text_if_true", "V")
          data_to_draw["move_time_pm_checkbox"] = FIELD_MAP["move_time_pm_checkbox"].get("text_if_false", "□")
-    elif move_time_option_from_state == '오후': # 실제 state_data 키와 값으로 변경
+    elif move_time_option_from_state == '오후':
          data_to_draw["move_time_am_checkbox"] = FIELD_MAP["move_time_am_checkbox"].get("text_if_false", "□")
          data_to_draw["move_time_pm_checkbox"] = FIELD_MAP["move_time_pm_checkbox"].get("text_if_true", "V")
     else: 
@@ -332,8 +347,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     for key, M_raw in FIELD_MAP.items():
         M = {}
         for k_map, v_map in M_raw.items():
-            if k_map in ["x", "y", "size", "max_width"]: # 숫자여야 하는 속성들
-                try: M[k_map] = int(v_map) # 정수로 변환
+            if k_map in ["x", "y", "size", "max_width"]:
+                try: M[k_map] = int(v_map) 
                 except (ValueError, TypeError): M[k_map] = v_map 
             else: M[k_map] = v_map
         
@@ -371,8 +386,8 @@ if __name__ == '__main__':
             'base_move_type': "가정 이사 🏠",
             'qty_가정 이사 🏠_주요 품목_장롱': 10,
             'qty_가정 이사 🏠_주요 품목_더블침대': 1,
-            'qty_가정 이사 🏠_서랍장(5단)_서랍장(5단)': 1,
-            'qty_가정 이사 🏠_서랍장(3단)_서랍장(3단)': 1,
+            'qty_가정 이사 🏠_서랍장(5단)_서랍장(5단)': 1, 
+            'qty_가정 이사 🏠_서랍장(3단)_서랍장(3단)': 1, 
             'qty_가정 이사 🏠_4도어 냉장고_4도어 냉장고': 1,
             'qty_가정 이사 🏠_김치냉장고(일반형)_김치냉장고(일반형)': 1,
             'qty_가정 이사 🏠_김치냉장고(스탠드형)_김치냉장고(스탠드형)': 1,
@@ -398,17 +413,18 @@ if __name__ == '__main__':
         sample_personnel_info = {'final_men': 3, 'final_women': 0}
         sample_calculated_cost_items = [
             ('기본 운임', 500000, ''), 
-            ('에어컨 설치 및 이전 비용', 1600000, '파손주의'), 
+            ('에어컨 설치 및 이전 비용', 572000, '파손주의'), # image_6eaa25.png의 에어컨 옆 금액
             ('보관료', 0, ''), 
             ('조정 금액', -50000, '특별 할인')
         ]
-        sample_total_cost_overall = 2300000 
+        # total_cost_overall은 견적 총액
+        sample_total_cost_overall = 4082000 # image_6eaa25.png의 합계 금액
         
         try:
             import data 
             img_data = create_quote_image(sample_state_data, sample_calculated_cost_items, sample_total_cost_overall, sample_personnel_info)
             if img_data:
-                output_filename = "generated_final_quote_image_v4_user_feedback.png"
+                output_filename = "generated_final_quote_image_v5_user_feedback.png"
                 with open(output_filename, "wb") as f:
                     f.write(img_data)
                 print(f"Test image '{output_filename}' created successfully. Please check.")
