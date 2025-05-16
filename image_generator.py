@@ -21,7 +21,7 @@ TEXT_COLOR_YELLOW_BG = (0,0,0) # 노란 배경 위의 글씨는 검정색이 잘
 FIELD_MAP = {
     # 상단 정보 (Y 좌표는 텍스트 베이스라인 기준으로 추정)
     "customer_name":  {"x": 175, "y": 132, "size": 20, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "customer_phone": {"x": 475, "y": 132, "size": 20, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "customer_phone": {"x": 475, "y": 132, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 750, "y": 132, "size": 18, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "moving_date":    {"x": 750, "y": 160, "size": 18, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     
