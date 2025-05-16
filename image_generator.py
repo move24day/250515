@@ -15,90 +15,100 @@ TEXT_COLOR_YELLOW_BG = (0,0,0)
 
 # FIELD_MAP: 사용자의 피드백을 반영한 추정치 (반드시 테스트 및 미세 조정 필요!)
 FIELD_MAP = {
-    # 고객명: 기존 x=175, 폰트 +1 (예: 18->19)
-    "customer_name":  {"x": 175, "y": 130, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    # 전화번호: x=475 에서 4자리(약 60px) 왼쪽으로 -> x=415
-    "customer_phone": {"x": 415, "y": 130, "size": 18, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    # 견적일: x=750 에서 전화번호 길이(약 180px) 왼쪽으로 -> x=570 (전화번호 x=415와 간격 유지하며 조정)
-    # 전화번호 x=415, 견적일 x=750 이었으므로, 전화번호 x=415 이면 견적일 x는 대략 (750 - (475-415)) = 690
-    # 또는, 전화번호 우측에 적당한 간격을 두고 위치. 여기서는 전화번호 우측에 위치시킨다고 가정 (예: x = 415 + 전화번호너비(180) + 간격(20) = 615)
-    # 사용자 요청: "견적일도 왼쪽으로 전화번호 길이만큼" -> 기존 전화번호 위치(475)와 견적일(750) 사이 간격(275) 고려.
-    # 새 전화번호 위치(415)에서 기존 간격 유지하면 415 + 275 = 690.
-    # 또는, 견적일 자체를 전화번호 옆으로 옮기는 개념이면, 415 + (전화번호 예상너비 150~180) + 간격(20) = 약 585~615.
-    # image_6dc602.png 보면 전화번호와 견적일 사이 간격이 꽤 있음. 견적일은 오른쪽 편에 가까움.
-    # 전화번호 X:415, 견적일 X: (기존750에서 왼쪽으로 이동하되, 이사일보다 왼쪽) => 약 680 으로 잠정 설정
-    "quote_date":     {"x": 680, "y": 130, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    # 이사일: y축 살짝 내림 (예: 158 -> 160). x는 견적일과 유사하게
-    "moving_date":    {"x": 680, "y": 160, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    # 상단 정보
+    "customer_name":  {"x": 175, "y": 130, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # 폰트 +1
+    "customer_phone": {"x": 415, "y": 130, "size": 18, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # X 왼쪽으로 이동
+    "quote_date":     {"x": 680, "y": 130, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # X 왼쪽으로 이동
+    "moving_date":    {"x": 680, "y": 161, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # Y 살짝 아래로 (+3px)
     
     "move_time_am_checkbox":   {"x": 708, "y": 188, "size": 15, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
     "move_time_pm_checkbox":   {"x": 803, "y": 188, "size": 15, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
 
-    # 출발지 주소: 한칸 위로 (y: 188 -> 185)
-    "from_location":  {"x": 175, "y": 185, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    # 도착지 주소: 출발지 따라 위로 (y: 217 -> 214)
-    "to_location":    {"x": 175, "y": 214, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    
-    # 작업조건 층수: x=225 에서 3자리(약 45px) 왼쪽으로 -> x=180
-    "from_floor":     {"x": 180, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "to_floor":       {"x": 180, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "from_location":  {"x": 175, "y": 186, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1}, # Y 살짝 위로
+    "to_location":    {"x": 175, "y": 215, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1}, # Y 살짝 위로
+
+    "from_floor":     {"x": 180, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # X 왼쪽으로
+    "to_floor":       {"x": 180, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},   # X 왼쪽으로
     "vehicle_type":   {"x": 525, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center", "max_width": 260},
     "workers_male":   {"x": 858, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 858, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+    # 품목 좌표 (X: 칸 중앙, Y: 칸 중앙 텍스트 베이스라인)
+    # 첫번째 열 X: 226
+    # 두번째 열 X (바구니류): 491 (피드백 반영)
+    # 두번째 열 X (기타): 521
+    # 세번째 열 X: 806
+    # 첫번째 행 Y: 334, 각 행 간격 약 28px (image_6ddc0c.png 의 간격이 조금 더 넓어보임, 약 28~29px)
+    # Y 좌표 기준은 각 품목명 텍스트의 베이스라인으로 가정하고, 수량은 그 오른쪽에 중앙정렬.
+    # FIELD_MAP에서는 수량 칸의 중앙 X, Y를 기준으로 함.
+
     "item_jangrong":    {"x": 226, "y": 334, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_double_bed":  {"x": 226, "y": 362, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_5dan": {"x": 226, "y": 390, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_3dan": {"x": 226, "y": 418, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_fridge_4door":{"x": 226, "y": 446, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_normal": {"x": 226, "y": 474, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_stand": {"x": 226, "y": 502, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": 226, "y": 530, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_1seater":{"x": 226, "y": 558, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_dining_table":{"x": 226, "y": 586, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_left":     {"x": 226, "y": 614, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": 226, "y": 642, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_digital": {"x": 226, "y": 670, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_washing_machine": {"x": 226, "y": 698, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_double_bed":  {"x": 226, "y": 334 + 29*1, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_5dan": {"x": 226, "y": 334 + 29*2, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_3dan": {"x": 226, "y": 334 + 29*3, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_fridge_4door":{"x": 226, "y": 334 + 29*4, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_normal": {"x": 226, "y": 334 + 29*5, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_stand": {"x": 226, "y": 334 + 29*6, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_3seater":{"x": 226, "y": 334 + 29*7, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_1seater":{"x": 226, "y": 334 + 29*8, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_dining_table":{"x": 226, "y": 334 + 29*9, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_left":     {"x": 226, "y": 334 + 29*10, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": 226, "y": 334 + 29*11, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_digital": {"x": 226, "y": 334 + 29*12, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_washing_machine": {"x": 226, "y": 334 + 29*13, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
+    # 두번째 열 품목 - X 좌표 조정 (바구니류는 491, 나머지는 521 유지 또는 함께 조정)
+    # image_6ddc0c.png 에서는 담요에 35가 아닌 바구니에 35가 있음.
     "item_computer":    {"x": 521, "y": 334, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_executive_desk": {"x": 521, "y": 362, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_desk":        {"x": 521, "y": 390, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_bookshelf":   {"x": 521, "y": 418, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_chair":       {"x": 521, "y": 446, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_table":       {"x": 521, "y": 474, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_blanket":     {"x": 521, "y": 502, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    # 바구니: x=521 에서 2자리(약 30px) 왼쪽으로 -> x=491
-    "item_basket":      {"x": 491, "y": 530, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_medium_box":  {"x": 521, "y": 558, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_book_box":    {"x": 521, "y": 586, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_plant_box":   {"x": 521, "y": 614, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_clothes_box": {"x": 521, "y": 642, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_duvet_box":   {"x": 521, "y": 670, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_executive_desk": {"x": 521, "y": 334 + 29*1, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_desk":        {"x": 521, "y": 334 + 29*2, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_bookshelf":   {"x": 521, "y": 334 + 29*3, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_chair":       {"x": 521, "y": 334 + 29*4, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_table":       {"x": 521, "y": 334 + 29*5, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_blanket":     {"x": 521, "y": 334 + 29*6, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 담요는 수량 없음
+    "item_basket":      {"x": 491, "y": 334 + 29*7, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 바구니 (35), Y좌표 담요 다음으로
+    "item_medium_box":  {"x": 491, "y": 334 + 29*8, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 중박스 (20)
+    # "item_large_box" (중대박스) - 이미지에 해당 라인 없음. 만약 "책박스"가 중대박스를 의미한다면 그 위치.
+    # "책박스"는 현재 "중대박스"위치(아홉번째)에 있음
+    "item_book_box":    {"x": 491, "y": 334 + 29*9, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 책박스
+    # "화분박스"는 "책박스" 다음
+    "item_plant_box":   {"x": 521, "y": 334 + 29*10, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # X좌표 원래대로
+    "item_clothes_box": {"x": 521, "y": 334 + 29*11, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_duvet_box":   {"x": 521, "y": 334 + 29*12, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
+    # 세번째 열 품목 - X: 806
     "item_styler":      {"x": 806, "y": 334, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_massage_chair":{"x": 806, "y": 362, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_acoustic":{"x": 806, "y": 390, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_copier":      {"x": 806, "y": 418, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_45":       {"x": 806, "y": 446, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_stand":    {"x": 806, "y": 474, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_wall_mount_item": {"x": 806, "y": 502, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": 806, "y": 558, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_angle_shelf": {"x": 806, "y": 586, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_partition":   {"x": 806, "y": 614, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_5ton_access": {"x": 806, "y": 642, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_right":    {"x": 806, "y": 670, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_massage_chair":{"x": 806, "y": 334 + 29*1, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_acoustic":{"x": 806, "y": 334 + 29*2, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_copier":      {"x": 806, "y": 334 + 29*3, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_45":       {"x": 806, "y": 334 + 29*4, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_stand":    {"x": 806, "y": 334 + 29*5, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_wall_mount_item": {"x": 806, "y": 334 + 29*6, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_safe":        {"x": 806, "y": 334 + 29*8, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 복합기2 자리 건너뜀
+    "item_angle_shelf": {"x": 806, "y": 334 + 29*9, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_partition":   {"x": 806, "y": 334 + 29*10, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_5ton_access": {"x": 806, "y": 334 + 29*11, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    # "에어컨" (우측) 옆의 금액을 "이사비용"으로 간주, x 좌표 많이 왼쪽으로 (예: x=750)
+    # 이 항목은 "이사비용"이라는 레이블이 이미지에 있으므로, 그 값을 넣는 곳.
+    # image_6ddc0c.png에서 이사비용은 비어있고, 에어컨 옆에 1,600,000 이 있음.
+    # 이 1,600,000이 '특정 옵션 비용'이라면 그에 맞게 키와 값 처리.
+    # 만약 이것이 "이사비용" 레이블 옆에 와야 하는 총괄 이사비용이라면 FIELD_MAP에 "total_moving_basic_fee" 사용
+    # 여기서는 "에어컨" 품목 오른쪽에 표시되는 것으로 가정. FIELD_MAP 키: "fee_value_next_to_ac_right"
+    "fee_value_next_to_ac_right": {"x": 865, "y": 334 + 29*12, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    # 이사비용 (어떤 항목을 "이사비용"으로 지칭하는지 확인 필요)
-    # image_6dc602.png의 "에어컨" 옆 1,600,000을 "이사비용"으로 간주하고 위치 조정
-    # 기존 x=865 에서 많이 왼쪽으로 (예: x=700)
-    "fee_value_next_to_ac_right": {"x": 700, "y": 670, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "storage_fee":      {"x": 865, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "deposit_amount":   {"x": 865, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "remaining_balance":{"x": 865, "y": 772, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": 865, "y": 808, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    # 비용 부분 (노란색 배경 위의 검은색 글씨)
+    # "이사비용" (행 레이블) 자체는 이미지에 그려져 있음. 그 옆에 값을 넣는 키가 필요.
+    # 만약 "이사비용" 레이블 옆에 "total_moving_expenses_f22" 값을 넣는다면,
+    # "total_moving_fee_label_value": {"x": 865, "y": 686, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    # image_6ddc0c.png 에서는 "이사비용" 행이 비어있음.
+    
+    "storage_fee":      {"x": 865, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # 0
+    "deposit_amount":   {"x": 865, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # 2,300,000
+    "remaining_balance":{"x": 865, "y": 772, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # 2,300,000
+    "grand_total":      {"x": 865, "y": 808, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # 합계 (이전 이미지와 Y 다름)
 }
+
 
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장(5단)": "item_drawer_5dan",
