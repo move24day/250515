@@ -260,12 +260,12 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost_over
         original_jangrong_qty = utils.get_item_qty(state_data, '장롱')
         jangrong_formatted_qty = "0.0"
         try:
-            calculated_qty = original_jangrong_qty / 3.0 # 장롱은 3으로 나눈 값을 소수점 첫째 자리까지 표시
+            calculated_qty = original_jangrong_qty / 3.0
             jangrong_formatted_qty = f"{calculated_qty:.1f}"
-        except ZeroDivisionError: # 0으로 나누는 경우 (거의 발생 안 함)
+        except ZeroDivisionError:
             jangrong_formatted_qty = "0.0"
         except Exception:
-            jangrong_formatted_qty = "Error" # 오류 발생 시 "Error" 표시
+            jangrong_formatted_qty = "Error"
         ws['D8'] = jangrong_formatted_qty
 
         ws['D9'] = utils.get_item_qty(state_data, '더블침대')
@@ -278,22 +278,26 @@ def fill_final_excel_template(state_data, calculated_cost_items, total_cost_over
         ws['D16'] = utils.get_item_qty(state_data, '소파(1인용)')
         ws['D17'] = utils.get_item_qty(state_data, '식탁(4인)')
         ws['D18'] = utils.get_item_qty(state_data, '에어컨')
-        ws['D19'] = utils.get_item_qty(state_data, '장식장')
+        ws['D19'] = utils.get_item_qty(state_data, '거실장') # "장식장" -> "거실장"으로 변경
         ws['D20'] = utils.get_item_qty(state_data, '피아노(디지털)')
         ws['D21'] = utils.get_item_qty(state_data, '세탁기 및 건조기')
 
         ws['H9'] = utils.get_item_qty(state_data, '사무실책상')
         ws['H10'] = utils.get_item_qty(state_data, '책상&의자')
         ws['H11'] = utils.get_item_qty(state_data, '책장')
+        # ws['H12']에 "오디오 및 스피커" 또는 "컴퓨터&모니터"가 있었다면 해당 라인 수정 또는 추가
+        # 예시: 엑셀 템플릿의 H12 셀이 "컴퓨터/모니터" 수량 칸이라면
+        ws['H12'] = utils.get_item_qty(state_data, '컴퓨터&모니터') # "오디오 및 스피커" 대신 사용
+
         ws['H15'] = utils.get_item_qty(state_data, '바구니')
-        ws['H16'] = utils.get_item_qty(state_data, '중박스') # data.py 정의에 따라 '중자바구니' 또는 '중박스' 확인
+        ws['H16'] = utils.get_item_qty(state_data, '중박스')
         ws['H19'] = utils.get_item_qty(state_data, '화분')
         ws['H20'] = utils.get_item_qty(state_data, '책바구니')
 
         ws['L8'] = utils.get_item_qty(state_data, '스타일러')
         ws['L9'] = utils.get_item_qty(state_data, '안마기')
         ws['L10'] = utils.get_item_qty(state_data, '피아노(일반)')
-        ws['L12'] = get_tv_qty(state_data) # 수정된 get_tv_qty 호출 (모든 TV 합산)
+        ws['L12'] = get_tv_qty(state_data)
         ws['L16'] = utils.get_item_qty(state_data, '금고')
         ws['L17'] = utils.get_item_qty(state_data, '앵글')
 
