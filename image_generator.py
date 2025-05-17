@@ -5,7 +5,7 @@ import io
 from datetime import date
 import math
 import traceback
-import re # 차량 톤수 숫자만 추출하기 위해 추가
+import re
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png")
@@ -24,18 +24,16 @@ item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
 item_x_col3_val = 756
 
-original_vehicle_y_val = int(275 + item_y_spacing_val) # 약 304
-# 차량톤수 Y 좌표: 기존 vehicle_y_val에서 반 칸 위로
-vehicle_y_val = original_vehicle_y_val - (item_y_spacing_val / 2) # 304 - 14.4 = 289.6
+original_vehicle_y_val = int(275 + item_y_spacing_val)
+vehicle_y_val = original_vehicle_y_val - (item_y_spacing_val / 2)
 vehicle_x_val = 90
 
+costs_section_x_align_right_val = 326 # 이사비용, 총액, 사다리 금액 등 오른쪽 정렬 기준 X
 
-costs_section_x_align_right_val = 326
-# 사다리 레이블 X 좌표: "금액 앞 5칸" -> 금액 정렬 X 기준(326)에서 왼쪽으로 (5칸 * 칸당너비) 만큼 이동
-# 한 칸의 너비를 대략 20픽셀로 가정 (조정 필요)
-칸당너비_가정 = 20
-사다리_레이블_앞_칸수 = 5
-ladder_label_x_start_offset = costs_section_x_align_right_val - (사다리_레이블_앞_칸수 * 칸당너비_가정) # 예: 326 - 100 = 226
+# 사다리 레이블 X 좌표: 금액 표시 X(326) 보다 "5칸" 왼쪽 (칸당 20픽셀 가정)
+칸당너비_사다리_레이블 = 20 # 조정 가능
+칸수_사다리_레이블_오프셋 = 5
+ladder_label_x_val = costs_section_x_align_right_val - (칸수_사다리_레이블_오프셋 * 칸당너비_사다리_레이블) # 326 - 100 = 226
 
 # --- 동적 좌표 계산 ---
 _y_living_room_cabinet_orig = 677
@@ -46,36 +44,35 @@ _y_grand_total_orig = 861 # 이전 합계금액 Y
 from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
 to_ladder_y_val = from_ladder_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
-_x_item_book_box_orig = item_x_col2_baskets_val
-_x_item_safe_orig = item_x_col3_val
-_center_x_for_fees = int((_x_item_book_box_orig + _x_item_safe_orig) / 2)
-offset_for_fees_x = -30
-fees_x_val_right_aligned = _center_x_for_fees + offset_for_fees_x # 594. 이 X를 오른쪽 정렬 기준으로 사용.
+# 보관료, 계약금, 잔금 X 좌표:
+# "왼쪽으로 두 칸 이동 후 다시 오른쪽으로 온 만큼 이동" -> 결과적으로 원래의 오른쪽 정렬 영역.
+# 여기서는 이사비용/합계금액과 동일한 오른쪽 정렬 기준 X 값을 사용하거나, 약간의 오프셋을 줄 수 있음.
+# costs_section_x_align_right_val (326)을 기준으로 오른쪽 정렬.
+# 만약 약간 다른 위치를 원하면, 예: fees_x_val_right_aligned = costs_section_x_align_right_val - 20 (더 왼쪽으로)
+fees_x_val_right_aligned = costs_section_x_align_right_val # 이사비용/합계와 동일한 X에서 오른쪽 정렬
 
 deposit_y_val = from_ladder_y_val # 805
 storage_fee_y_val = _y_main_fee_yellow_box_orig # 775
-# 잔금 Y: 계약금 Y + 한 칸 아래
-remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
+remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 계약금 Y + 한 칸 아래 (805 + 28.8 = 833.8)
 
-# 합계금액 Y: 기존 Y에서 4만큼 아래로
 grand_total_y_new = _y_grand_total_orig + 4 # 861 + 4 = 865
 
 def get_adjusted_font_size(original_size_ignored, field_key):
     if field_key == "customer_name": return BASE_FONT_SIZE
-    if field_key == "customer_phone": return BASE_FONT_SIZE - 2 # 전화번호 폰트 2개 작게 (18-2 = 16)
+    if field_key == "customer_phone": return BASE_FONT_SIZE - 2 # 16
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
-    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
+    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2 # 20
     if field_key in ["fee_value_next_to_ac_right"]: return 14
     if field_key in ["from_ladder_label", "to_ladder_label",
                      "from_ladder_fee_value", "to_ladder_fee_value",
                      "deposit_amount_display", "storage_fee_display"]:
-        return BASE_FONT_SIZE # 이전 BASE_FONT_SIZE 사용 (18)
+        return BASE_FONT_SIZE # 18
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # 폰트 크기 조정됨
+    "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "moving_date":    {"x": 640, "y": 161, "size": get_adjusted_font_size(0, "moving_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "move_time_am_checkbox":   {"x": 708, "y": 188, "size": get_adjusted_font_size(0, "move_time_am_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
@@ -84,7 +81,7 @@ FIELD_MAP = {
     "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "from_floor":     {"x": 180, "y": 226, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": 258, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "vehicle_type":   {"x": vehicle_x_val, "y": int(vehicle_y_val), "size": get_adjusted_font_size(0, "vehicle_type"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)}, # Y 좌표 반칸 위로
+    "vehicle_type":   {"x": vehicle_x_val, "y": int(vehicle_y_val), "size": get_adjusted_font_size(0, "vehicle_type"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)},
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
@@ -133,12 +130,12 @@ FIELD_MAP = {
 
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # Y 좌표 수정됨
+    "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 
-    "from_ladder_label":  {"x": ladder_label_x_start_offset, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
+    "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
     "from_ladder_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "to_ladder_label":    {"x": ladder_label_x_start_offset, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"},
+    "to_ladder_label":    {"x": ladder_label_x_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"},
     "to_ladder_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
@@ -259,7 +256,7 @@ def _format_currency(amount_val):
     try:
         num_val = float(str(amount_val).replace(",", "").strip())
         num = int(num_val)
-        return f"{num:,}"
+        return f"{num:,}" # 0원도 "0"으로 표시됨
     except ValueError:
         return str(amount_val)
 
@@ -293,16 +290,14 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     from_floor = str(state_data.get('from_floor', ''))
     to_floor = str(state_data.get('to_floor', ''))
     
-    # 차량 톤수에서 숫자만 추출
     selected_vehicle_raw = state_data.get('final_selected_vehicle', '')
     vehicle_tonnage_display = ""
     if isinstance(selected_vehicle_raw, str):
-        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_raw)
+        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_raw) # 숫자 및 소수점 추출
         if match:
             vehicle_tonnage_display = match.group(1)
-    elif isinstance(selected_vehicle_raw, (int, float)): # 혹시 숫자형으로 저장된 경우
+    elif isinstance(selected_vehicle_raw, (int, float)):
         vehicle_tonnage_display = str(selected_vehicle_raw)
-
 
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
@@ -344,7 +339,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     data_to_draw = {
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
-        "from_floor": from_floor, "to_floor": to_floor, "vehicle_type": vehicle_tonnage_display, # 숫자만 표시
+        "from_floor": from_floor, "to_floor": to_floor, "vehicle_type": vehicle_tonnage_display,
         "workers_male": workers_male, "workers_female": workers_female,
         "fee_value_next_to_ac_right": _format_currency(option_ac_cost_val),
         "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
@@ -448,12 +443,12 @@ if __name__ == '__main__':
          print(f"Ensure {FONT_PATH_REGULAR} and {BACKGROUND_IMAGE_PATH} (and optionally {FONT_PATH_BOLD}) exist for test.")
     else:
         sample_state_data = {
-            'customer_name': '김테스트 고객님', 'customer_phone': '010-1234-5678', # 전화번호 폰트 크기 조정됨
+            'customer_name': '김테스트 고객님', 'customer_phone': '010-1234-5678',
             'moving_date': date(2025, 6, 15),
             'from_location': '서울시 강남구 테헤란로 123, 출발아파트 101동 701호 (출발동)',
             'to_location': '경기도 성남시 분당구 판교역로 456, 도착빌라 202동 1001호 (도착동)',
             'from_floor': '7', 'to_floor': '10',
-            'final_selected_vehicle': '5톤 탑차', # '톤' 글자 제거되어 '5'만 표시, Y 위치 반칸 위로
+            'final_selected_vehicle': '5톤 탑차',
             'deposit_amount': 100000,
             'base_move_type': "가정 이사 🏠",
             'qty_가정 이사 🏠_주요 품목_장롱': 9,
@@ -487,7 +482,7 @@ if __name__ == '__main__':
         try:
             img_data = create_quote_image(sample_state_data, sample_calculated_cost_items, sample_total_cost_overall, sample_personnel_info)
             if img_data:
-                output_filename = "수정된_견적서_이미지_최종_v4.png"
+                output_filename = "수정된_견적서_이미지_최종_v5.png"
                 with open(output_filename, "wb") as f:
                     f.write(img_data)
                 print(f"Test image '{output_filename}' created successfully. Please check.")
