@@ -18,9 +18,9 @@ item_y_start_val = 334
 item_y_spacing_val = 28.8 
 item_font_size_val = 15 
 item_x_col1_val = 226       
-item_x_col2_baskets_val = 491 
-item_x_col2_others_val = 521  
-item_x_col3_val = 806
+item_x_col2_baskets_val = 451 
+item_x_col2_others_val = 421  
+item_x_col3_val = 506
 
 # 차량톤수 X 좌표: 층수 X (180) 보다 왼쪽 (예: 90)
 vehicle_x_val = 90 
