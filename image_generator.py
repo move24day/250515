@@ -12,140 +12,149 @@ FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
 FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 TEXT_COLOR_DEFAULT = (20, 20, 20)
-TEXT_COLOR_YELLOW_BG = (0,0,0) # 금액 표시용
+TEXT_COLOR_YELLOW_BG = (0,0,0) # 금액 표시용 (노란 배경 위에 검은 글씨)
 
-BASE_FONT_SIZE = 18
+BASE_FONT_SIZE = 18 # 이름 폰트에 맞춘 기본 폰트 크기
 item_y_start_val = 334
-item_y_spacing_val = 28.8
-item_font_size_val = 15 # 품목 수량 폰트 크기
+item_y_spacing_val = 28.8 # 항목 간 기본 Y 간격
+item_font_size_val = 15    # 품목 수량 폰트 크기 (가독성 위해 별도 유지)
 item_x_col1_val = 226
 item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
 item_x_col3_val = 756
 
 vehicle_x_val = 90
-vehicle_y_val = int(275 + item_y_spacing_val)
+vehicle_y_val = int(275 + item_y_spacing_val) # 대략 304
 
-costs_section_x_align_right_val = 326
-ladder_label_x_val = 180
+costs_section_x_align_right_val = 326 # 이사비용, 총액, 사다리 금액 등 오른쪽 정렬 기준 X
+ladder_label_x_val = 180 # "출발사다리", "도착사다리" 레이블 왼쪽 시작 X (이사비용 금액 X 보다 왼쪽)
 
 # --- 동적 좌표 계산 ---
-_y_living_room_cabinet_orig = 677
-_y_sofa_3seater_orig = 549
-_y_main_fee_yellow_box_orig = 775
+_y_living_room_cabinet_orig = 677 # 거실장 Y (이전 FIELD_MAP 기준)
+_y_sofa_3seater_orig = 549      # 소파3 Y (이전 FIELD_MAP 기준)
+_y_main_fee_yellow_box_orig = 775 # 이사비용(노란박스) Y (이전 FIELD_MAP 기준)
 
+# 출발지 사다리 Y 좌표
 from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
+
+# 도착지 사다리 Y 좌표
 to_ladder_y_val = from_ladder_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
 # 계약금, 보관료, 잔금 X 좌표 (기존 중앙값에서 왼쪽으로 이동)
-_x_item_book_box_orig = item_x_col2_baskets_val
-_x_item_safe_orig = item_x_col3_val
-_center_x_for_fees = int((_x_item_book_box_orig + _x_item_safe_orig) / 2) # 624
-# "왼쪽으로 두 칸" -> 대략 30픽셀 이동으로 가정
-offset_for_fees_x = -30
-fees_x_val = _center_x_for_fees + offset_for_fees_x # 624 - 30 = 594
+_x_item_book_box_orig = item_x_col2_baskets_val # 491
+_x_item_safe_orig = item_x_col3_val           # 756
+_center_x_for_fees = int((_x_item_book_box_orig + _x_item_safe_orig) / 2) # 623.5
+offset_for_fees_x = -30 # 왼쪽으로 두 칸 이동량 (픽셀 단위, 조정 가능)
+fees_x_val_right_aligned = _center_x_for_fees + offset_for_fees_x # 624 - 30 = 594. 이 X를 오른쪽 정렬 기준으로 사용.
 
-deposit_y_val_new = from_ladder_y_val # 출발지 사다리와 같은 Y (805)
-storage_fee_y_val_new = _y_main_fee_yellow_box_orig # 이사비용(노란박스) Y와 동일 (775)
-# 잔금 Y: 계약금 Y + 반 칸 아래
-remaining_balance_y_val_new = deposit_y_val_new + (item_y_spacing_val / 2) # 805 + 14.4 = 819.4
+# 계약금, 보관료, 잔금 Y 좌표
+deposit_y_val = from_ladder_y_val # 805 (출발지 사다리와 동일 Y)
+storage_fee_y_val = _y_main_fee_yellow_box_orig # 775 (이사비용과 동일 Y)
+remaining_balance_y_val = deposit_y_val + (item_y_spacing_val / 2) # 805 + 14.4 = 819.4 (계약금에서 반 칸 아래)
 
-def get_adjusted_font_size(original_size, field_key):
-    if field_key == "customer_name": return BASE_FONT_SIZE
+# 폰트 크기 조정 함수
+def get_adjusted_font_size(original_size_ignored, field_key): # original_size_ignored는 이제 사용 안함
+    if field_key == "customer_name": return BASE_FONT_SIZE # 고객명
+    # 품목 수량은 가독성을 위해 기존 크기 유지
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
-    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2 # 잔금 키 변경됨
+    # 총액, 잔금은 강조
+    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2 # 20
+    # 에어컨 옆 작은 금액
     if field_key in ["fee_value_next_to_ac_right"]: return 14
-    if field_key in ["from_ladder_label", "to_ladder_label", "from_ladder_fee_value", "to_ladder_fee_value",
-                     "deposit_amount_display", "storage_fee_display"]: # 키 변경됨
-        return BASE_FONT_SIZE
-    return BASE_FONT_SIZE
+    # 사다리 레이블, 사다리 금액, 계약금액, 보관료액, 잔금액
+    if field_key in ["from_ladder_label", "to_ladder_label",
+                     "from_ladder_fee_value", "to_ladder_fee_value",
+                     "deposit_amount_display", "storage_fee_display"]: # 잔금은 위에서 처리
+        return BASE_FONT_SIZE # 18
+    return BASE_FONT_SIZE # 나머지 기본 18
 
 FIELD_MAP = {
-    # ... (고객 정보, 품목 정보 등 이전 FIELD_MAP 내용 유지 - 폰트 크기는 get_adjusted_font_size 통해 적용) ...
-    "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(19, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(16, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(16, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "moving_date":    {"x": 640, "y": 161, "size": get_adjusted_font_size(16, "moving_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "move_time_am_checkbox":   {"x": 708, "y": 188, "size": get_adjusted_font_size(15, "move_time_am_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
-    "move_time_pm_checkbox":   {"x": 803, "y": 188, "size": get_adjusted_font_size(15, "move_time_pm_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
-    "from_location":  {"x": 175, "y": 161, "size": get_adjusted_font_size(16, "from_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(16, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    "from_floor":     {"x": 180, "y": 226, "size": get_adjusted_font_size(16, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "to_floor":       {"x": 180, "y": 258, "size": get_adjusted_font_size(16, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": get_adjusted_font_size(16, "vehicle_type"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)},
-    "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(16, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(16, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "moving_date":    {"x": 640, "y": 161, "size": get_adjusted_font_size(0, "moving_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "move_time_am_checkbox":   {"x": 708, "y": 188, "size": get_adjusted_font_size(0, "move_time_am_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
+    "move_time_pm_checkbox":   {"x": 803, "y": 188, "size": get_adjusted_font_size(0, "move_time_pm_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
+    "from_location":  {"x": 175, "y": 161, "size": get_adjusted_font_size(0, "from_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
+    "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
+    "from_floor":     {"x": 180, "y": 226, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "to_floor":       {"x": 180, "y": 258, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": get_adjusted_font_size(0, "vehicle_type"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)},
+    "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": get_adjusted_font_size(item_font_size_val, "item_jangrong"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": get_adjusted_font_size(item_font_size_val, "item_double_bed"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_5dan": {"x": item_x_col1_val, "y": 392, "size": get_adjusted_font_size(item_font_size_val, "item_drawer_5dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_3dan": {"x": item_x_col1_val, "y": 421, "size": get_adjusted_font_size(item_font_size_val, "item_drawer_3dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_fridge_4door":{"x": item_x_col1_val, "y": 455, "size": get_adjusted_font_size(item_font_size_val, "item_fridge_4door"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": 488, "size": get_adjusted_font_size(item_font_size_val, "item_kimchi_fridge_normal"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 518, "size": get_adjusted_font_size(item_font_size_val, "item_kimchi_fridge_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": get_adjusted_font_size(item_font_size_val, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_1seater":{"x": item_x_col1_val, "y": 581, "size": get_adjusted_font_size(item_font_size_val, "item_sofa_1seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_dining_table":{"x": item_x_col1_val, "y": 612, "size": get_adjusted_font_size(item_font_size_val, "item_dining_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_left":     {"x": item_x_col1_val, "y": 645, "size": get_adjusted_font_size(item_font_size_val, "item_ac_left"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": get_adjusted_font_size(item_font_size_val, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_digital": {"x": item_x_col1_val, "y": 708, "size": get_adjusted_font_size(item_font_size_val, "item_piano_digital"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_washing_machine": {"x": item_x_col1_val, "y": 740, "size": get_adjusted_font_size(item_font_size_val, "item_washing_machine"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    # 품목 (size는 item_font_size_val 사용)
+    "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": get_adjusted_font_size(0, "item_jangrong"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": get_adjusted_font_size(0, "item_double_bed"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_5dan": {"x": item_x_col1_val, "y": 392, "size": get_adjusted_font_size(0, "item_drawer_5dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_3dan": {"x": item_x_col1_val, "y": 421, "size": get_adjusted_font_size(0, "item_drawer_3dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_fridge_4door":{"x": item_x_col1_val, "y": 455, "size": get_adjusted_font_size(0, "item_fridge_4door"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": 488, "size": get_adjusted_font_size(0, "item_kimchi_fridge_normal"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 518, "size": get_adjusted_font_size(0, "item_kimchi_fridge_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": get_adjusted_font_size(0, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_1seater":{"x": item_x_col1_val, "y": 581, "size": get_adjusted_font_size(0, "item_sofa_1seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_dining_table":{"x": item_x_col1_val, "y": 612, "size": get_adjusted_font_size(0, "item_dining_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_left":     {"x": item_x_col1_val, "y": 645, "size": get_adjusted_font_size(0, "item_ac_left"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": get_adjusted_font_size(0, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_digital": {"x": item_x_col1_val, "y": 708, "size": get_adjusted_font_size(0, "item_piano_digital"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_washing_machine": {"x": item_x_col1_val, "y": 740, "size": get_adjusted_font_size(0, "item_washing_machine"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "item_computer":    {"x": item_x_col2_others_val, "y": 334, "size": get_adjusted_font_size(item_font_size_val, "item_computer"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_executive_desk": {"x": item_x_col2_others_val, "y": 363, "size": get_adjusted_font_size(item_font_size_val, "item_executive_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_desk":        {"x": item_x_col2_others_val, "y": 392, "size": get_adjusted_font_size(item_font_size_val, "item_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_bookshelf":   {"x": item_x_col2_others_val, "y": 421, "size": get_adjusted_font_size(item_font_size_val, "item_bookshelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_chair":       {"x": item_x_col2_others_val, "y": 450, "size": get_adjusted_font_size(item_font_size_val, "item_chair"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_table":       {"x": item_x_col2_others_val, "y": 479, "size": get_adjusted_font_size(item_font_size_val, "item_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_blanket":     {"x": item_x_col2_others_val, "y": 507, "size": get_adjusted_font_size(item_font_size_val, "item_blanket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": get_adjusted_font_size(item_font_size_val, "item_basket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": get_adjusted_font_size(item_font_size_val, "item_medium_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_large_box":   {"x": item_x_col2_baskets_val, "y": 594, "size": get_adjusted_font_size(item_font_size_val, "item_large_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_book_box":    {"x": _x_item_book_box_orig, "y": 623, "size": get_adjusted_font_size(item_font_size_val, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_plant_box":   {"x": item_x_col2_others_val, "y": 651, "size": get_adjusted_font_size(item_font_size_val, "item_plant_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_clothes_box": {"x": item_x_col2_others_val, "y": 680, "size": get_adjusted_font_size(item_font_size_val, "item_clothes_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_duvet_box":   {"x": item_x_col2_others_val, "y": 709, "size": get_adjusted_font_size(item_font_size_val, "item_duvet_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_computer":    {"x": item_x_col2_others_val, "y": 334, "size": get_adjusted_font_size(0, "item_computer"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_executive_desk": {"x": item_x_col2_others_val, "y": 363, "size": get_adjusted_font_size(0, "item_executive_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_desk":        {"x": item_x_col2_others_val, "y": 392, "size": get_adjusted_font_size(0, "item_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_bookshelf":   {"x": item_x_col2_others_val, "y": 421, "size": get_adjusted_font_size(0, "item_bookshelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_chair":       {"x": item_x_col2_others_val, "y": 450, "size": get_adjusted_font_size(0, "item_chair"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_table":       {"x": item_x_col2_others_val, "y": 479, "size": get_adjusted_font_size(0, "item_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_blanket":     {"x": item_x_col2_others_val, "y": 507, "size": get_adjusted_font_size(0, "item_blanket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": get_adjusted_font_size(0, "item_basket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": get_adjusted_font_size(0, "item_medium_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_large_box":   {"x": item_x_col2_baskets_val, "y": 594, "size": get_adjusted_font_size(0, "item_large_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_book_box":    {"x": _x_item_book_box_orig, "y": 623, "size": get_adjusted_font_size(0, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_plant_box":   {"x": item_x_col2_others_val, "y": 651, "size": get_adjusted_font_size(0, "item_plant_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_clothes_box": {"x": item_x_col2_others_val, "y": 680, "size": get_adjusted_font_size(0, "item_clothes_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_duvet_box":   {"x": item_x_col2_others_val, "y": 709, "size": get_adjusted_font_size(0, "item_duvet_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "item_styler":      {"x": item_x_col3_val, "y": 334, "size": get_adjusted_font_size(item_font_size_val, "item_styler"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_massage_chair":{"x": item_x_col3_val, "y": 363, "size": get_adjusted_font_size(item_font_size_val, "item_massage_chair"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_acoustic":{"x": item_x_col3_val, "y": 392, "size": get_adjusted_font_size(item_font_size_val, "item_piano_acoustic"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_copier":      {"x": item_x_col3_val, "y": 421, "size": get_adjusted_font_size(item_font_size_val, "item_copier"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_45":       {"x": item_x_col3_val, "y": 450, "size": get_adjusted_font_size(item_font_size_val, "item_tv_45"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_stand":    {"x": item_x_col3_val, "y": 479, "size": get_adjusted_font_size(item_font_size_val, "item_tv_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_wall_mount_item": {"x": item_x_col3_val, "y": 507, "size": get_adjusted_font_size(item_font_size_val, "item_wall_mount_item"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": _x_item_safe_orig, "y": 590, "size": get_adjusted_font_size(item_font_size_val, "item_safe"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_angle_shelf": {"x": item_x_col3_val, "y": 620, "size": get_adjusted_font_size(item_font_size_val, "item_angle_shelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_partition":   {"x": item_x_col3_val, "y": 653, "size": get_adjusted_font_size(item_font_size_val, "item_partition"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(item_font_size_val, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(item_font_size_val, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_styler":      {"x": item_x_col3_val, "y": 334, "size": get_adjusted_font_size(0, "item_styler"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_massage_chair":{"x": item_x_col3_val, "y": 363, "size": get_adjusted_font_size(0, "item_massage_chair"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_acoustic":{"x": item_x_col3_val, "y": 392, "size": get_adjusted_font_size(0, "item_piano_acoustic"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_copier":      {"x": item_x_col3_val, "y": 421, "size": get_adjusted_font_size(0, "item_copier"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_45":       {"x": item_x_col3_val, "y": 450, "size": get_adjusted_font_size(0, "item_tv_45"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_stand":    {"x": item_x_col3_val, "y": 479, "size": get_adjusted_font_size(0, "item_tv_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_wall_mount_item": {"x": item_x_col3_val, "y": 507, "size": get_adjusted_font_size(0, "item_wall_mount_item"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_safe":        {"x": _x_item_safe_orig, "y": 590, "size": get_adjusted_font_size(0, "item_safe"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_angle_shelf": {"x": item_x_col3_val, "y": 620, "size": get_adjusted_font_size(0, "item_angle_shelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_partition":   {"x": item_x_col3_val, "y": 653, "size": get_adjusted_font_size(0, "item_partition"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(0, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(0, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     # 비용 관련 항목들
-    "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(14, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
-    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(17, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_section_x_align_right_val, "y": 861, "size": get_adjusted_font_size(22, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # 이사비용
+    "grand_total":      {"x": costs_section_x_align_right_val, "y": 861, "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},   # 총합계
 
     # 사다리 요금 (레이블 + 값)
-    "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(18, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
-    "from_ladder_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(18, "from_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
+    "from_ladder_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "to_ladder_label":    {"x": ladder_label_x_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(18, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"},
-    "to_ladder_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(18, "to_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    "to_ladder_label":    {"x": ladder_label_x_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"},
+    "to_ladder_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    # 계약금, 보관료, 잔금 (금액만 표시, 레이블 없음, X좌표 왼쪽으로 이동)
-    "deposit_amount_display":   {"x": fees_x_val, "y": int(deposit_y_val_new), "size": get_adjusted_font_size(18, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"}, # align: left 또는 center로 조정
-    "storage_fee_display":      {"x": fees_x_val, "y": int(storage_fee_y_val_new), "size": get_adjusted_font_size(18, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"},
-    "remaining_balance_display":{"x": fees_x_val, "y": int(remaining_balance_y_val_new), "size": get_adjusted_font_size(20, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"},
+    # 계약금, 보관료, 잔금 (금액만 표시, X좌표 왼쪽으로 이동, 오른쪽 정렬)
+    "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val_new), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val_new), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val_new), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
-# ITEM_KEY_MAP (이전과 동일, data.py와 일관성 중요)
+# ITEM_KEY_MAP (data.py 품목명 변경 사항 반영 필요)
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
     "김치냉장고(일반형)": "item_kimchi_fridge_normal", "김치냉장고(스탠드형)": "item_kimchi_fridge_stand",
     "소파(3인용)": "item_sofa_3seater", "소파(1인용)": "item_sofa_1seater", "식탁(4인)": "item_dining_table",
-    "에어컨": "item_ac_left", "거실장": "item_living_room_cabinet", "피아노(디지털)": "item_piano_digital",
-    "세탁기 및 건조기": "item_washing_machine", "컴퓨터&모니터": "item_computer",
+    "에어컨": "item_ac_left", "거실장": "item_living_room_cabinet", # data.py에서 "장식장"->"거실장"으로 변경했으므로 이 매핑 유효
+    "피아노(디지털)": "item_piano_digital",
+    "세탁기 및 건조기": "item_washing_machine", "컴퓨터&모니터": "item_computer", # data.py에서 "오디오.."->"컴퓨터.." 변경했으므로 이 매핑 유효
     "중역책상": "item_executive_desk", "책상&의자": "item_desk", "책장": "item_bookshelf",
     "의자": "item_chair", "테이블": "item_table", "담요": "item_blanket", "바구니": "item_basket",
     "중박스": "item_medium_box", "중대박스": "item_large_box", "책바구니": "item_book_box",
@@ -154,9 +163,10 @@ ITEM_KEY_MAP = {
     "TV(45인치)": "item_tv_45", "TV다이": "item_tv_stand", "벽걸이": "item_wall_mount_item",
     "금고": "item_safe", "앵글": "item_angle_shelf", "파티션": "item_partition",
     "5톤진입": "item_5ton_access",
+    # 누락된 품목이 있다면 data.py와 FIELD_MAP을 비교하여 추가해야 합니다.
 }
 
-# ... (get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일) ...
+# (get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전 답변과 동일하게 유지)
 def get_text_dimensions(text_string, font):
     if not text_string: return 0,0
     if hasattr(font, 'getbbox'):
@@ -250,7 +260,8 @@ def _format_currency(amount_val):
     if amount_val is None or str(amount_val).strip() == "": return ""
     try:
         num_val = float(str(amount_val).replace(",", "").strip())
-        # if num_val == 0: return "" # 0원일 때 빈칸으로 표시 (선택 사항)
+        # 0원도 금액이므로 표시하도록 변경 (빈 문자열 반환 않음)
+        # if num_val == 0: return ""
         num = int(num_val)
         return f"{num:,}"
     except ValueError:
@@ -314,10 +325,10 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 from_ladder_fee_val += amount
             elif label == '도착지 사다리차' or label == '도착지 스카이 장비':
                 to_ladder_fee_raw_val += amount
-            elif label == '지방 사다리 추가요금': # 이 이름으로 calculations.py에서 비용이 추가되어야 함
+            elif label == '지방 사다리 추가요금':
                 regional_ladder_surcharge_val += amount
 
-    final_to_ladder_fee_val = to_ladder_fee_raw_val + regional_ladder_surcharge_val # 도착지 요금에 지방 추가금 합산
+    final_to_ladder_fee_val = to_ladder_fee_raw_val + regional_ladder_surcharge_val
 
     deposit_amount_val = int(float(state_data.get('deposit_amount', 0) or 0))
     grand_total_num = int(float(total_cost_overall or 0))
@@ -334,11 +345,9 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
 
         "from_ladder_label": FIELD_MAP["from_ladder_label"]["text_override"],
         "from_ladder_fee_value": _format_currency(from_ladder_fee_val),
-
         "to_ladder_label": FIELD_MAP["to_ladder_label"]["text_override"],
         "to_ladder_fee_value": _format_currency(final_to_ladder_fee_val),
 
-        # 계약금, 보관료, 잔금은 금액만 표시
         "deposit_amount_display": _format_currency(deposit_amount_val),
         "storage_fee_display": _format_currency(storage_fee_val),
         "remaining_balance_display": _format_currency(remaining_balance_num),
@@ -405,14 +414,17 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
 
         if key.endswith("_checkbox"):
             final_text_to_draw = data_to_draw.get(key, M.get("text_if_false", "□"))
-        elif text_content_value is not None and str(text_content_value).strip() != "":
+        elif text_content_value is not None and str(text_content_value).strip() != "": # 값이 있을 때만 그림
             final_text_to_draw = str(text_content_value)
         
         if final_text_to_draw.strip() != "":
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
-            align_val = M.get("align", "left")
+            align_val = M.get("align", "left") # 기본 정렬
+            if "align" in M: # FIELD_MAP에 align이 명시되어 있으면 그것을 사용
+                align_val = M["align"]
+            
             max_w_val = M.get("max_width")
             line_spacing_factor = M.get("line_spacing_factor", 1.15)
             _draw_text_with_alignment(draw, final_text_to_draw, M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
@@ -468,7 +480,7 @@ if __name__ == '__main__':
         try:
             img_data = create_quote_image(sample_state_data, sample_calculated_cost_items, sample_total_cost_overall, sample_personnel_info)
             if img_data:
-                output_filename = "수정된_견적서_이미지_금액위치조정.png"
+                output_filename = "수정된_견적서_이미지_최종_v3.png"
                 with open(output_filename, "wb") as f:
                     f.write(img_data)
                 print(f"Test image '{output_filename}' created successfully. Please check.")
