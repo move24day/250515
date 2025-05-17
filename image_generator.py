@@ -20,57 +20,57 @@ item_y_start_val = 334
 item_y_spacing_val = 28.8
 item_font_size_val = 15
 item_x_col1_val = 226
-item_x_col2_baskets_val = 491
+item_x_col2_baskets_val = 491 # 책바구니 X 좌표로 사용될 값
 item_x_col2_others_val = 491
-item_x_col3_val = 756
+item_x_col3_val = 756         # 금고 X 좌표로 사용될 값
 
 original_vehicle_y_val = int(275 + item_y_spacing_val)
 vehicle_y_val = original_vehicle_y_val - (item_y_spacing_val / 2)
 vehicle_x_val = 90
 
-costs_section_x_align_right_val = 326 # 이사비용, 총액, 사다리 금액 등 오른쪽 정렬 기준 X
-
-# 사다리 레이블 X 좌표: 금액 표시 X(326) 보다 "5칸" 왼쪽 (칸당 20픽셀 가정)
-칸당너비_사다리_레이블 = 20 # 조정 가능
+costs_section_x_align_right_val = 326
+칸당너비_사다리_레이블 = 20
 칸수_사다리_레이블_오프셋 = 5
-ladder_label_x_val = costs_section_x_align_right_val - (칸수_사다리_레이블_오프셋 * 칸당너비_사다리_레이블) # 326 - 100 = 226
+ladder_label_x_val = costs_section_x_align_right_val - (칸수_사다리_레이블_오프셋 * 칸당너비_사다리_레이블)
 
-# --- 동적 좌표 계산 ---
-_y_living_room_cabinet_orig = 677
-_y_sofa_3seater_orig = 549
-_y_main_fee_yellow_box_orig = 775
-_y_grand_total_orig = 861 # 이전 합계금액 Y
+# --- FIELD_MAP 정의 이전에 사용될 좌표값들을 먼저 정의 ---
+# (이전 FIELD_MAP에 정의되었던 값들을 기준으로 가져옴)
+_y_living_room_cabinet_from_map = 677 # FIELD_MAP['item_living_room_cabinet']['y'] 값
+_y_sofa_3seater_from_map = 549      # FIELD_MAP['item_sofa_3seater']['y'] 값
+_y_main_fee_yellow_box_from_map = 775 # FIELD_MAP['main_fee_yellow_box']['y'] 값
+_y_grand_total_from_map_prev = 861 # FIELD_MAP['grand_total']['y']의 이전 계산값 (857+4)
 
-from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
+from_ladder_y_val = _y_living_room_cabinet_from_map + abs(_y_sofa_3seater_from_map - _y_living_room_cabinet_from_map) # 805
 to_ladder_y_val = from_ladder_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
-# 보관료, 계약금, 잔금 X 좌표:
-# "왼쪽으로 두 칸 이동 후 다시 오른쪽으로 온 만큼 이동" -> 결과적으로 원래의 오른쪽 정렬 영역.
-# 여기서는 이사비용/합계금액과 동일한 오른쪽 정렬 기준 X 값을 사용하거나, 약간의 오프셋을 줄 수 있음.
-# costs_section_x_align_right_val (326)을 기준으로 오른쪽 정렬.
-# 만약 약간 다른 위치를 원하면, 예: fees_x_val_right_aligned = costs_section_x_align_right_val - 20 (더 왼쪽으로)
-fees_x_val_right_aligned = costs_section_x_align_right_val # 이사비용/합계와 동일한 X에서 오른쪽 정렬
+# 계약금, 보관료, 잔금 X 좌표:
+# _x_item_book_box_orig 와 _x_item_safe_orig 대신, 위에서 정의된 item_x_col_... 변수를 직접 사용합니다.
+_center_x_for_fees = int((item_x_col2_baskets_val + item_x_col3_val) / 2) # (491 + 756) / 2 = 623.5
+offset_for_fees_x = -30 # 이 값은 더 이상 사용하지 않음 (오른쪽 정렬로 변경됨)
+fees_x_val_right_aligned = costs_section_x_align_right_val # 오른쪽 정렬 기준 X
 
 deposit_y_val = from_ladder_y_val # 805
-storage_fee_y_val = _y_main_fee_yellow_box_orig # 775
-remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 계약금 Y + 한 칸 아래 (805 + 28.8 = 833.8)
+storage_fee_y_val = _y_main_fee_yellow_box_from_map # 775
+remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
-grand_total_y_new = _y_grand_total_orig + 4 # 861 + 4 = 865
+grand_total_y_new = _y_grand_total_from_map_prev + 4 # 861 + 4 = 865
 
 def get_adjusted_font_size(original_size_ignored, field_key):
+    # ... (이 함수 내용은 이전과 동일)
     if field_key == "customer_name": return BASE_FONT_SIZE
-    if field_key == "customer_phone": return BASE_FONT_SIZE - 2 # 16
+    if field_key == "customer_phone": return BASE_FONT_SIZE - 2
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
-    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2 # 20
+    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
     if field_key in ["fee_value_next_to_ac_right"]: return 14
     if field_key in ["from_ladder_label", "to_ladder_label",
                      "from_ladder_fee_value", "to_ladder_fee_value",
                      "deposit_amount_display", "storage_fee_display"]:
-        return BASE_FONT_SIZE # 18
+        return BASE_FONT_SIZE
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
+    # ... (고객 정보, 품목 정보 등 이전 FIELD_MAP 내용 유지) ...
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -92,11 +92,11 @@ FIELD_MAP = {
     "item_fridge_4door":{"x": item_x_col1_val, "y": 455, "size": get_adjusted_font_size(0, "item_fridge_4door"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": 488, "size": get_adjusted_font_size(0, "item_kimchi_fridge_normal"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 518, "size": get_adjusted_font_size(0, "item_kimchi_fridge_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": get_adjusted_font_size(0, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_from_map, "size": get_adjusted_font_size(0, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_sofa_1seater":{"x": item_x_col1_val, "y": 581, "size": get_adjusted_font_size(0, "item_sofa_1seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_dining_table":{"x": item_x_col1_val, "y": 612, "size": get_adjusted_font_size(0, "item_dining_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_left":     {"x": item_x_col1_val, "y": 645, "size": get_adjusted_font_size(0, "item_ac_left"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": get_adjusted_font_size(0, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_from_map, "size": get_adjusted_font_size(0, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_digital": {"x": item_x_col1_val, "y": 708, "size": get_adjusted_font_size(0, "item_piano_digital"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_washing_machine": {"x": item_x_col1_val, "y": 740, "size": get_adjusted_font_size(0, "item_washing_machine"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
@@ -110,7 +110,7 @@ FIELD_MAP = {
     "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": get_adjusted_font_size(0, "item_basket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": get_adjusted_font_size(0, "item_medium_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_large_box":   {"x": item_x_col2_baskets_val, "y": 594, "size": get_adjusted_font_size(0, "item_large_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_book_box":    {"x": _x_item_book_box_orig, "y": 623, "size": get_adjusted_font_size(0, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_book_box":    {"x": item_x_col2_baskets_val, "y": 623, "size": get_adjusted_font_size(0, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # X 좌표 수정됨 (item_x_col2_baskets_val)
     "item_plant_box":   {"x": item_x_col2_others_val, "y": 651, "size": get_adjusted_font_size(0, "item_plant_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_clothes_box": {"x": item_x_col2_others_val, "y": 680, "size": get_adjusted_font_size(0, "item_clothes_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_duvet_box":   {"x": item_x_col2_others_val, "y": 709, "size": get_adjusted_font_size(0, "item_duvet_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -122,14 +122,14 @@ FIELD_MAP = {
     "item_tv_45":       {"x": item_x_col3_val, "y": 450, "size": get_adjusted_font_size(0, "item_tv_45"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_tv_stand":    {"x": item_x_col3_val, "y": 479, "size": get_adjusted_font_size(0, "item_tv_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_wall_mount_item": {"x": item_x_col3_val, "y": 507, "size": get_adjusted_font_size(0, "item_wall_mount_item"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": _x_item_safe_orig, "y": 590, "size": get_adjusted_font_size(0, "item_safe"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_safe":        {"x": item_x_col3_val, "y": 590, "size": get_adjusted_font_size(0, "item_safe"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # X 좌표 수정됨 (item_x_col3_val)
     "item_angle_shelf": {"x": item_x_col3_val, "y": 620, "size": get_adjusted_font_size(0, "item_angle_shelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_partition":   {"x": item_x_col3_val, "y": 653, "size": get_adjusted_font_size(0, "item_partition"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(0, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(0, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
-    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_from_map, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 
     "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
@@ -143,25 +143,26 @@ FIELD_MAP = {
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
-# ITEM_KEY_MAP (이전과 동일)
+# ... (ITEM_KEY_MAP, get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency, create_quote_image, __main__ 부분은 이전과 동일) ...
+# ITEM_KEY_MAP (data.py 품목명 변경 사항 반영 필요)
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
     "김치냉장고(일반형)": "item_kimchi_fridge_normal", "김치냉장고(스탠드형)": "item_kimchi_fridge_stand",
     "소파(3인용)": "item_sofa_3seater", "소파(1인용)": "item_sofa_1seater", "식탁(4인)": "item_dining_table",
-    "에어컨": "item_ac_left", "거실장": "item_living_room_cabinet",
-    "피아노(디지털)": "item_piano_digital", "세탁기 및 건조기": "item_washing_machine",
-    "컴퓨터&모니터": "item_computer", "중역책상": "item_executive_desk", "책상&의자": "item_desk",
-    "책장": "item_bookshelf", "의자": "item_chair", "테이블": "item_table", "담요": "item_blanket",
-    "바구니": "item_basket", "중박스": "item_medium_box", "중대박스": "item_large_box",
-    "책바구니": "item_book_box", "화분": "item_plant_box", "옷행거": "item_clothes_box",
-    "스타일러": "item_styler", "안마기": "item_massage_chair", "피아노(일반)": "item_piano_acoustic",
-    "복합기": "item_copier", "TV(45인치)": "item_tv_45", "TV다이": "item_tv_stand",
-    "벽걸이": "item_wall_mount_item", "금고": "item_safe", "앵글": "item_angle_shelf",
-    "파티션": "item_partition", "5톤진입": "item_5ton_access",
+    "에어컨": "item_ac_left", "거실장": "item_living_room_cabinet", # data.py에서 "장식장"->"거실장"으로 변경했으므로 이 매핑 유효
+    "피아노(디지털)": "item_piano_digital",
+    "세탁기 및 건조기": "item_washing_machine", "컴퓨터&모니터": "item_computer", # data.py에서 "오디오.."->"컴퓨터.." 변경했으므로 이 매핑 유효
+    "중역책상": "item_executive_desk", "책상&의자": "item_desk", "책장": "item_bookshelf",
+    "의자": "item_chair", "테이블": "item_table", "담요": "item_blanket", "바구니": "item_basket",
+    "중박스": "item_medium_box", "중대박스": "item_large_box", "책바구니": "item_book_box",
+    "화분": "item_plant_box", "옷행거": "item_clothes_box", "스타일러": "item_styler",
+    "안마기": "item_massage_chair", "피아노(일반)": "item_piano_acoustic", "복합기": "item_copier",
+    "TV(45인치)": "item_tv_45", "TV다이": "item_tv_stand", "벽걸이": "item_wall_mount_item",
+    "금고": "item_safe", "앵글": "item_angle_shelf", "파티션": "item_partition",
+    "5톤진입": "item_5ton_access",
 }
 
-# ... (get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일) ...
 def get_text_dimensions(text_string, font):
     if not text_string: return 0,0
     if hasattr(font, 'getbbox'):
@@ -256,7 +257,7 @@ def _format_currency(amount_val):
     try:
         num_val = float(str(amount_val).replace(",", "").strip())
         num = int(num_val)
-        return f"{num:,}" # 0원도 "0"으로 표시됨
+        return f"{num:,}"
     except ValueError:
         return str(amount_val)
 
@@ -293,7 +294,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     selected_vehicle_raw = state_data.get('final_selected_vehicle', '')
     vehicle_tonnage_display = ""
     if isinstance(selected_vehicle_raw, str):
-        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_raw) # 숫자 및 소수점 추출
+        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_raw)
         if match:
             vehicle_tonnage_display = match.group(1)
     elif isinstance(selected_vehicle_raw, (int, float)):
@@ -482,7 +483,7 @@ if __name__ == '__main__':
         try:
             img_data = create_quote_image(sample_state_data, sample_calculated_cost_items, sample_total_cost_overall, sample_personnel_info)
             if img_data:
-                output_filename = "수정된_견적서_이미지_최종_v5.png"
+                output_filename = "수정된_견적서_이미지_최종_v6.png"
                 with open(output_filename, "wb") as f:
                     f.write(img_data)
                 print(f"Test image '{output_filename}' created successfully. Please check.")
