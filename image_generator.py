@@ -6,19 +6,18 @@ from datetime import date
 import math
 import traceback
 
-# ... (BASE_DIR, 경로, 색상, 기본 좌표 변수 등 상단 부분은 이전과 동일하게 유지) ...
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png")
 FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
 FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 TEXT_COLOR_DEFAULT = (20, 20, 20)
-TEXT_COLOR_YELLOW_BG = (0,0,0)
+TEXT_COLOR_YELLOW_BG = (0,0,0) # 금액 표시용
 
 BASE_FONT_SIZE = 18
 item_y_start_val = 334
 item_y_spacing_val = 28.8
-item_font_size_val = 15
+item_font_size_val = 15 # 품목 수량 폰트 크기
 item_x_col1_val = 226
 item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
@@ -27,47 +26,43 @@ item_x_col3_val = 756
 vehicle_x_val = 90
 vehicle_y_val = int(275 + item_y_spacing_val)
 
-costs_section_x_align_right_val = 326 # 금액 오른쪽 정렬 X 좌표
-ladder_label_x_val = 180 # 사다리 레이블 왼쪽 시작 X 좌표 (요청: 왼쪽 4칸 정도)
+costs_section_x_align_right_val = 326
+ladder_label_x_val = 180
 
 # --- 동적 좌표 계산 ---
 _y_living_room_cabinet_orig = 677
 _y_sofa_3seater_orig = 549
 _y_main_fee_yellow_box_orig = 775
 
-# 1. 출발지 사다리 Y 좌표
 from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
-
-# 2. 도착지 사다리 Y 좌표
 to_ladder_y_val = from_ladder_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
-# 3. 계약금 X, Y 좌표
-_x_item_book_box = item_x_col2_baskets_val
-_x_item_safe = item_x_col3_val
-deposit_x_val = int((_x_item_book_box + _x_item_safe) / 2)
-deposit_y_val = from_ladder_y_val # 출발지 사다리와 같은 Y
+# 계약금, 보관료, 잔금 X 좌표 (기존 중앙값에서 왼쪽으로 이동)
+_x_item_book_box_orig = item_x_col2_baskets_val
+_x_item_safe_orig = item_x_col3_val
+_center_x_for_fees = int((_x_item_book_box_orig + _x_item_safe_orig) / 2) # 624
+# "왼쪽으로 두 칸" -> 대략 30픽셀 이동으로 가정
+offset_for_fees_x = -30
+fees_x_val = _center_x_for_fees + offset_for_fees_x # 624 - 30 = 594
 
-# 4. 보관료 X, Y 좌표
-storage_fee_x_val = deposit_x_val
-storage_fee_y_val = _y_main_fee_yellow_box_orig
+deposit_y_val_new = from_ladder_y_val # 출발지 사다리와 같은 Y (805)
+storage_fee_y_val_new = _y_main_fee_yellow_box_orig # 이사비용(노란박스) Y와 동일 (775)
+# 잔금 Y: 계약금 Y + 반 칸 아래
+remaining_balance_y_val_new = deposit_y_val_new + (item_y_spacing_val / 2) # 805 + 14.4 = 819.4
 
-# 5. 잔금 Y 좌표
-remaining_balance_y_val = deposit_y_val + item_y_spacing_val
-
-# 폰트 크기 조정 함수 (이전과 동일)
 def get_adjusted_font_size(original_size, field_key):
     if field_key == "customer_name": return BASE_FONT_SIZE
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
-    if field_key in ["grand_total", "remaining_balance"]: return BASE_FONT_SIZE + 2
+    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2 # 잔금 키 변경됨
     if field_key in ["fee_value_next_to_ac_right"]: return 14
-    # 사다리 레이블/금액, 계약금, 보관료 등은 BASE_FONT_SIZE 또는 약간 작게 설정 가능
-    if field_key in ["from_ladder_label", "to_ladder_label", "from_ladder_fee_value", "to_ladder_fee_value", "deposit_amount_label_or_val", "storage_fee_label_or_val", "remaining_balance_label_or_val"]: # 임시 키 이름
-        return BASE_FONT_SIZE # 일단 18로 통일
+    if field_key in ["from_ladder_label", "to_ladder_label", "from_ladder_fee_value", "to_ladder_fee_value",
+                     "deposit_amount_display", "storage_fee_display"]: # 키 변경됨
+        return BASE_FONT_SIZE
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
-    # ... (고객 정보, 품목 정보 등 이전 FIELD_MAP 내용 유지) ...
+    # ... (고객 정보, 품목 정보 등 이전 FIELD_MAP 내용 유지 - 폰트 크기는 get_adjusted_font_size 통해 적용) ...
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(19, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(16, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(16, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -107,7 +102,7 @@ FIELD_MAP = {
     "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": get_adjusted_font_size(item_font_size_val, "item_basket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": get_adjusted_font_size(item_font_size_val, "item_medium_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_large_box":   {"x": item_x_col2_baskets_val, "y": 594, "size": get_adjusted_font_size(item_font_size_val, "item_large_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_book_box":    {"x": _x_item_book_box, "y": 623, "size": get_adjusted_font_size(item_font_size_val, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_book_box":    {"x": _x_item_book_box_orig, "y": 623, "size": get_adjusted_font_size(item_font_size_val, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_plant_box":   {"x": item_x_col2_others_val, "y": 651, "size": get_adjusted_font_size(item_font_size_val, "item_plant_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_clothes_box": {"x": item_x_col2_others_val, "y": 680, "size": get_adjusted_font_size(item_font_size_val, "item_clothes_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_duvet_box":   {"x": item_x_col2_others_val, "y": 709, "size": get_adjusted_font_size(item_font_size_val, "item_duvet_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -119,7 +114,7 @@ FIELD_MAP = {
     "item_tv_45":       {"x": item_x_col3_val, "y": 450, "size": get_adjusted_font_size(item_font_size_val, "item_tv_45"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_tv_stand":    {"x": item_x_col3_val, "y": 479, "size": get_adjusted_font_size(item_font_size_val, "item_tv_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_wall_mount_item": {"x": item_x_col3_val, "y": 507, "size": get_adjusted_font_size(item_font_size_val, "item_wall_mount_item"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": _x_item_safe, "y": 590, "size": get_adjusted_font_size(item_font_size_val, "item_safe"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_safe":        {"x": _x_item_safe_orig, "y": 590, "size": get_adjusted_font_size(item_font_size_val, "item_safe"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_angle_shelf": {"x": item_x_col3_val, "y": 620, "size": get_adjusted_font_size(item_font_size_val, "item_angle_shelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_partition":   {"x": item_x_col3_val, "y": 653, "size": get_adjusted_font_size(item_font_size_val, "item_partition"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(item_font_size_val, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -130,31 +125,20 @@ FIELD_MAP = {
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(17, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": 861, "size": get_adjusted_font_size(22, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 
-    # 사다리 요금 레이블과 금액 분리
-    "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(18, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"}, # 고정 텍스트
+    # 사다리 요금 (레이블 + 값)
+    "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(18, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
     "from_ladder_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(18, "from_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "to_ladder_label":    {"x": ladder_label_x_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(18, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"}, # 고정 텍스트
+    "to_ladder_label":    {"x": ladder_label_x_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(18, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"},
     "to_ladder_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(18, "to_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
-    # "regional_ladder_surcharge_display" 항목은 제거 (도착지 사다리 요금에 합산되므로)
 
-    # 계약금, 보관료, 잔금 위치 및 스타일 변경
-    "deposit_amount_label":   {"x": deposit_x_val, "y": int(deposit_y_val), "size": get_adjusted_font_size(18, "deposit_amount_label_or_val"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "center", "text_override": "계약금"},
-    "deposit_amount_value":   {"x": deposit_x_val + 80, "y": int(deposit_y_val), "size": get_adjusted_font_size(18, "deposit_amount_label_or_val"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"}, # 금액은 레이블 오른쪽에 표시 (X값 조정 필요)
-
-    "storage_fee_label":      {"x": storage_fee_x_val, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(18, "storage_fee_label_or_val"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "center", "text_override": "보관료"},
-    "storage_fee_value":      {"x": storage_fee_x_val + 80, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(18, "storage_fee_label_or_val"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"},
-
-    "remaining_balance_label":{"x": deposit_x_val, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(20, "remaining_balance_label_or_val"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "center", "text_override": "잔금"},
-    "remaining_balance_value":{"x": deposit_x_val + 80, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(20, "remaining_balance_label_or_val"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"},
-
-    # 기존 deposit_amount, storage_fee, remaining_balance 키는 제거하거나 주석 처리 (새로운 레이블/값 키로 대체됨)
-    # "deposit_amount":   {"x": deposit_x_val, "y": int(deposit_y_val), "size": BASE_FONT_SIZE, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "center", "prefix": "계약금: "},
-    # "storage_fee":      {"x": storage_fee_x_val, "y": int(storage_fee_y_val), "size": BASE_FONT_SIZE, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "center", "prefix": "보관료: "},
-    # "remaining_balance":{"x": deposit_x_val, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(20, "remaining_balance"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "center", "prefix": "잔금: "},
+    # 계약금, 보관료, 잔금 (금액만 표시, 레이블 없음, X좌표 왼쪽으로 이동)
+    "deposit_amount_display":   {"x": fees_x_val, "y": int(deposit_y_val_new), "size": get_adjusted_font_size(18, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"}, # align: left 또는 center로 조정
+    "storage_fee_display":      {"x": fees_x_val, "y": int(storage_fee_y_val_new), "size": get_adjusted_font_size(18, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"},
+    "remaining_balance_display":{"x": fees_x_val, "y": int(remaining_balance_y_val_new), "size": get_adjusted_font_size(20, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "left"},
 }
 
-# ITEM_KEY_MAP (이전 답변의 수정된 내용과 동일하게 사용)
+# ITEM_KEY_MAP (이전과 동일, data.py와 일관성 중요)
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
@@ -263,14 +247,14 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
     return current_y
 
 def _format_currency(amount_val):
-    if amount_val is None: return ""
+    if amount_val is None or str(amount_val).strip() == "": return ""
     try:
         num_val = float(str(amount_val).replace(",", "").strip())
-        if num_val == 0 and not FIELD_MAP.get("key_allowing_zero_display"): # 특정 키가 아니면 0일때 빈칸 (수정 필요)
-            return ""
+        # if num_val == 0: return "" # 0원일 때 빈칸으로 표시 (선택 사항)
         num = int(num_val)
         return f"{num:,}"
-    except ValueError: return str(amount_val)
+    except ValueError:
+        return str(amount_val)
 
 
 def create_quote_image(state_data, calculated_cost_items, total_cost_overall, personnel_info):
@@ -292,7 +276,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     if not os.path.exists(FONT_PATH_REGULAR): print(f"Warning: Regular font missing at {FONT_PATH_REGULAR}")
     if not os.path.exists(FONT_PATH_BOLD): print(f"Warning: Bold font missing at {FONT_PATH_BOLD}")
 
-    # ... (customer_name 등 기본 정보 추출은 동일)
     customer_name = state_data.get('customer_name', '')
     customer_phone = state_data.get('customer_phone', '')
     moving_date_obj = state_data.get('moving_date')
@@ -306,13 +289,12 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
 
-    # 비용 항목에서 데이터 추출
     total_moving_expenses_val = 0
     storage_fee_val = 0
     option_ac_cost_val = 0
     from_ladder_fee_val = 0
-    to_ladder_fee_raw_val = 0 # 도착지 사다리/스카이 원금
-    regional_ladder_surcharge_val = 0 # 지방 사다리 추가요금
+    to_ladder_fee_raw_val = 0
+    regional_ladder_surcharge_val = 0
 
     if calculated_cost_items and isinstance(calculated_cost_items, list):
         for item_l, item_a, _ in calculated_cost_items:
@@ -331,12 +313,11 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             elif label == '출발지 사다리차' or label == '출발지 스카이 장비':
                 from_ladder_fee_val += amount
             elif label == '도착지 사다리차' or label == '도착지 스카이 장비':
-                to_ladder_fee_raw_val += amount # 도착지 원금
-            elif label == '지방 사다리 추가요금':
+                to_ladder_fee_raw_val += amount
+            elif label == '지방 사다리 추가요금': # 이 이름으로 calculations.py에서 비용이 추가되어야 함
                 regional_ladder_surcharge_val += amount
 
-    # 도착지 사다리 요금에 지방 사다리 추가요금 합산
-    final_to_ladder_fee_val = to_ladder_fee_raw_val + regional_ladder_surcharge_val
+    final_to_ladder_fee_val = to_ladder_fee_raw_val + regional_ladder_surcharge_val # 도착지 요금에 지방 추가금 합산
 
     deposit_amount_val = int(float(state_data.get('deposit_amount', 0) or 0))
     grand_total_num = int(float(total_cost_overall or 0))
@@ -351,23 +332,18 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
         "grand_total": _format_currency(grand_total_num),
 
-        "from_ladder_label": FIELD_MAP["from_ladder_label"]["text_override"], # 레이블은 FIELD_MAP에서 직접 가져옴
+        "from_ladder_label": FIELD_MAP["from_ladder_label"]["text_override"],
         "from_ladder_fee_value": _format_currency(from_ladder_fee_val),
 
         "to_ladder_label": FIELD_MAP["to_ladder_label"]["text_override"],
-        "to_ladder_fee_value": _format_currency(final_to_ladder_fee_val), # 합산된 금액
+        "to_ladder_fee_value": _format_currency(final_to_ladder_fee_val),
 
-        "deposit_amount_label": FIELD_MAP["deposit_amount_label"]["text_override"],
-        "deposit_amount_value": _format_currency(deposit_amount_val),
-
-        "storage_fee_label": FIELD_MAP["storage_fee_label"]["text_override"],
-        "storage_fee_value": _format_currency(storage_fee_val),
-
-        "remaining_balance_label": FIELD_MAP["remaining_balance_label"]["text_override"],
-        "remaining_balance_value": _format_currency(remaining_balance_num),
+        # 계약금, 보관료, 잔금은 금액만 표시
+        "deposit_amount_display": _format_currency(deposit_amount_val),
+        "storage_fee_display": _format_currency(storage_fee_val),
+        "remaining_balance_display": _format_currency(remaining_balance_num),
     }
 
-    # ... (move_time_option, 품목 수량 data_to_draw에 추가하는 로직은 이전과 동일) ...
     move_time_option_from_state = state_data.get('move_time_option_key_in_state', state_data.get('move_time_option'))
     if move_time_option_from_state == '오전':
          data_to_draw["move_time_am_checkbox"] = FIELD_MAP["move_time_am_checkbox"].get("text_if_true", "V")
@@ -416,7 +392,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         print(f"Error processing item quantities for image: {e_item}")
         traceback.print_exc()
 
-    # FIELD_MAP을 순회하며 텍스트 그리기
     for key, M_raw in FIELD_MAP.items():
         M = {}
         for k_map, v_map in M_raw.items():
@@ -425,19 +400,14 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 except (ValueError, TypeError) : M[k_map] = v_map
             else: M[k_map] = v_map
 
-        # FIELD_MAP에 'text_override'가 있으면 그 값을 사용, 없으면 data_to_draw에서 가져옴
         text_content_value = M.get("text_override", data_to_draw.get(key))
-        final_text_to_draw = "" # 최종적으로 그려질 텍스트
+        final_text_to_draw = ""
 
-        if key.endswith("_checkbox"): # 체크박스는 특별 처리
+        if key.endswith("_checkbox"):
             final_text_to_draw = data_to_draw.get(key, M.get("text_if_false", "□"))
         elif text_content_value is not None and str(text_content_value).strip() != "":
-            prefix_text = M.get("prefix", "") # 이전 로직에서 prefix는 이제 사용 안 함 (text_override 또는 data_to_draw 값 직접 사용)
-            final_text_to_draw = f"{prefix_text}{text_content_value}" # 만약 prefix가 필요한 경우가 있다면 이 로직 유지
-            if not prefix_text: # prefix가 없다면 값만 사용
-                final_text_to_draw = str(text_content_value)
-
-
+            final_text_to_draw = str(text_content_value)
+        
         if final_text_to_draw.strip() != "":
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
@@ -445,7 +415,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             align_val = M.get("align", "left")
             max_w_val = M.get("max_width")
             line_spacing_factor = M.get("line_spacing_factor", 1.15)
-
             _draw_text_with_alignment(draw, final_text_to_draw, M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
 
     img_byte_arr = io.BytesIO()
@@ -453,7 +422,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     img_byte_arr.seek(0)
     return img_byte_arr.getvalue()
 
-# ... (if __name__ == '__main__': 테스트 부분은 이전과 유사하게 유지, sample_calculated_cost_items에 사다리 비용 항목 포함) ...
+# ... (if __name__ == '__main__': 테스트 부분은 이전과 유사하게 유지) ...
 if __name__ == '__main__':
     print("image_generator.py test mode")
     if not (os.path.exists(FONT_PATH_REGULAR) and os.path.exists(BACKGROUND_IMAGE_PATH)):
@@ -489,7 +458,7 @@ if __name__ == '__main__':
             ('기본 운임', 1200000, '5톤 기준'),
             ('출발지 사다리차', 170000, '8~9층, 5톤 기준'),
             ('도착지 사다리차', 180000, '10~11층, 5톤 기준'),
-            ('지방 사다리 추가요금', 50000, '수동입력'), # 이 금액이 도착지 사다리 요금에 합산됨
+            ('지방 사다리 추가요금', 50000, '수동입력'),
             ('에어컨 설치 및 이전 비용', 150000, '기본 설치'),
             ('보관료', 70000, '컨테이너 10일'),
             ('조정 금액', -70000, '프로모션 할인')
@@ -499,7 +468,7 @@ if __name__ == '__main__':
         try:
             img_data = create_quote_image(sample_state_data, sample_calculated_cost_items, sample_total_cost_overall, sample_personnel_info)
             if img_data:
-                output_filename = "수정된_견적서_이미지_사다리분리.png"
+                output_filename = "수정된_견적서_이미지_금액위치조정.png"
                 with open(output_filename, "wb") as f:
                     f.write(img_data)
                 print(f"Test image '{output_filename}' created successfully. Please check.")
