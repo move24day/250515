@@ -29,7 +29,7 @@ vehicle_y_val = int(275 + item_y_spacing_val)
 
 # "이사비용" (에어컨 옆 금액) 및 하단 노란색 비용 항목들의 X 좌표 (오른쪽 정렬 기준)
 # 장롱 X(226) - 전화번호4자리너비(60으로 가정) = 166
-costs_section_x_align_right_val = 226
+costs_section_x_align_right_val = 326
 
 
 FIELD_MAP = {
@@ -44,8 +44,8 @@ FIELD_MAP = {
     "from_floor":     {"x": 180, "y": 226, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": 258, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)},
-    "workers_male":   {"x": 758, "y": 227, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "workers_female": {"x": 758, "y": 255, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "workers_male":   {"x": 758, "y": 228, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "workers_female": {"x": 758, "y": 258, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
