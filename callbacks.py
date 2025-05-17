@@ -134,7 +134,6 @@ def update_selected_gdrive_id():
             st.session_state.gdrive_selected_filename = selected_name # 파일명도 업데이트 (선택 사항)
 
 
-# <<<--- 추가된 함수 시작 --->>>
 def find_item_section_for_default_set(move_type, item_name_to_find):
     """
     data.py의 item_definitions에서 특정 품목의 섹션 이름을 찾아 반환합니다.
@@ -145,7 +144,6 @@ def find_item_section_for_default_set(move_type, item_name_to_find):
     item_defs_for_type = data.item_definitions.get(move_type, {})
     if isinstance(item_defs_for_type, dict):
         for section, item_list in item_defs_for_type.items():
-            # 폐기 처리 품목 섹션은 건너뛸 수 있으나, 기본 세트 품목은 보통 일반 섹션에 있을 것입니다.
             if isinstance(item_list, list) and item_name_to_find in item_list:
                 return section
     return None
@@ -159,7 +157,6 @@ def apply_default_home_set():
         st.toast("ℹ️ '기본 가정 세트'는 '가정 이사 🏠' 유형 선택 시에만 적용할 수 있습니다.", icon="ℹ️")
         return
 
-    # 기본 가정 세트: 실제 data.py 품목명과 수량
     default_items_config = {
         "4도어 냉장고": 1,
         "TV(75인치)": 1,
@@ -191,8 +188,9 @@ def apply_default_home_set():
 
     if items_applied_count > 0:
         st.toast(f"✅ 기본 가정 세트 ({items_applied_count}개 품목) 적용 완료!", icon="👍")
-        if hasattr(callbacks, "handle_item_update") and callable(callbacks.handle_item_update): # callbacks 네임스페이스 명시
-            callbacks.handle_item_update()
+        # 같은 모듈 내의 함수이므로 'callbacks.' 접두사 없이 직접 호출
+        if callable(handle_item_update):
+            handle_item_update()
         else:
             st.warning("품목 업데이트 콜백(handle_item_update)을 찾을 수 없어 물량 정보가 갱신되지 않았을 수 있습니다.")
     else:
@@ -200,4 +198,3 @@ def apply_default_home_set():
 
     if items_not_found_details:
         st.warning(f"다음 품목은 data.py 정의에서 찾을 수 없거나 섹션 매칭에 실패하여 기본 세트에 포함되지 못했습니다: {', '.join(items_not_found_details)}", icon="⚠️")
-# <<<--- 추가된 함수 끝 --->>>
