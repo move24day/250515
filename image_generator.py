@@ -14,89 +14,98 @@ TEXT_COLOR_DEFAULT = (20, 20, 20)
 TEXT_COLOR_YELLOW_BG = (0,0,0)
 
 # 좌표 계산용 기준값 (이미지 및 요청에 따라 지속적 미세조정 필요)
+# image_generator.py 의 FIELD_MAP 수정 부분
+# (다른 부분은 이전 답변의 image_generator.py 코드와 동일하게 유지됩니다.)
+
+# ... (BASE_DIR, FONT_PATH*, TEXT_COLOR* 등은 파일 상단에 정의된 대로 유지) ...
+
+# 좌표 계산용 기준값 (이미지 및 요청에 따라 지속적 미세조정 필요)
 item_y_start_val = 334
 item_y_spacing_val = 28.8 
-item_font_size_val = 14
-item_x_col1_val = 226       # 장롱, 더블침대 등 첫번째 열 X좌표
+item_font_size_val = 15 
+item_x_col1_val = 226       
 item_x_col2_baskets_val = 491 
 item_x_col2_others_val = 521  
 item_x_col3_val = 806
 
-# 차량톤수 X 좌표: 층수 X (180) 보다 왼쪽 (예: 120)
-vehicle_x_val = 120 
-# 차량톤수 Y 좌표: 도착지 층수 Y (275) 아래 (예: 275 + 28.8 = 303.8)
+# 차량톤수 X 좌표: 층수 X (180) 보다 왼쪽 (예: 90)
+vehicle_x_val = 90 
+# 차량톤수 Y 좌표: 도착지 층수 Y (275) 아래
 vehicle_y_val = int(275 + item_y_spacing_val) 
 
-# "이사비용" (에어컨 옆 금액) X 좌표: 장롱 X(226) - 60 = 166 (오른쪽 정렬 기준)
+# "이사비용" (에어컨 옆 금액, image_6eaa25.png 에서는 572,000)
+# 이 항목은 첫번째 열 품목 X (226) 보다 전화번호 4자리(60px) 만큼 왼쪽, 즉 X=166
 fee_ac_option_x_align_right_val = 166 
 
-# 하단 노란색 비용 항목들의 X 좌표: 위와 동일하게 166 (오른쪽 정렬 기준)
+# 하단 노란색 비용 항목들의 X 좌표: 위 fee_ac_option_x_align_right_val 와 동일하게 166 (오른쪽 정렬 기준)
 costs_yellow_box_x_align_right_val = 166
 
 
 FIELD_MAP = {
+    # 고객명, 전화번호, 견적일, 이사일 등은 이전 피드백 반영된 값 유지
     "customer_name":  {"x": 175, "y": 130, "size": 19, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "customer_phone": {"x": 415, "y": 130, "size": 17, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "customer_phone": {"x": 415, "y": 130, "size": 16, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 680, "y": 130, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "moving_date":    {"x": 680, "y": 161, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "move_time_am_checkbox":   {"x": 708, "y": 188, "size": 15, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
     "move_time_pm_checkbox":   {"x": 803, "y": 188, "size": 15, "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
-    "from_location":  {"x": 175, "y": 161, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    "to_location":    {"x": 175, "y": 194, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    "from_floor":     {"x": 180, "y": 231, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "to_floor":       {"x": 180, "y": 265, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 150}, # X,Y, max_width 수정
+    "from_location":  {"x": 175, "y": 180, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
+    "to_location":    {"x": 175, "y": 210, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
+    "from_floor":     {"x": 180, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "to_floor":       {"x": 180, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 20)}, # max_width 수정 (여유공간)
     "workers_male":   {"x": 858, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 858, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+    # --- 첫번째 열 품목 (Y 좌표 순차적 증가 적용) ---
     "item_jangrong":    {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*0), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_drawer_3dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_fridge_4door":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*7), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_1seater":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_dining_table":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_left":     {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_digital": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_washing_machine": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*13), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*1 + 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*2 + 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_drawer_3dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*3 + 3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_fridge_4door":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*4 + 4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*5 + 5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*6 + 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*7 + 7), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_1seater":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*8 + 8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_dining_table":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*9 + 9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_left":     {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*10 + 10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*11 + 11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_digital": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*12 + 12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_washing_machine": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val*13 + 13), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
+    # --- 두번째 열 품목 (Y 좌표 순차적 증가 동일하게 적용) ---
     "item_computer":    {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*0), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_executive_desk": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_desk":        {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_bookshelf":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_chair":       {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_table":       {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_blanket":     {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_basket":      {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*7), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_medium_box":  {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
-    "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_plant_box":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_clothes_box": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_duvet_box":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*13), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_executive_desk": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*1 + 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_desk":        {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*2 + 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_bookshelf":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*3 + 3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_chair":       {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*4 + 4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_table":       {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*5 + 5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_blanket":     {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*6 + 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_basket":      {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*7 + 7), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_medium_box":  {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*8 + 8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*9 + 9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, 
+    "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(item_y_start_val + item_y_spacing_val*10 + 10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_plant_box":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*11 + 11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_clothes_box": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*12 + 12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_duvet_box":   {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val*13 + 13), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
+    # --- 세번째 열 품목 (Y 좌표 순차적 증가 동일하게 적용) ---
     "item_styler":      {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*0), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_massage_chair":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_acoustic":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_copier":      {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_45":       {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_stand":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_wall_mount_item": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_partition":   {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_massage_chair":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*1 + 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_acoustic":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*2 + 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_copier":      {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*3 + 3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_45":       {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*4 + 4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_stand":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*5 + 5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_wall_mount_item": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*6 + 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*8 + 8), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*9 + 9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_partition":   {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*10 + 10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*11 + 11), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val*12 + 12), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
-    # "이사비용" (에어컨 옆 금액)의 X 좌표를 왼쪽으로 이동
-    "fee_value_next_to_ac_right": {"x": fee_ac_option_x_align_right_val, "y": int(item_y_start_val + item_y_spacing_val*13), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"}, # Y 좌표는 마지막 품목 라인과 맞춤
+    "fee_value_next_to_ac_right": {"x": fee_ac_option_x_align_right_val, "y": int(item_y_start_val + item_y_spacing_val*12 + 12 + 2), "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"}, # Y를 에어컨(우) 라인에 맞춤, X는 왼쪽으로 이동
 
-    # 하단 노란색 비용 박스: X 좌표를 costs_yellow_box_x_align_right_val 로 변경
-    "main_fee_yellow_box": {"x": costs_yellow_box_x_align_right_val, "y": 686, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # "이사비용" 레이블 옆 실제 값
+    "main_fee_yellow_box": {"x": costs_yellow_box_x_align_right_val, "y": 686, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, 
     "storage_fee":      {"x": costs_yellow_box_x_align_right_val, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "deposit_amount":   {"x": costs_yellow_box_x_align_right_val, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "remaining_balance":{"x": costs_yellow_box_x_align_right_val, "y": 772, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
