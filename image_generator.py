@@ -95,8 +95,8 @@ FIELD_MAP = {
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": 775, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, 
     "storage_fee":      {"x": costs_section_x_align_right_val, "y": 1305, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "deposit_amount":   {"x": costs_section_x_align_right_val, "y": 1036, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "remaining_balance":{"x": costs_section_x_align_right_val, "y": 998, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_section_x_align_right_val, "y": 850, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "remaining_balance":{"x": costs_section_x_align_right_val, "y": 998, "size": 21, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "grand_total":      {"x": costs_section_x_align_right_val, "y": 850, "size": 26, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
 ITEM_KEY_MAP = {
