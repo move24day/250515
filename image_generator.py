@@ -15,7 +15,7 @@ TEXT_COLOR_YELLOW_BG = (0,0,0)
 
 # 좌표 계산용 기준값 (이미지 및 요청에 따라 지속적 미세조정 필요)
 item_y_start_val = 334
-item_y_spacing_val = 28.8 
+item_y_spacing_val = 28.8
 item_font_size_val = 15 
 item_x_col1_val = 226       
 item_x_col2_baskets_val = 491 
@@ -44,8 +44,8 @@ FIELD_MAP = {
     "from_floor":     {"x": 180, "y": 226, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": 258, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "vehicle_type":   {"x": vehicle_x_val, "y": vehicle_y_val, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)},
-    "workers_male":   {"x": 758, "y": 247, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "workers_female": {"x": 758, "y": 275, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "workers_male":   {"x": 758, "y": 227, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "workers_female": {"x": 758, "y": 255, "size": 16, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
