@@ -21,17 +21,17 @@ item_y_spacing_val = 28.8
 item_font_size_val = 15
 item_x_col1_val = 226
 item_x_col2_baskets_val = 491
-item_x_col2_others_val = 491 # 책상 X 좌표
-item_x_col3_val = 756         # 스타일러 X 좌표
+item_x_col2_others_val = 491
+item_x_col3_val = 756
 
 # 차량 표시 Y 좌표: 기존(275 + spacing)에서 2픽셀 위로
 original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 304
 vehicle_display_y_val = original_vehicle_y_calc - 2 # 304 - 2 = 302
-vehicle_number_x_val = 90
+vehicle_number_x_val = 90 # 견적용 차량 톤수(숫자만) X
 actual_vehicles_text_x_val = item_x_col2_others_val # 실제 투입 차량 X (책상 X)
 
 costs_section_x_align_right_val = 326
-ladder_label_x_val = 50 # 사다리 레이블 최대한 왼쪽
+ladder_label_x_val = 50 # 사다리 레이블 최대한 왼쪽 (조정 필요)
 
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
@@ -45,7 +45,7 @@ _y_grand_total_orig = 861
 from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig)
 to_ladder_y_val = from_ladder_y_val + item_y_spacing_val
 
-fees_x_val_right_aligned = item_x_col3_val
+fees_x_val_right_aligned = item_x_col3_val # 스타일러 X (756)
 
 deposit_y_val = from_ladder_y_val
 storage_fee_y_val = _y_main_fee_yellow_box_orig
@@ -79,7 +79,7 @@ FIELD_MAP = {
     "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
-    "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220}, # max_width 조정
+    "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220},
 
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -131,7 +131,6 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(0, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(0, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 비용 관련 항목들
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
@@ -147,7 +146,7 @@ FIELD_MAP = {
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
-# ITEM_KEY_MAP (이전과 동일)
+# ... (ITEM_KEY_MAP, get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency, create_quote_image, __main__ 부분은 이전과 동일) ...
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
@@ -165,7 +164,6 @@ ITEM_KEY_MAP = {
     "파티션": "item_partition", "5톤진입": "item_5ton_access",
 }
 
-# ... (get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일) ...
 def get_text_dimensions(text_string, font):
     if not text_string: return 0,0
     if hasattr(font, 'getbbox'):
@@ -294,8 +292,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     from_floor = str(state_data.get('from_floor', ''))
     to_floor = str(state_data.get('to_floor', ''))
     
-    # "선택된 차량"(견적 계산용)에서 숫자만 추출
-    selected_vehicle_for_calc = state_data.get('final_selected_vehicle', '') # 견적 계산에 사용된 차량 (예: "5톤 탑차")
+    # 견적용 차량 (숫자만)
+    selected_vehicle_for_calc = state_data.get('final_selected_vehicle', '')
     vehicle_tonnage_display = ""
     if isinstance(selected_vehicle_for_calc, str):
         match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_for_calc)
@@ -303,7 +301,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     elif isinstance(selected_vehicle_for_calc, (int, float)):
         vehicle_tonnage_display = str(selected_vehicle_for_calc)
 
-    # "실제 투입 차량" 정보 구성
+    # 실제 투입 차량 정보 (문자열로 조합)
     dispatched_1t = state_data.get('dispatched_1t', 0)
     dispatched_2_5t = state_data.get('dispatched_2_5t', 0)
     dispatched_3_5t = state_data.get('dispatched_3_5t', 0)
@@ -320,9 +318,9 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     workers_female = str(personnel_info.get('final_women', '0'))
 
     from_method_raw = state_data.get('from_method', '')
-    from_work_method_text = from_method_raw.split(" ")[0] if from_method_raw else ""
+    from_work_method_text = from_method_raw.split(" ")[0] if from_method_raw else "" # 이모티콘 제거
     to_method_raw = state_data.get('to_method', '')
-    to_work_method_text = to_method_raw.split(" ")[0] if to_method_raw else ""
+    to_work_method_text = to_method_raw.split(" ")[0] if to_method_raw else ""     # 이모티콘 제거
 
     total_moving_expenses_val = 0
     storage_fee_val = 0
@@ -362,8 +360,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
         "from_floor": from_floor, "to_floor": to_floor,
-        "vehicle_type_numbers_only": vehicle_tonnage_display, # 견적 계산용 차량 톤수(숫자만)
-        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text, # 실제 투입 차량 정보
+        "vehicle_type_numbers_only": vehicle_tonnage_display,
+        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text, # 실제 투입 차량
         "workers_male": workers_male, "workers_female": workers_female,
         "from_work_method_display": from_work_method_text,
         "to_work_method_display": to_work_method_text,
