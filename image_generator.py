@@ -19,14 +19,16 @@ BASE_FONT_SIZE = 18
 item_y_start_val = 334
 item_y_spacing_val = 28.8
 item_font_size_val = 15
-item_x_col1_val = 226       # 식탁 X 좌표로 사용
-item_x_col2_baskets_val = 491 # 중대박스 X 좌표로 사용
-item_x_col2_others_val = 491
-item_x_col3_val = 756         # 스타일러 X 좌표로 사용
+item_x_col1_val = 226
+item_x_col2_baskets_val = 491
+item_x_col2_others_val = 491 # 책상 X 좌표로 사용
+item_x_col3_val = 756
 
-original_vehicle_y_val_before_adjust = int(275 + item_y_spacing_val)
-vehicle_y_val = original_vehicle_y_val_before_adjust + 3
-vehicle_x_val = 90
+original_vehicle_y_val_before_adjust = int(275 + item_y_spacing_val) # 약 304
+# 차량톤수 Y 좌표: 기존 Y에서 2픽셀 위로
+vehicle_display_y_val = original_vehicle_y_val_before_adjust - 2 # 304 - 2 = 302
+vehicle_number_x_val = 90 # 숫자만 표시되는 차량 톤수 X
+selected_vehicle_text_x_val = item_x_col2_others_val # 차량 종류 전체 텍스트 X (책상 X)
 
 costs_section_x_align_right_val = 326
 칸당너비_사다리_레이블 = 20
@@ -34,42 +36,36 @@ costs_section_x_align_right_val = 326
 ladder_label_x_val = costs_section_x_align_right_val - (칸수_사다리_레이블_오프셋 * 칸당너비_사다리_레이블)
 
 # --- 동적 좌표 계산 ---
-_y_from_floor_orig = 226 # 출발지 층수 Y
-_y_to_floor_orig = 258   # 도착지 층수 Y
-
-# 작업방법 X 좌표: 식탁 X(226)와 중대박스 X(491)의 중간
-work_method_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2) # (226 + 491) / 2 = 358.5 -> 359
-
 _y_living_room_cabinet_orig = 677
 _y_sofa_3seater_orig = 549
 _y_main_fee_yellow_box_orig = 775
 _y_grand_total_orig = 861
 
-from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig)
-to_ladder_y_val = from_ladder_y_val + item_y_spacing_val
+from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
+to_ladder_y_val = from_ladder_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
 fees_x_val_right_aligned = item_x_col3_val # 스타일러 X 좌표 (756)
 
-deposit_y_val = from_ladder_y_val
-storage_fee_y_val = _y_main_fee_yellow_box_orig
-remaining_balance_y_val = deposit_y_val + item_y_spacing_val
+deposit_y_val = from_ladder_y_val # 805
+storage_fee_y_val = _y_main_fee_yellow_box_orig # 775
+remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
-grand_total_y_new = _y_grand_total_orig + 4
+grand_total_y_new = _y_grand_total_orig + 4 # 861 + 4 = 865
 
 def get_adjusted_font_size(original_size_ignored, field_key):
     if field_key == "customer_name": return BASE_FONT_SIZE
-    if field_key == "customer_phone": return BASE_FONT_SIZE - 2
+    if field_key == "customer_phone": return BASE_FONT_SIZE - 2 # 16
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
-    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
+    if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2 # 20
     if field_key in ["fee_value_next_to_ac_right"]: return 14
-    # 작업방법 표시 폰트 크기
-    if field_key in ["from_work_method_display", "to_work_method_display"]:
-        return BASE_FONT_SIZE -2 # 예: 16 (다른 정보들과 비슷하게)
     if field_key in ["from_ladder_label", "to_ladder_label",
                      "from_ladder_fee_value", "to_ladder_fee_value",
                      "deposit_amount_display", "storage_fee_display"]:
-        return BASE_FONT_SIZE
+        return BASE_FONT_SIZE # 18
+    # 차량 종류 텍스트
+    if field_key in ["vehicle_type_numbers_only", "selected_vehicle_full_name"]:
+        return BASE_FONT_SIZE - 2 # 예: 16
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
@@ -79,21 +75,19 @@ FIELD_MAP = {
     "moving_date":    {"x": 640, "y": 161, "size": get_adjusted_font_size(0, "moving_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "from_location":  {"x": 175, "y": 161, "size": get_adjusted_font_size(0, "from_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
-    "from_floor":     {"x": 180, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "vehicle_type":   {"x": vehicle_x_val, "y": int(vehicle_y_val), "size": get_adjusted_font_size(0, "vehicle_type"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_x_val - 10)},
+    "from_floor":     {"x": 180, "y": 226, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "to_floor":       {"x": 180, "y": 258, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+
+    "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 10)},
+    "selected_vehicle_full_name": {"x": selected_vehicle_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "selected_vehicle_full_name"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 200}, # max_width는 조정
+
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 작업 방법 표시 (출발지, 도착지)
-    "from_work_method_display": {"x": work_method_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "to_work_method_display":   {"x": work_method_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "from_work_method_display": {"x": work_method_x_val, "y": 226, "size": get_adjusted_font_size(0, "from_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "to_work_method_display":   {"x": work_method_x_val, "y": 258,   "size": get_adjusted_font_size(0, "to_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 기존 오전/오후 체크박스 (위치 조정 필요시 아래 Y값 변경)
-    "move_time_am_checkbox":   {"x": 708, "y": 188, "size": get_adjusted_font_size(0, "move_time_am_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
-    "move_time_pm_checkbox":   {"x": 803, "y": 188, "size": get_adjusted_font_size(0, "move_time_pm_checkbox"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "center", "text_if_true": "V", "text_if_false": "□"},
-
-
+    # 품목 정보 (FIELD_MAP에서 item_... 부분은 이전과 동일)
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": get_adjusted_font_size(0, "item_jangrong"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": get_adjusted_font_size(0, "item_double_bed"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": 392, "size": get_adjusted_font_size(0, "item_drawer_5dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -103,7 +97,7 @@ FIELD_MAP = {
     "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 518, "size": get_adjusted_font_size(0, "item_kimchi_fridge_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": get_adjusted_font_size(0, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_sofa_1seater":{"x": item_x_col1_val, "y": 581, "size": get_adjusted_font_size(0, "item_sofa_1seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_dining_table":{"x": item_x_col1_val, "y": 612, "size": get_adjusted_font_size(0, "item_dining_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 식탁 X: item_x_col1_val
+    "item_dining_table":{"x": item_x_col1_val, "y": 612, "size": get_adjusted_font_size(0, "item_dining_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_left":     {"x": item_x_col1_val, "y": 645, "size": get_adjusted_font_size(0, "item_ac_left"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": get_adjusted_font_size(0, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_digital": {"x": item_x_col1_val, "y": 708, "size": get_adjusted_font_size(0, "item_piano_digital"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -111,20 +105,20 @@ FIELD_MAP = {
 
     "item_computer":    {"x": item_x_col2_others_val, "y": 334, "size": get_adjusted_font_size(0, "item_computer"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_executive_desk": {"x": item_x_col2_others_val, "y": 363, "size": get_adjusted_font_size(0, "item_executive_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_desk":        {"x": item_x_col2_others_val, "y": 392, "size": get_adjusted_font_size(0, "item_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_desk":        {"x": item_x_col2_others_val, "y": 392, "size": get_adjusted_font_size(0, "item_desk"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 책상 X 좌표
     "item_bookshelf":   {"x": item_x_col2_others_val, "y": 421, "size": get_adjusted_font_size(0, "item_bookshelf"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_chair":       {"x": item_x_col2_others_val, "y": 450, "size": get_adjusted_font_size(0, "item_chair"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_table":       {"x": item_x_col2_others_val, "y": 479, "size": get_adjusted_font_size(0, "item_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_blanket":     {"x": item_x_col2_others_val, "y": 507, "size": get_adjusted_font_size(0, "item_blanket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": get_adjusted_font_size(0, "item_basket"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": get_adjusted_font_size(0, "item_medium_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_large_box":   {"x": item_x_col2_baskets_val, "y": 594, "size": get_adjusted_font_size(0, "item_large_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 중대박스 X: item_x_col2_baskets_val
+    "item_large_box":   {"x": item_x_col2_baskets_val, "y": 594, "size": get_adjusted_font_size(0, "item_large_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_book_box":    {"x": item_x_col2_baskets_val, "y": 623, "size": get_adjusted_font_size(0, "item_book_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_plant_box":   {"x": item_x_col2_others_val, "y": 651, "size": get_adjusted_font_size(0, "item_plant_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_clothes_box": {"x": item_x_col2_others_val, "y": 680, "size": get_adjusted_font_size(0, "item_clothes_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_duvet_box":   {"x": item_x_col2_others_val, "y": 709, "size": get_adjusted_font_size(0, "item_duvet_box"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "item_styler":      {"x": item_x_col3_val, "y": 334, "size": get_adjusted_font_size(0, "item_styler"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 스타일러 X: item_x_col3_val
+    "item_styler":      {"x": item_x_col3_val, "y": 334, "size": get_adjusted_font_size(0, "item_styler"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 스타일러 X 좌표
     "item_massage_chair":{"x": item_x_col3_val, "y": 363, "size": get_adjusted_font_size(0, "item_massage_chair"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_acoustic":{"x": item_x_col3_val, "y": 392, "size": get_adjusted_font_size(0, "item_piano_acoustic"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_copier":      {"x": item_x_col3_val, "y": 421, "size": get_adjusted_font_size(0, "item_copier"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -170,6 +164,7 @@ ITEM_KEY_MAP = {
     "파티션": "item_partition", "5톤진입": "item_5ton_access",
 }
 
+# ... (get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일) ...
 def get_text_dimensions(text_string, font):
     if not text_string: return 0,0
     if hasattr(font, 'getbbox'):
@@ -309,12 +304,10 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
 
-    # 출발지/도착지 작업 방법 (이모티콘 제외)
     from_method_raw = state_data.get('from_method', '')
     from_work_method_text = from_method_raw.split(" ")[0] if from_method_raw else ""
     to_method_raw = state_data.get('to_method', '')
     to_work_method_text = to_method_raw.split(" ")[0] if to_method_raw else ""
-
 
     total_moving_expenses_val = 0
     storage_fee_val = 0
@@ -353,10 +346,12 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     data_to_draw = {
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
-        "from_floor": from_floor, "to_floor": to_floor, "vehicle_type": vehicle_tonnage_display,
+        "from_floor": from_floor, "to_floor": to_floor,
+        "vehicle_type_numbers_only": vehicle_tonnage_display, # 숫자만 있는 차량 톤수
+        "selected_vehicle_full_name": selected_vehicle_raw,    # 차량 종류 전체 이름
         "workers_male": workers_male, "workers_female": workers_female,
-        "from_work_method_display": from_work_method_text, # 출발지 작업 방법
-        "to_work_method_display": to_work_method_text,     # 도착지 작업 방법
+        "from_work_method_display": from_work_method_text,
+        "to_work_method_display": to_work_method_text,
         "fee_value_next_to_ac_right": _format_currency(option_ac_cost_val),
         "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
         "grand_total": _format_currency(grand_total_num),
@@ -371,16 +366,9 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "remaining_balance_display": _format_currency(remaining_balance_num),
     }
 
-    move_time_option_from_state = state_data.get('move_time_option_key_in_state', state_data.get('move_time_option'))
-    if move_time_option_from_state == '오전':
-         data_to_draw["move_time_am_checkbox"] = FIELD_MAP["move_time_am_checkbox"].get("text_if_true", "V")
-         data_to_draw["move_time_pm_checkbox"] = FIELD_MAP["move_time_pm_checkbox"].get("text_if_false", "□")
-    elif move_time_option_from_state == '오후':
-         data_to_draw["move_time_am_checkbox"] = FIELD_MAP["move_time_am_checkbox"].get("text_if_false", "□")
-         data_to_draw["move_time_pm_checkbox"] = FIELD_MAP["move_time_pm_checkbox"].get("text_if_true", "V")
-    else:
-         data_to_draw["move_time_am_checkbox"] = FIELD_MAP["move_time_am_checkbox"].get("text_if_false", "□")
-         data_to_draw["move_time_pm_checkbox"] = FIELD_MAP["move_time_pm_checkbox"].get("text_if_false", "□")
+    # 오전/오후 체크박스 관련 데이터는 이제 그리지 않으므로 data_to_draw에서 제외
+    # move_time_option_from_state = state_data.get('move_time_option_key_in_state', state_data.get('move_time_option'))
+    # ... (체크박스 data_to_draw 할당 로직 제거)
 
     try:
         import data as app_data
@@ -430,7 +418,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         text_content_value = M.get("text_override", data_to_draw.get(key))
         final_text_to_draw = ""
 
-        if key.endswith("_checkbox"):
+        if key.endswith("_checkbox"): # 체크박스는 이제 FIELD_MAP에 없으므로 이 조건은 사실상 불필요
             final_text_to_draw = data_to_draw.get(key, M.get("text_if_false", "□"))
         elif text_content_value is not None and str(text_content_value).strip() != "":
             final_text_to_draw = str(text_content_value)
