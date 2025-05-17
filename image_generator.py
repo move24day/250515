@@ -19,22 +19,20 @@ BASE_FONT_SIZE = 18
 item_y_start_val = 334
 item_y_spacing_val = 28.8
 item_font_size_val = 15
-item_x_col1_val = 226       # 식탁 X 좌표로 사용
-item_x_col2_baskets_val = 491 # 중대박스 X 좌표로 사용
-item_x_col2_others_val = 491 # 책상 X 좌표로 사용
-item_x_col3_val = 756         # 스타일러 X 좌표로 사용
+item_x_col1_val = 226
+item_x_col2_baskets_val = 491
+item_x_col2_others_val = 491 # 책상 X 좌표
+item_x_col3_val = 756         # 스타일러 X 좌표
 
 # 차량 표시 Y 좌표: 기존(275 + spacing)에서 2픽셀 위로
 original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 304
 vehicle_display_y_val = original_vehicle_y_calc - 2 # 304 - 2 = 302
-vehicle_number_x_val = 90 # 차량 톤수(숫자만) X 좌표
-selected_vehicle_text_x_val = item_x_col2_others_val # 차량 종류 전체 텍스트 X (책상 X)
+vehicle_number_x_val = 90
+actual_vehicles_text_x_val = item_x_col2_others_val # 실제 투입 차량 X (책상 X)
 
-costs_section_x_align_right_val = 326 # 이사비용, 총액, 사다리 금액 등 오른쪽 정렬 기준 X
-# 사다리 레이블 X 좌표: "최대한 왼쪽" -> 여백 고려하여 50으로 설정 (조정 필요)
-ladder_label_x_val = 50
+costs_section_x_align_right_val = 326
+ladder_label_x_val = 50 # 사다리 레이블 최대한 왼쪽
 
-# --- 동적 좌표 계산 ---
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
 work_method_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
@@ -42,12 +40,12 @@ work_method_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
 _y_living_room_cabinet_orig = 677
 _y_sofa_3seater_orig = 549
 _y_main_fee_yellow_box_orig = 775
-_y_grand_total_orig = 861 # FIELD_MAP['grand_total']['y']의 이전 값
+_y_grand_total_orig = 861
 
 from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig)
 to_ladder_y_val = from_ladder_y_val + item_y_spacing_val
 
-fees_x_val_right_aligned = item_x_col3_val # 스타일러 X 좌표 (756)
+fees_x_val_right_aligned = item_x_col3_val
 
 deposit_y_val = from_ladder_y_val
 storage_fee_y_val = _y_main_fee_yellow_box_orig
@@ -67,7 +65,7 @@ def get_adjusted_font_size(original_size_ignored, field_key):
                      "from_ladder_fee_value", "to_ladder_fee_value",
                      "deposit_amount_display", "storage_fee_display"]:
         return BASE_FONT_SIZE
-    if field_key in ["vehicle_type_numbers_only", "selected_vehicle_full_name"]: return BASE_FONT_SIZE -2
+    if field_key in ["vehicle_type_numbers_only", "actual_dispatched_vehicles_display"]: return BASE_FONT_SIZE -2
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
@@ -81,7 +79,7 @@ FIELD_MAP = {
     "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
-    "selected_vehicle_full_name": {"x": selected_vehicle_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "selected_vehicle_full_name"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 180},
+    "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220}, # max_width 조정
 
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -89,7 +87,7 @@ FIELD_MAP = {
     "from_work_method_display": {"x": work_method_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_display":   {"x": work_method_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 품목 정보 (FIELD_MAP에서 item_... 부분은 이전과 동일)
+    # 품목 정보 (이전과 동일)
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": get_adjusted_font_size(0, "item_jangrong"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": get_adjusted_font_size(0, "item_double_bed"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": 392, "size": get_adjusted_font_size(0, "item_drawer_5dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -133,6 +131,7 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(0, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(0, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+    # 비용 관련 항목들
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
@@ -295,13 +294,27 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     from_floor = str(state_data.get('from_floor', ''))
     to_floor = str(state_data.get('to_floor', ''))
     
-    selected_vehicle_raw = state_data.get('final_selected_vehicle', '')
+    # "선택된 차량"(견적 계산용)에서 숫자만 추출
+    selected_vehicle_for_calc = state_data.get('final_selected_vehicle', '') # 견적 계산에 사용된 차량 (예: "5톤 탑차")
     vehicle_tonnage_display = ""
-    if isinstance(selected_vehicle_raw, str):
-        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_raw)
+    if isinstance(selected_vehicle_for_calc, str):
+        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_for_calc)
         if match: vehicle_tonnage_display = match.group(1)
-    elif isinstance(selected_vehicle_raw, (int, float)):
-        vehicle_tonnage_display = str(selected_vehicle_raw)
+    elif isinstance(selected_vehicle_for_calc, (int, float)):
+        vehicle_tonnage_display = str(selected_vehicle_for_calc)
+
+    # "실제 투입 차량" 정보 구성
+    dispatched_1t = state_data.get('dispatched_1t', 0)
+    dispatched_2_5t = state_data.get('dispatched_2_5t', 0)
+    dispatched_3_5t = state_data.get('dispatched_3_5t', 0)
+    dispatched_5t = state_data.get('dispatched_5t', 0)
+    actual_dispatched_vehicles_parts = []
+    if dispatched_1t > 0: actual_dispatched_vehicles_parts.append(f"1톤:{dispatched_1t}")
+    if dispatched_2_5t > 0: actual_dispatched_vehicles_parts.append(f"2.5톤:{dispatched_2_5t}")
+    if dispatched_3_5t > 0: actual_dispatched_vehicles_parts.append(f"3.5톤:{dispatched_3_5t}")
+    if dispatched_5t > 0: actual_dispatched_vehicles_parts.append(f"5톤:{dispatched_5t}")
+    actual_dispatched_vehicles_text = ", ".join(actual_dispatched_vehicles_parts) if actual_dispatched_vehicles_parts else ""
+
 
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
@@ -349,8 +362,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
         "from_floor": from_floor, "to_floor": to_floor,
-        "vehicle_type_numbers_only": vehicle_tonnage_display,
-        "selected_vehicle_full_name": selected_vehicle_raw,
+        "vehicle_type_numbers_only": vehicle_tonnage_display, # 견적 계산용 차량 톤수(숫자만)
+        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text, # 실제 투입 차량 정보
         "workers_male": workers_male, "workers_female": workers_female,
         "from_work_method_display": from_work_method_text,
         "to_work_method_display": to_work_method_text,
