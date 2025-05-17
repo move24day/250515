@@ -54,19 +54,19 @@ FIELD_MAP = {
     # --- 품목 Y 좌표 직접 지정 (image_6eaa25.png 이미지의 각 라인 중앙 추정) ---
     # 첫번째 열 품목
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 334 + 29
-    "item_drawer_5dan": {"x": item_x_col1_val, "y": 392, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 363 + 29
-    "item_drawer_3dan": {"x": item_x_col1_val, "y": 421, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 392 + 29
-    "item_fridge_4door":{"x": item_x_col1_val, "y": 450, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 421 + 29
-    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": 479, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 507, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 479 + 28 (약간 좁아짐)
-    "item_sofa_3seater":{"x": item_x_col1_val, "y": 536, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 507 + 29
-    "item_sofa_1seater":{"x": item_x_col1_val, "y": 565, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_dining_table":{"x": item_x_col1_val, "y": 594, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_ac_left":     {"x": item_x_col1_val, "y": 623, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": item_x_col1_val, "y": 651, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 623 + 28
-    "item_piano_digital": {"x": item_x_col1_val, "y": 680, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 651 + 29
-    "item_washing_machine": {"x": item_x_col1_val, "y": 709, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_double_bed":  {"x": item_x_col1_val, "y": 364, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 334 + 29
+    "item_drawer_5dan": {"x": item_x_col1_val, "y": 394, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 363 + 29
+    "item_drawer_3dan": {"x": item_x_col1_val, "y": 424, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 392 + 29
+    "item_fridge_4door":{"x": item_x_col1_val, "y": 454, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 421 + 29
+    "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": 474, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 513, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 479 + 28 (약간 좁아짐)
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": 543, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 507 + 29
+    "item_sofa_1seater":{"x": item_x_col1_val, "y": 573, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_dining_table":{"x": item_x_col1_val, "y": 603, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_left":     {"x": item_x_col1_val, "y": 633, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": 662, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 623 + 28
+    "item_piano_digital": {"x": item_x_col1_val, "y": 693, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 651 + 29
+    "item_washing_machine": {"x": item_x_col1_val, "y": 723, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     
     # --- 두번째 열 품목 (Y 좌표는 첫번째 열과 동일) ---
     "item_computer":    {"x": item_x_col2_others_val, "y": 334, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
