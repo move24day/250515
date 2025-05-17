@@ -17,51 +17,43 @@ TEXT_COLOR_YELLOW_BG = (0,0,0)
 
 BASE_FONT_SIZE = 18
 item_y_start_val = 334
-item_y_spacing_val = 28.8 # 항목 간 기본 Y 간격
-item_font_size_val = 15    # 품목 수량 폰트 크기
-item_x_col1_val = 226       # 식탁 X 좌표 등으로 사용됨
-item_x_col2_baskets_val = 491 # 책바구니, 중대박스 X 좌표 등으로 사용됨
-item_x_col2_others_val = 491 # 책상 X 좌표 등으로 사용됨
-item_x_col3_val = 756         # 스타일러, 금고 X 좌표 등으로 사용됨
+item_y_spacing_val = 28.8
+item_font_size_val = 15
+item_x_col1_val = 226
+item_x_col2_baskets_val = 491
+item_x_col2_others_val = 491
+item_x_col3_val = 756
 
-# --- 차량 관련 좌표 ---
-original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 304
-vehicle_display_y_val = original_vehicle_y_calc - 2 # 기존 Y값에서 2픽셀 위로 (302)
-vehicle_number_x_val = 90 # 견적용 차량 톤수(숫자만) X
-actual_vehicles_text_x_val = item_x_col2_others_val # 실제 투입 차량 X (책상 X와 동일)
+original_vehicle_y_calc = int(275 + item_y_spacing_val)
+vehicle_display_y_val = original_vehicle_y_calc - 2
+vehicle_number_x_val = 90
+actual_vehicles_text_x_val = item_x_col2_others_val
 
-# --- 작업 방법(상단) 관련 좌표 ---
+costs_section_x_align_right_val = 326
+# 작업 비용 레이블 X 좌표 (하단 출발/도착 작업 방법 레이블)
+work_method_fee_label_x_val = 50 # 최대한 왼쪽 (조정 필요)
+
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
-work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2) # 식탁X와 중대박스X 중간
+work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
 
-# --- 비용 및 하단 레이아웃 관련 좌표 ---
-costs_section_x_align_right_val = 326 # 이사비용, 총액, 사다리 금액 등 오른쪽 정렬 기준 X
+_y_living_room_cabinet_orig = 677
+_y_sofa_3seater_orig = 549
+_y_main_fee_yellow_box_orig = 775
+_y_grand_total_orig = 861
 
-# 사다리 레이블 X 좌표: "금액 앞 5칸" -> 금액 정렬 X 기준(326)에서 왼쪽으로 이동
-칸당너비_가정 = 15 # 한 칸의 너비 (픽셀 단위, 실제 보면서 조정)
-칸수_오프셋 = 5   # 왼쪽으로 이동할 칸 수
-ladder_label_x_val = costs_section_x_align_right_val - (칸수_오프셋 * 칸당너비_가정) # 예: 326 - 75 = 251
+from_work_fee_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
+to_work_fee_y_val = from_work_fee_y_val + item_y_spacing_val # 833.8
 
-_y_living_room_cabinet_from_map = 677 # FIELD_MAP['item_living_room_cabinet']['y'] 예상값
-_y_sofa_3seater_from_map = 549      # FIELD_MAP['item_sofa_3seater']['y'] 예상값
-_y_main_fee_yellow_box_from_map = 775 # FIELD_MAP['main_fee_yellow_box']['y'] 예상값
-_y_grand_total_from_map_prev = 861    # FIELD_MAP['grand_total']['y']의 이전 계산된 값
-
-from_work_fee_y_val = _y_living_room_cabinet_from_map + abs(_y_sofa_3seater_from_map - _y_living_room_cabinet_from_map) # 805
-to_work_fee_y_val = from_work_fee_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
-
-fees_x_val_right_aligned = item_x_col3_val # 보관료, 계약금, 잔금 X (스타일러 X, 756)
+fees_x_val_right_aligned = item_x_col3_val # 스타일러 X (756)
 
 deposit_y_val = from_work_fee_y_val # 805
-storage_fee_y_val = _y_main_fee_yellow_box_from_map # 775
-remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 805 + 28.8 = 833.8 (계약금 Y + 한 칸 아래)
+storage_fee_y_val = _y_main_fee_yellow_box_orig # 775
+remaining_balance_y_val = deposit_y_val + item_y_spacing_val # 833.8
 
-grand_total_y_new = _y_grand_total_from_map_prev + 4 # 861 + 4 = 865
-
+grand_total_y_new = _y_grand_total_orig + 4
 
 def get_adjusted_font_size(original_size_ignored, field_key):
-    # ... (이 함수 내용은 이전과 동일)
     if field_key == "customer_name": return BASE_FONT_SIZE
     if field_key == "customer_phone": return BASE_FONT_SIZE - 2
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
@@ -69,8 +61,8 @@ def get_adjusted_font_size(original_size_ignored, field_key):
     if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
     if field_key in ["fee_value_next_to_ac_right"]: return 14
     if field_key in ["from_work_method_text_display", "to_work_method_text_display"]: return BASE_FONT_SIZE - 2
-    if field_key in ["from_method_label", "to_method_label", # 키 이름 변경됨
-                     "from_method_fee_value", "to_method_fee_value", # 키 이름 변경됨
+    if field_key in ["from_method_label", "to_method_label",
+                     "from_method_fee_value", "to_method_fee_value",
                      "deposit_amount_display", "storage_fee_display"]:
         return BASE_FONT_SIZE
     if field_key in ["vehicle_type_numbers_only", "actual_dispatched_vehicles_display"]: return BASE_FONT_SIZE -2
@@ -103,11 +95,11 @@ FIELD_MAP = {
     "item_fridge_4door":{"x": item_x_col1_val, "y": 455, "size": get_adjusted_font_size(0, "item_fridge_4door"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": 488, "size": get_adjusted_font_size(0, "item_kimchi_fridge_normal"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": 518, "size": get_adjusted_font_size(0, "item_kimchi_fridge_stand"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_from_map, "size": get_adjusted_font_size(0, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": get_adjusted_font_size(0, "item_sofa_3seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_sofa_1seater":{"x": item_x_col1_val, "y": 581, "size": get_adjusted_font_size(0, "item_sofa_1seater"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_dining_table":{"x": item_x_col1_val, "y": 612, "size": get_adjusted_font_size(0, "item_dining_table"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_left":     {"x": item_x_col1_val, "y": 645, "size": get_adjusted_font_size(0, "item_ac_left"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_from_map, "size": get_adjusted_font_size(0, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": get_adjusted_font_size(0, "item_living_room_cabinet"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_digital": {"x": item_x_col1_val, "y": 708, "size": get_adjusted_font_size(0, "item_piano_digital"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_washing_machine": {"x": item_x_col1_val, "y": 740, "size": get_adjusted_font_size(0, "item_washing_machine"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
@@ -139,21 +131,22 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(0, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(0, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+    # 비용 관련 항목들
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
-    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_from_map, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 
-    "from_method_label":  {"x": ladder_label_x_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # text_override 제거
+    "from_method_label":  {"x": work_method_fee_label_x_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "from_method_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "to_method_label":    {"x": ladder_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # text_override 제거
+    "to_method_label":    {"x": work_method_fee_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "to_method_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
-# ... (ITEM_KEY_MAP, get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일) ...
+# ... (이하 ITEM_KEY_MAP, 헬퍼 함수, create_quote_image, 테스트 코드는 이전 답변과 동일하게 유지)
 # ITEM_KEY_MAP (data.py 품목명 변경 사항 반영 필요)
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
@@ -324,7 +317,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
 
-    # 출발지/도착지 작업 방법 (이모티콘 제외한 텍스트, 레이블용/상단표시용)
     from_method_raw = state_data.get('from_method', '')
     from_method_text_for_label = "출발" + (from_method_raw.split(" ")[0] if from_method_raw else "작업")
     from_method_text_for_display_top = from_method_raw.split(" ")[0] if from_method_raw else ""
@@ -355,13 +347,13 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 storage_fee_val = amount
             elif label == '에어컨 설치 및 이전 비용':
                 option_ac_cost_val = amount
-            # 출발지/도착지 작업 비용 추출 (사다리, 스카이 외 다른 작업은 calculations.py에서 해당 레이블로 비용 추가 필요)
-            elif label.startswith('출발지'): # 예: "출발지 사다리차", "출발지 스카이 장비", "출발지 계단 운반비"
+            elif label.startswith('출발지'):
                 from_method_fee_val += amount
-            elif label.startswith('도착지'): # 예: "도착지 사다리차", "도착지 스카이 장비", "도착지 계단 운반비"
+            elif label.startswith('도착지'):
                 to_method_fee_raw_val += amount
-            elif label == '지방 사다리 추가요금':
+            elif label == '지방 사다리 추가요금': # 이 비용은 도착지 작업 비용에 합산됨
                 regional_ladder_surcharge_val += amount
+            # 계단 등 다른 작업 방법 비용이 있다면, calculations.py에서 "출발지 [작업명]" 등으로 추가하고 여기서 잡힘
 
     final_to_method_fee_val = to_method_fee_raw_val + regional_ladder_surcharge_val
 
@@ -376,15 +368,15 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "vehicle_type_numbers_only": vehicle_tonnage_display,
         "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text,
         "workers_male": workers_male, "workers_female": workers_female,
-        "from_work_method_text_display": from_method_text_for_display_top, # 상단 표시용
-        "to_work_method_text_display": to_method_text_for_display_top,     # 상단 표시용
+        "from_work_method_text_display": from_method_text_for_display_top,
+        "to_work_method_text_display": to_method_text_for_display_top,
         "fee_value_next_to_ac_right": _format_currency(option_ac_cost_val),
         "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
         "grand_total": _format_currency(grand_total_num),
 
-        "from_method_label": from_method_text_for_label, # 동적 레이블
+        "from_method_label": from_method_text_for_label,
         "from_method_fee_value": _format_currency(from_method_fee_val),
-        "to_method_label": to_method_text_for_label,     # 동적 레이블
+        "to_method_label": to_method_text_for_label,
         "to_method_fee_value": _format_currency(final_to_method_fee_val),
 
         "deposit_amount_display": _format_currency(deposit_amount_val),
@@ -437,8 +429,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 except (ValueError, TypeError) : M[k_map] = v_map
             else: M[k_map] = v_map
 
-        # 'text_override'는 이제 FIELD_MAP에 없으므로, data_to_draw에서 값을 가져옴
-        text_content_value = data_to_draw.get(key)
+        # FIELD_MAP에 text_override가 있으면 그것을 우선 사용하고, 없으면 data_to_draw에서 값을 가져옴
+        text_content_value = M.get("text_override", data_to_draw.get(key))
         final_text_to_draw = ""
 
         if text_content_value is not None and str(text_content_value).strip() != "":
@@ -448,8 +440,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
-            align_val = M.get("align", "left")
-            if "align" in M:
+            align_val = M.get("align", "left") # 기본 정렬
+            if "align" in M: # FIELD_MAP에 align이 명시되어 있으면 그것을 사용
                 align_val = M["align"]
             
             max_w_val = M.get("max_width")
