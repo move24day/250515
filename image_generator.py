@@ -31,7 +31,7 @@ actual_vehicles_text_x_val = item_x_col2_others_val
 
 costs_section_x_align_right_val = 410
 # 작업 비용 레이블 X 좌표 (하단 출발/도착 작업 방법 레이블)
-work_method_fee_label_x_val = 30 # 최대한 왼쪽 (조정 필요)
+work_method_fee_label_x_val = 35 # 최대한 왼쪽 (조정 필요)
 
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
