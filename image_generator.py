@@ -93,10 +93,10 @@ FIELD_MAP = {
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": 775, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, 
-    "storage_fee":      {"x": costs_section_x_align_right_val, "y": 705, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "deposit_amount":   {"x": costs_section_x_align_right_val, "y": 736, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "remaining_balance":{"x": costs_section_x_align_right_val, "y": 768, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_section_x_align_right_val, "y": 950, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "storage_fee":      {"x": costs_section_x_align_right_val, "y": 1305, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "deposit_amount":   {"x": costs_section_x_align_right_val, "y": 1036, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "remaining_balance":{"x": costs_section_x_align_right_val, "y": 968, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "grand_total":      {"x": costs_section_x_align_right_val, "y": 850, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
 ITEM_KEY_MAP = {
