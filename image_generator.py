@@ -7,6 +7,7 @@ import math
 import traceback
 import re
 
+# ... (BASE_DIR, 경로, 색상, 기본 좌표 변수 등 상단 부분은 이전과 동일하게 유지) ...
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png")
 FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
@@ -24,30 +25,32 @@ item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
 item_x_col3_val = 756
 
-# 차량 표시 Y 좌표: 기존(275 + spacing)에서 2픽셀 위로
-original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 304
-vehicle_display_y_val = original_vehicle_y_calc - 2 # 304 - 2 = 302
-vehicle_number_x_val = 90 # 견적용 차량 톤수(숫자만) X
-actual_vehicles_text_x_val = item_x_col2_others_val # 실제 투입 차량 X (책상 X)
+original_vehicle_y_calc = int(275 + item_y_spacing_val)
+vehicle_display_y_val = original_vehicle_y_calc - 2
+vehicle_number_x_val = 90
+actual_vehicles_text_x_val = item_x_col2_others_val
 
 costs_section_x_align_right_val = 326
-ladder_label_x_val = 50 # 사다리 레이블 최대한 왼쪽 (조정 필요)
+# 작업 방법 레이블 X 좌표 (금액 표시보다 왼쪽 "5칸" 가정)
+칸당너비_작업방법_레이블 = 15 # 조정 가능
+칸수_작업방법_레이블_오프셋 = 5
+work_method_label_x_val = costs_section_x_align_right_val - (칸수_작업방법_레이블_오프셋 * 칸당너비_작업방법_레이블) # 예: 326 - 75 = 251
 
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
-work_method_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
+work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2) # 기존 작업 방법 텍스트 X
 
 _y_living_room_cabinet_orig = 677
 _y_sofa_3seater_orig = 549
 _y_main_fee_yellow_box_orig = 775
 _y_grand_total_orig = 861
 
-from_ladder_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig)
-to_ladder_y_val = from_ladder_y_val + item_y_spacing_val
+from_work_fee_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
+to_work_fee_y_val = from_work_fee_y_val + item_y_spacing_val # 805 + 28.8 = 833.8
 
-fees_x_val_right_aligned = item_x_col3_val # 스타일러 X (756)
+fees_x_val_right_aligned = item_x_col3_val
 
-deposit_y_val = from_ladder_y_val
+deposit_y_val = from_work_fee_y_val
 storage_fee_y_val = _y_main_fee_yellow_box_orig
 remaining_balance_y_val = deposit_y_val + item_y_spacing_val
 
@@ -60,15 +63,16 @@ def get_adjusted_font_size(original_size_ignored, field_key):
         return item_font_size_val
     if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
     if field_key in ["fee_value_next_to_ac_right"]: return 14
-    if field_key in ["from_work_method_display", "to_work_method_display"]: return BASE_FONT_SIZE - 2
-    if field_key in ["from_ladder_label", "to_ladder_label",
-                     "from_ladder_fee_value", "to_ladder_fee_value",
+    if field_key in ["from_work_method_text_display", "to_work_method_text_display"]: return BASE_FONT_SIZE - 2 # 상단 작업방법 텍스트
+    if field_key in ["from_method_label", "to_method_label", # 하단 작업비용 레이블
+                     "from_method_fee_value", "to_method_fee_value", # 하단 작업비용 금액
                      "deposit_amount_display", "storage_fee_display"]:
         return BASE_FONT_SIZE
     if field_key in ["vehicle_type_numbers_only", "actual_dispatched_vehicles_display"]: return BASE_FONT_SIZE -2
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
+    # ... (고객 정보, 차량 정보, 작업자 정보 등 이전과 동일) ...
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -84,8 +88,9 @@ FIELD_MAP = {
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "from_work_method_display": {"x": work_method_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "to_work_method_display":   {"x": work_method_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    # 상단 작업 방법 텍스트 (이전과 동일)
+    "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "to_work_method_text_display":   {"x": work_method_text_display_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     # 품목 정보 (이전과 동일)
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": get_adjusted_font_size(0, "item_jangrong"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -131,22 +136,24 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": 684, "size": get_adjusted_font_size(0, "item_5ton_access"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": 710, "size": get_adjusted_font_size(0, "item_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 
-    "from_ladder_label":  {"x": ladder_label_x_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "출발사다리"},
-    "from_ladder_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_ladder_y_val), "size": get_adjusted_font_size(0, "from_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    # 출발지/도착지 작업 방법 레이블 및 비용 (키 이름 변경: from_ladder_label -> from_method_label 등)
+    "from_method_label":  {"x": ladder_label_x_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # text_override 제거, 동적 텍스트 사용
+    "from_method_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "to_ladder_label":    {"x": ladder_label_x_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "text_override": "도착사다리"},
-    "to_ladder_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_ladder_y_val),   "size": get_adjusted_font_size(0, "to_ladder_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+    "to_method_label":    {"x": ladder_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"}, # text_override 제거
+    "to_method_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
-# ... (ITEM_KEY_MAP, get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency, create_quote_image, __main__ 부분은 이전과 동일) ...
+# ... (ITEM_KEY_MAP, get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일) ...
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
@@ -292,7 +299,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     from_floor = str(state_data.get('from_floor', ''))
     to_floor = str(state_data.get('to_floor', ''))
     
-    # 견적용 차량 (숫자만)
     selected_vehicle_for_calc = state_data.get('final_selected_vehicle', '')
     vehicle_tonnage_display = ""
     if isinstance(selected_vehicle_for_calc, str):
@@ -301,7 +307,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     elif isinstance(selected_vehicle_for_calc, (int, float)):
         vehicle_tonnage_display = str(selected_vehicle_for_calc)
 
-    # 실제 투입 차량 정보 (문자열로 조합)
     dispatched_1t = state_data.get('dispatched_1t', 0)
     dispatched_2_5t = state_data.get('dispatched_2_5t', 0)
     dispatched_3_5t = state_data.get('dispatched_3_5t', 0)
@@ -313,20 +318,23 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     if dispatched_5t > 0: actual_dispatched_vehicles_parts.append(f"5톤:{dispatched_5t}")
     actual_dispatched_vehicles_text = ", ".join(actual_dispatched_vehicles_parts) if actual_dispatched_vehicles_parts else ""
 
-
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
 
     from_method_raw = state_data.get('from_method', '')
-    from_work_method_text = from_method_raw.split(" ")[0] if from_method_raw else "" # 이모티콘 제거
+    from_work_method_label_text = "출발" + (from_method_raw.split(" ")[0] if from_method_raw else "작업")
+    from_work_method_text_display = from_method_raw.split(" ")[0] if from_method_raw else ""
+
     to_method_raw = state_data.get('to_method', '')
-    to_work_method_text = to_method_raw.split(" ")[0] if to_method_raw else ""     # 이모티콘 제거
+    to_work_method_label_text = "도착" + (to_method_raw.split(" ")[0] if to_method_raw else "작업")
+    to_work_method_text_display = to_method_raw.split(" ")[0] if to_method_raw else ""
+
 
     total_moving_expenses_val = 0
     storage_fee_val = 0
     option_ac_cost_val = 0
-    from_ladder_fee_val = 0
-    to_ladder_fee_raw_val = 0
+    from_method_fee_val = 0 # 출발지 작업 비용 (사다리, 스카이, 또는 0)
+    to_method_fee_raw_val = 0   # 도착지 작업 비용 (지방 추가금 합산 전)
     regional_ladder_surcharge_val = 0
 
     if calculated_cost_items and isinstance(calculated_cost_items, list):
@@ -343,14 +351,15 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 storage_fee_val = amount
             elif label == '에어컨 설치 및 이전 비용':
                 option_ac_cost_val = amount
-            elif label == '출발지 사다리차' or label == '출발지 스카이 장비':
-                from_ladder_fee_val += amount
-            elif label == '도착지 사다리차' or label == '도착지 스카이 장비':
-                to_ladder_fee_raw_val += amount
+            elif label.startswith('출발지'): # "출발지 사다리차", "출발지 스카이 장비" 등
+                from_method_fee_val += amount
+            elif label.startswith('도착지'): # "도착지 사다리차", "도착지 스카이 장비" 등
+                to_method_fee_raw_val += amount
             elif label == '지방 사다리 추가요금':
                 regional_ladder_surcharge_val += amount
+            # 계단 작업 등에 대한 비용 항목이 calculations.py에서 추가된다면 여기서 처리 필요
 
-    final_to_ladder_fee_val = to_ladder_fee_raw_val + regional_ladder_surcharge_val
+    final_to_method_fee_val = to_method_fee_raw_val + regional_ladder_surcharge_val
 
     deposit_amount_val = int(float(state_data.get('deposit_amount', 0) or 0))
     grand_total_num = int(float(total_cost_overall or 0))
@@ -361,18 +370,18 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
         "from_floor": from_floor, "to_floor": to_floor,
         "vehicle_type_numbers_only": vehicle_tonnage_display,
-        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text, # 실제 투입 차량
+        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text,
         "workers_male": workers_male, "workers_female": workers_female,
-        "from_work_method_display": from_work_method_text,
-        "to_work_method_display": to_work_method_text,
+        "from_work_method_text_display": from_work_method_text_display, # 상단 작업방법 표시용
+        "to_work_method_text_display": to_work_method_text_display,     # 상단 작업방법 표시용
         "fee_value_next_to_ac_right": _format_currency(option_ac_cost_val),
         "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
         "grand_total": _format_currency(grand_total_num),
 
-        "from_ladder_label": FIELD_MAP["from_ladder_label"]["text_override"],
-        "from_ladder_fee_value": _format_currency(from_ladder_fee_val),
-        "to_ladder_label": FIELD_MAP["to_ladder_label"]["text_override"],
-        "to_ladder_fee_value": _format_currency(final_to_ladder_fee_val),
+        "from_method_label": from_work_method_label_text, # 동적으로 레이블 설정
+        "from_method_fee_value": _format_currency(from_method_fee_val),
+        "to_method_label": to_work_method_label_text,     # 동적으로 레이블 설정
+        "to_method_fee_value": _format_currency(final_to_method_fee_val),
 
         "deposit_amount_display": _format_currency(deposit_amount_val),
         "storage_fee_display": _format_currency(storage_fee_val),
@@ -424,7 +433,8 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 except (ValueError, TypeError) : M[k_map] = v_map
             else: M[k_map] = v_map
 
-        text_content_value = M.get("text_override", data_to_draw.get(key))
+        # 'text_override'는 이제 동적 레이블을 위해 data_to_draw에서 가져오므로 FIELD_MAP에서는 사용하지 않음
+        text_content_value = data_to_draw.get(key)
         final_text_to_draw = ""
 
         if text_content_value is not None and str(text_content_value).strip() != "":
