@@ -19,7 +19,7 @@ item_y_spacing_val = 28.8
 item_font_size_val = 15 
 item_x_col1_val = 226       
 item_x_col2_baskets_val = 491 
-item_x_col2_others_val = 461  
+item_x_col2_others_val = 491  
 item_x_col3_val = 756
 
 # 차량톤수 X 좌표: 층수 X (180) 보다 왼쪽 (예: 90)
@@ -29,7 +29,7 @@ vehicle_y_val = int(275 + item_y_spacing_val)
 
 # "이사비용" (에어컨 옆 금액) 및 하단 노란색 비용 항목들의 X 좌표 (오른쪽 정렬 기준)
 # 장롱 X(226) - 전화번호4자리너비(60으로 가정) = 166
-costs_section_x_align_right_val = 166 
+costs_section_x_align_right_val = 226
 
 
 FIELD_MAP = {
@@ -92,11 +92,11 @@ FIELD_MAP = {
     
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": 14, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
-    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": 686, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, 
-    "storage_fee":      {"x": costs_section_x_align_right_val, "y": 716, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "deposit_amount":   {"x": costs_section_x_align_right_val, "y": 744, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "remaining_balance":{"x": costs_section_x_align_right_val, "y": 772, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_section_x_align_right_val, "y": 808, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": 775, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, 
+    "storage_fee":      {"x": costs_section_x_align_right_val, "y": 805, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "deposit_amount":   {"x": costs_section_x_align_right_val, "y": 836, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "remaining_balance":{"x": costs_section_x_align_right_val, "y": 868, "size": 17, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "grand_total":      {"x": costs_section_x_align_right_val, "y": 900, "size": 18, "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 }
 
 ITEM_KEY_MAP = {
