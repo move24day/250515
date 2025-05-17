@@ -27,20 +27,17 @@ item_x_col3_val = 756         # 스타일러 X 좌표로 사용
 # 차량 표시 Y 좌표: 기존(275 + spacing)에서 2픽셀 위로
 original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 304
 vehicle_display_y_val = original_vehicle_y_calc - 2 # 304 - 2 = 302
-vehicle_number_x_val = 90
-selected_vehicle_text_x_val = item_x_col2_others_val # 책상 X 좌표
+vehicle_number_x_val = 90 # 차량 톤수(숫자만) X 좌표
+selected_vehicle_text_x_val = item_x_col2_others_val # 차량 종류 전체 텍스트 X (책상 X)
 
-costs_section_x_align_right_val = 326
-# 사다리 레이블 X 좌표: 금액 표시 X(326) 보다 "5칸" 왼쪽 (칸당 15픽셀 가정 -> 75픽셀 왼쪽)
-# 이 값은 실제 보면서 조정 필요
-칸당너비_가정 = 15
-칸수_오프셋 = 5
-ladder_label_x_val = costs_section_x_align_right_val - (칸수_오프셋 * 칸당너비_가정) # 326 - 75 = 251
+costs_section_x_align_right_val = 326 # 이사비용, 총액, 사다리 금액 등 오른쪽 정렬 기준 X
+# 사다리 레이블 X 좌표: "최대한 왼쪽" -> 여백 고려하여 50으로 설정 (조정 필요)
+ladder_label_x_val = 50
 
 # --- 동적 좌표 계산 ---
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
-work_method_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2) # (226 + 491) / 2 = 358.5 -> 359
+work_method_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
 
 _y_living_room_cabinet_orig = 677
 _y_sofa_3seater_orig = 549
@@ -65,12 +62,12 @@ def get_adjusted_font_size(original_size_ignored, field_key):
         return item_font_size_val
     if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
     if field_key in ["fee_value_next_to_ac_right"]: return 14
-    if field_key in ["from_work_method_display", "to_work_method_display"]: return BASE_FONT_SIZE - 2 # 작업방법 16
+    if field_key in ["from_work_method_display", "to_work_method_display"]: return BASE_FONT_SIZE - 2
     if field_key in ["from_ladder_label", "to_ladder_label",
                      "from_ladder_fee_value", "to_ladder_fee_value",
                      "deposit_amount_display", "storage_fee_display"]:
-        return BASE_FONT_SIZE # 18
-    if field_key in ["vehicle_type_numbers_only", "selected_vehicle_full_name"]: return BASE_FONT_SIZE -2 # 차량정보 16
+        return BASE_FONT_SIZE
+    if field_key in ["vehicle_type_numbers_only", "selected_vehicle_full_name"]: return BASE_FONT_SIZE -2
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
@@ -84,7 +81,7 @@ FIELD_MAP = {
     "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
-    "selected_vehicle_full_name": {"x": selected_vehicle_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "selected_vehicle_full_name"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 180}, # max_width 조정
+    "selected_vehicle_full_name": {"x": selected_vehicle_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "selected_vehicle_full_name"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 180},
 
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -92,7 +89,7 @@ FIELD_MAP = {
     "from_work_method_display": {"x": work_method_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_display":   {"x": work_method_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 품목 (FIELD_MAP에서 item_... 부분은 이전과 동일)
+    # 품목 정보 (FIELD_MAP에서 item_... 부분은 이전과 동일)
     "item_jangrong":    {"x": item_x_col1_val, "y": 334, "size": get_adjusted_font_size(0, "item_jangrong"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": 363, "size": get_adjusted_font_size(0, "item_double_bed"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": 392, "size": get_adjusted_font_size(0, "item_drawer_5dan"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -419,9 +416,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         text_content_value = M.get("text_override", data_to_draw.get(key))
         final_text_to_draw = ""
 
-        # 체크박스는 FIELD_MAP에서 제거되었으므로 이 조건은 더 이상 필요 없음
-        # if key.endswith("_checkbox"):
-        #     final_text_to_draw = data_to_draw.get(key, M.get("text_if_false", "□"))
         if text_content_value is not None and str(text_content_value).strip() != "":
             final_text_to_draw = str(text_content_value)
         
