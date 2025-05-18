@@ -7,7 +7,6 @@ import math
 import traceback
 import re
 
-# data 모듈 임포트 추가 (보관이사 유형 기본값 참조 등)
 try:
     import data as app_data_for_img_gen
 except ImportError:
@@ -22,7 +21,7 @@ FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 TEXT_COLOR_DEFAULT = (20, 20, 20)
 TEXT_COLOR_YELLOW_BG = (0,0,0)
-TEXT_COLOR_BLUE = (20, 20, 180) # 이사 유형 요약용 색상 (선택적)
+TEXT_COLOR_BLUE = (20, 20, 180)
 
 
 BASE_FONT_SIZE = 18
@@ -58,22 +57,24 @@ fees_x_val_right_aligned = item_x_col3_val
 
 deposit_y_val = from_work_fee_y_val
 storage_fee_y_val = _y_main_fee_yellow_box_orig
-remaining_balance_y_val = deposit_y_val + item_y_spacing_val
+# <<<--- 잔금 Y 좌표 수정 --->>>
+remaining_balance_y_val = deposit_y_val + item_y_spacing_val + (item_y_spacing_val / 2) # 기존값에서 반 칸 아래로 (약 833.8 + 14.4 = 848.2)
+# <<<--- 수정 끝 --->>>
 
 grand_total_y_new = _y_grand_total_orig + 4 # 865
 
-special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5)
-special_notes_x_val = 30
-special_notes_max_width_val = 750 # 이미지 가로폭에 맞춰 조정 (예: 900 - 30*2 = 840)
-special_notes_font_size_val = 15
+# <<<--- 고객 요구사항 위치 및 스타일 상수 수정 --->>>
+special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5) # 약 908
+special_notes_x_val = 50 # 기존 30에서 50으로 (오른쪽으로 20 이동)
+special_notes_max_width_val = 750 - 20 # X 시작점이 이동했으므로 최대 너비도 조정 (선택적)
+special_notes_font_size_val = 16 # 기존 15에서 16으로 (폰트 크기 +1)
+# <<<--- 상수 수정 끝 --->>>
 
-# <<<--- 이사 유형 요약 표시 위치 및 스타일 상수 추가 --->>>
-quote_date_y_val = 130 # 기존 견적일 Y 좌표
-move_type_summary_y_val = quote_date_y_val - int(item_y_spacing_val * 0.7) # 견적일보다 약간 위 (약 109)
-move_type_summary_x_val = 640 # 견적일과 같은 X 좌표 시작 (오른쪽 정렬 예정)
-move_type_summary_font_size_val = BASE_FONT_SIZE - 4 # 약간 작은 폰트 (14)
-move_type_summary_max_width_val = 250 # 견적서 이미지 우측 상단 공간 고려
-# <<<--- 상수 추가 끝 --->>>
+quote_date_y_val = 130
+move_type_summary_y_val = quote_date_y_val - int(item_y_spacing_val * 0.7)
+move_type_summary_x_val = 640
+move_type_summary_font_size_val = BASE_FONT_SIZE - 4
+move_type_summary_max_width_val = 250
 
 
 def get_adjusted_font_size(original_size_ignored, field_key):
@@ -89,25 +90,21 @@ def get_adjusted_font_size(original_size_ignored, field_key):
                      "deposit_amount_display", "storage_fee_display"]:
         return BASE_FONT_SIZE
     if field_key in ["vehicle_type_numbers_only", "actual_dispatched_vehicles_display"]: return BASE_FONT_SIZE -2
-    if field_key == "special_notes_display": return special_notes_font_size_val
-    # <<<--- 이사 유형 요약 폰트 크기 조정 추가 --->>>
+    if field_key == "special_notes_display": return special_notes_font_size_val # 수정된 상수 사용
     if field_key == "move_type_summary_display": return move_type_summary_font_size_val
-    # <<<--- 조정 추가 끝 --->>>
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
-    # <<<--- 이사 유형 요약 표시를 위한 새 키 추가 --->>>
     "move_type_summary_display": {
-        "x": move_type_summary_x_val, # 오른쪽 정렬이므로 이 X는 오른쪽 끝 기준이 됨
+        "x": move_type_summary_x_val,
         "y": move_type_summary_y_val,
         "size": get_adjusted_font_size(0, "move_type_summary_display"),
-        "font": "bold", # 강조
-        "color": TEXT_COLOR_BLUE, # 파란색 또는 다른 강조색
-        "align": "right", # 오른쪽 정렬
-        "max_width": move_type_summary_max_width_val, # 필요시 줄바꿈
+        "font": "bold",
+        "color": TEXT_COLOR_BLUE,
+        "align": "right",
+        "max_width": move_type_summary_max_width_val,
         "line_spacing_factor": 1.1
     },
-    # <<<--- 새 키 추가 끝 --->>>
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "quote_date":     {"x": 640, "y": quote_date_y_val, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -126,7 +123,6 @@ FIELD_MAP = {
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_text_display":   {"x": work_method_text_display_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 품목 정보 (Col 1)
     "item_jangrong":    {"x": item_x_col1_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -183,19 +179,24 @@ FIELD_MAP = {
 
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    # <<<--- 잔금 Y 좌표 FIELD_MAP에서 수정 --->>>
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    # <<<--- 수정 끝 --->>>
     "special_notes_display": {
-        "x": special_notes_x_val,
+        "x": special_notes_x_val, # 수정된 상수 사용
         "y": special_notes_start_y_val,
         "size": get_adjusted_font_size(0, "special_notes_display"),
         "font": "regular",
         "color": TEXT_COLOR_DEFAULT,
         "align": "left",
-        "max_width": special_notes_max_width_val,
+        "max_width": special_notes_max_width_val, # 수정된 상수 사용
         "line_spacing_factor": 1.3
     }
 }
 
+# ... (ITEM_KEY_MAP 및 나머지 함수들, create_quote_image 함수 내 data_to_draw["special_notes_display"] 할당 로직, 테스트 코드 등은 이전 답변과 동일하게 유지) ...
+
+# ITEM_KEY_MAP (data.py 품목명 변경 사항 반영 필요)
 ITEM_KEY_MAP = {
     "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
     "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
@@ -217,7 +218,7 @@ ITEM_KEY_MAP = {
     "중대박스": "item_large_box",
     "책바구니": "item_book_box",
     "화분": "item_plant_box",
-    "옷행거": "item_clothes_box", # data.py에는 '옷행거', FIELD_MAP에는 item_clothes_box. 일관성 필요
+    "옷행거": "item_clothes_box",
     "스타일러": "item_styler",
     "안마기": "item_massage_chair",
     "피아노(일반)": "item_piano_acoustic",
@@ -229,7 +230,7 @@ ITEM_KEY_MAP = {
     "앵글": "item_angle_shelf",
     "파티션": "item_partition",
     "5톤진입": "item_5ton_access",
-    "이불박스": "item_duvet_box" # 추가된 이불박스 매핑
+    "이불박스": "item_duvet_box"
 }
 
 def get_text_dimensions(text_string, font):
@@ -349,18 +350,17 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     if not os.path.exists(FONT_PATH_REGULAR): print(f"Warning: Regular font missing at {FONT_PATH_REGULAR}")
     if not os.path.exists(FONT_PATH_BOLD): print(f"Warning: Bold font missing at {FONT_PATH_BOLD}")
 
-    # <<<--- 이사 유형 요약 문자열 생성 로직 추가 --->>>
     move_type_summary_parts = []
-    base_move_type = state_data.get('base_move_type', "이사") # 기본값 "이사"
+    base_move_type = state_data.get('base_move_type', "이사")
     if "가정" in base_move_type: move_type_summary_parts.append("가정")
     elif "사무실" in base_move_type: move_type_summary_parts.append("사무실")
-    else: move_type_summary_parts.append(base_move_type.split(" ")[0]) # 아이콘 제외 첫 단어
+    else: move_type_summary_parts.append(base_move_type.split(" ")[0])
 
     if state_data.get('is_storage_move', False):
         storage_type = state_data.get('storage_type', '')
         if "컨테이너" in storage_type: move_type_summary_parts.append("컨테이너보관")
         elif "실내" in storage_type: move_type_summary_parts.append("실내보관")
-        else: move_type_summary_parts.append("보관") # 기본 '보관'
+        else: move_type_summary_parts.append("보관")
 
         if state_data.get('storage_use_electricity', False):
             move_type_summary_parts.append("(전기사용)")
@@ -369,8 +369,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         move_type_summary_parts.append("장거리")
     
     move_type_summary_text = " ".join(move_type_summary_parts) + " 이사" if move_type_summary_parts else base_move_type
-    # <<<--- 요약 문자열 생성 로직 끝 --->>>
-
 
     customer_name = state_data.get('customer_name', '')
     customer_phone = state_data.get('customer_phone', '')
@@ -447,9 +445,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     special_notes_content = state_data.get('special_notes', '')
 
     data_to_draw = {
-        # <<<--- 이사 유형 요약 data_to_draw에 추가 --->>>
         "move_type_summary_display": move_type_summary_text,
-        # <<<--- 추가 끝 --->>>
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
         "from_floor": from_floor, "to_floor": to_floor,
@@ -474,7 +470,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     }
 
     try:
-        # import data as app_data # 파일 상단으로 이동
         current_move_type = state_data.get("base_move_type")
         item_defs_for_current_type = {}
         if app_data_for_img_gen and hasattr(app_data_for_img_gen, 'item_definitions') and current_move_type in app_data_for_img_gen.item_definitions:
@@ -505,7 +500,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                         try: text_val = f"{(float(qty_int) / 3.0):.1f}"
                         except: text_val = str(qty_int)
                     data_to_draw[field_map_key_from_map] = text_val
-    # except ImportError: print("Error: data.py module could not be imported in create_quote_image.") # 이미 처리됨
     except Exception as e_item:
         print(f"Error processing item quantities for image: {e_item}")
         traceback.print_exc()
@@ -524,7 +518,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         if text_content_value is not None and str(text_content_value).strip() != "":
             final_text_to_draw = str(text_content_value)
         
-        if final_text_to_draw.strip() != "" or key == "special_notes_display":
+        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw): # 고객요구사항은 내용이 있을때만 그림
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
@@ -552,31 +546,30 @@ if __name__ == '__main__':
         "from_method": "사다리차 🪜", "to_method": "계단 🚶",
         "deposit_amount": 200000,
         "base_move_type": "가정 이사 🏠",
-        "is_storage_move": True, # 보관이사
-        "storage_type": "컨테이너 보관 📦", # data.py의 STORAGE_TYPE_OPTIONS[0]
-        "storage_use_electricity": True, # 전기 사용
-        "apply_long_distance": True, # 장거리 이사
+        "is_storage_move": True,
+        "storage_type": "컨테이너 보관 📦",
+        "storage_use_electricity": True,
+        "apply_long_distance": True,
         "qty_가정 이사 🏠_주요 품목_4도어 냉장고": 1,
         "qty_가정 이사 🏠_주요 품목_TV(75인치)": 2,
-        "qty_가정 이사 🏠_주요 품목_옷장": 9, # 3칸
-        "special_notes": "1. 이사 유형 종합 테스트입니다.\n2. 보관 이사, 장거리, 전기사용 모두 포함된 경우입니다.\n3. 여러 줄 테스트.\n4. 이사 잘 부탁드립니다."
+        "qty_가정 이사 🏠_주요 품목_옷장": 9,
+        "special_notes": "1. 오후 2시 이후 작업 시작 요청드립니다.\n2. 파손 주의 물품: 대형 유리 액자\n3. 애완견(소형견) 동반 예정입니다. 작업자분들께 미리 양해 구합니다. 매우 순합니다."
     }
     mock_costs = [
         ("기본 운임", 1750000, "7.5톤 기준"),
-        ("출발지 사다리차", 240000, "10층, 7.5톤 기준"), # 10층은 ladder_price_floor_ranges에서 "10~11층"
-        ("보관료", 210000, "컨테이너 보관 📦, 30일, 전기사용"), # 예시 금액
+        ("출발지 사다리차", 240000, "10층, 7.5톤 기준"),
+        ("보관료", 210000, "컨테이너 보관 📦, 30일, 전기사용"),
         ("장거리 운송료", 500000, "200km 이내")
     ]
-    # 총액 = 175 + 24 + 21 + 50 = 270만원
     mock_total_cost = 2700000
     mock_personnel = {"final_men": 4, "final_women": 1}
 
     try:
         image_bytes = create_quote_image(mock_state, mock_costs, mock_total_cost, mock_personnel)
         if image_bytes:
-            with open("test_quote_image_with_move_type_summary.png", "wb") as f:
+            with open("test_quote_image_final_adjust.png", "wb") as f: # 파일명 변경
                 f.write(image_bytes)
-            print("Test image 'test_quote_image_with_move_type_summary.png' saved successfully.")
+            print("Test image 'test_quote_image_final_adjust.png' saved successfully.")
         else:
             print("Test image generation failed.")
     except Exception as e_main:
