@@ -496,89 +496,89 @@ def render_tab3():
 
     actions_disabled = False # This can be used to disable all action buttons if needed
 
-    with st.container(border=True):
-        st.markdown("**고객용 견적서 (PDF & 이미지)**")
+# ui_tab3.py (일부 발췌, 이미지 생성 및 다운로드 관련 부분)
 
-        pdf_possible_cust = hasattr(pdf_generator, "generate_pdf") and can_generate_anything
-        image_possible_cust = hasattr(image_generator, "create_quote_image") and can_generate_anything
+with st.container(border=True):
+    st.markdown("**고객용 견적서 (PDF & 이미지)**")
 
-        if st.button("📄 고객용 PDF 및 이미지 생성", key="generate_customer_quote_files_tab3", disabled=actions_disabled or not (pdf_possible_cust and image_possible_cust)):
-            pdf_args = {
-                "state_data": st.session_state.to_dict(),
-                "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []),
-                "total_cost": st.session_state.get("total_cost_for_pdf", 0), # <<--- 여기 수정됨 ---<<<
-                "personnel_info": st.session_state.get("personnel_info_for_pdf", {})
-            }
+    pdf_possible_cust = hasattr(pdf_generator, "generate_pdf") and can_generate_anything
+    image_possible_cust = hasattr(image_generator, "create_quote_image") and can_generate_anything
 
-            pdf_generated_this_click = False
-            image_generated_this_click = False
+    if st.button("📄 고객용 PDF 및 이미지 생성", key="generate_customer_quote_files_tab3", disabled=actions_disabled or not (pdf_possible_cust and image_possible_cust)):
+        pdf_args = {
+            "state_data": st.session_state.to_dict(),
+            "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []),
+            "total_cost": st.session_state.get("total_cost_for_pdf", 0),
+            "personnel_info": st.session_state.get("personnel_info_for_pdf", {})
+        }
 
-            if pdf_possible_cust:
-                with st.spinner("고객용 PDF 생성 중..."):
-                    pdf_data_cust = pdf_generator.generate_pdf(**pdf_args)
-                if pdf_data_cust:
-                    st.session_state['customer_quote_pdf_data'] = pdf_data_cust
-                    st.success("✅ 고객용 PDF 생성 완료!")
-                    pdf_generated_this_click = True
-                else:
-                    st.error("❌ 고객용 PDF 생성 실패.")
-                    if 'customer_quote_pdf_data' in st.session_state: del st.session_state['customer_quote_pdf_data']
+        image_args = {  # 이미지 생성에 필요한 인자를 image_generator.py에 전달
+            "state_data": st.session_state.to_dict(),
+            "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []),
+            "total_cost_overall": st.session_state.get("total_cost_for_pdf", 0),  # total_cost_overall 인자 사용
+            "personnel_info": st.session_state.get("personnel_info_for_pdf", {})
+        }
 
-            if image_possible_cust:
-                # image_generator.create_quote_image는 total_cost_overall을 인자로 받을 수 있음 (코드 확인 필요)
-                # 만약 image_generator도 total_cost를 받는다면 pdf_args를 그대로 사용
-                # 여기서는 pdf_args를 그대로 사용한다고 가정
-                image_args = {
-                    "state_data": st.session_state.to_dict(),
-                    "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []),
-                    "total_cost_overall": st.session_state.get("total_cost_for_pdf", 0), # image_generator는 total_cost_overall을 사용
-                    "personnel_info": st.session_state.get("personnel_info_for_pdf", {})
-                }
-                with st.spinner("고객용 양식 이미지 생성 중..."):
-                    image_data_cust = image_generator.create_quote_image(**image_args)
-                if image_data_cust:
-                    st.session_state['customer_quote_image_data'] = image_data_cust
-                    st.success("✅ 고객용 양식 이미지 생성 완료!")
-                    image_generated_this_click = True
-                else:
-                    st.error("❌ 고객용 양식 이미지 생성 실패.")
-                    if 'customer_quote_image_data' in st.session_state: del st.session_state['customer_quote_image_data']
+        pdf_generated_this_click = False
+        image_generated_this_click = False
 
-            if not pdf_generated_this_click and not image_generated_this_click:
-                 st.warning("PDF와 이미지 모두 생성되지 않았습니다. 조건을 확인해주세요.")
+        if pdf_possible_cust:
+            with st.spinner("고객용 PDF 생성 중..."):
+                pdf_data_cust = pdf_generator.generate_pdf(**pdf_args)
+            if pdf_data_cust:
+                st.session_state['customer_quote_pdf_data'] = pdf_data_cust
+                st.success("✅ 고객용 PDF 생성 완료!")
+                pdf_generated_this_click = True
+            else:
+                st.error("❌ 고객용 PDF 생성 실패.")
+                if 'customer_quote_pdf_data' in st.session_state: del st.session_state['customer_quote_pdf_data']
+
+        if image_possible_cust:
+            with st.spinner("고객용 양식 이미지 생성 중..."):
+                image_data_cust = image_generator.create_quote_image(**image_args)  # image_generator 호출
+            if image_data_cust:
+                st.session_state['customer_quote_image_data'] = image_data_cust
+                st.success("✅ 고객용 양식 이미지 생성 완료!")
+                image_generated_this_click = True
+            else:
+                st.error("❌ 고객용 양식 이미지 생성 실패.")
+                if 'customer_quote_image_data' in st.session_state: del st.session_state['customer_quote_image_data']
+
+        if not pdf_generated_this_click and not image_generated_this_click:
+             st.warning("PDF와 이미지 모두 생성되지 않았습니다. 조건을 확인해주세요.")
 
 
-        col_dl_pdf, col_dl_img = st.columns(2)
-        with col_dl_pdf:
-            if st.session_state.get('customer_quote_pdf_data'):
-                fname_pdf_cust = f"견적서_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.pdf"
-                st.download_button(
-                    label="📥 PDF 다운로드 (고객용)",
-                    data=st.session_state['customer_quote_pdf_data'],
-                    file_name=fname_pdf_cust,
-                    mime="application/pdf",
-                    key='dl_btn_customer_pdf_tab3',
-                    disabled=actions_disabled
-                )
-            elif pdf_possible_cust:
-                st.caption("생성 버튼을 눌러 PDF를 준비하세요.")
+    col_dl_pdf, col_dl_img = st.columns(2)
+    with col_dl_pdf:
+        if st.session_state.get('customer_quote_pdf_data'):
+            fname_pdf_cust = f"견적서_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.pdf"
+            st.download_button(
+                label="📥 PDF 다운로드 (고객용)",
+                data=st.session_state['customer_quote_pdf_data'],
+                file_name=fname_pdf_cust,
+                mime="application/pdf",
+                key='dl_btn_customer_pdf_tab3',
+                disabled=actions_disabled
+            )
+        elif pdf_possible_cust:
+            st.caption("생성 버튼을 눌러 PDF를 준비하세요.")
 
-        with col_dl_img:
-            if st.session_state.get('customer_quote_image_data'):
-                fname_img_cust = f"견적서이미지_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.png"
-                st.download_button(
-                    label="🖼️ 이미지 다운로드 (고객용)",
-                    data=st.session_state['customer_quote_image_data'],
-                    file_name=fname_img_cust,
-                    mime="image/png",
-                    key='dl_btn_customer_image_tab3',
-                    disabled=actions_disabled
-                )
-            elif image_possible_cust:
-                st.caption("생성 버튼을 눌러 이미지를 준비하세요.")
+    with col_dl_img:
+        if st.session_state.get('customer_quote_image_data'):  # 이미지 데이터가 있는 경우 다운로드 버튼 표시
+            fname_img_cust = f"견적서이미지_{st.session_state.get('customer_name', '고객')}_{utils.get_current_kst_time_str('%y%m%d')}.png"
+            st.download_button(
+                label="🖼️ 이미지 다운로드 (고객용)",
+                data=st.session_state['customer_quote_image_data'],  # 이미지 데이터 전달
+                file_name=fname_img_cust,
+                mime="image/png",  # MIME 타입 지정
+                key='dl_btn_customer_image_tab3',
+                disabled=actions_disabled
+            )
+        elif image_possible_cust:
+            st.caption("생성 버튼을 눌러 이미지를 준비하세요.")
 
-        if not pdf_possible_cust and not image_possible_cust :
-             st.caption("PDF 및 이미지 생성 불가 (견적 내용 또는 모듈 확인)")
+    if not pdf_possible_cust and not image_possible_cust :
+         st.caption("PDF 및 이미지 생성 불가 (견적 내용 또는 모듈 확인)")
     st.divider()
 
     with st.container(border=True):
