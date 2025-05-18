@@ -7,6 +7,14 @@ import math
 import traceback
 import re
 
+# data 모듈 임포트 추가 (보관이사 유형 기본값 참조 등)
+try:
+    import data as app_data_for_img_gen
+except ImportError:
+    app_data_for_img_gen = None
+    print("Warning [image_generator.py]: data.py not found, some defaults might not be available.")
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png")
 FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
@@ -14,10 +22,12 @@ FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 TEXT_COLOR_DEFAULT = (20, 20, 20)
 TEXT_COLOR_YELLOW_BG = (0,0,0)
+TEXT_COLOR_BLUE = (20, 20, 180) # 이사 유형 요약용 색상 (선택적)
+
 
 BASE_FONT_SIZE = 18
 item_y_start_val = 334
-item_y_spacing_val = 28.8 # 항목 간 표준 Y 간격
+item_y_spacing_val = 28.8
 item_font_size_val = 15
 item_x_col1_val = 226
 item_x_col2_baskets_val = 491
@@ -52,11 +62,17 @@ remaining_balance_y_val = deposit_y_val + item_y_spacing_val
 
 grand_total_y_new = _y_grand_total_orig + 4 # 865
 
-# <<<--- 고객 요구사항 표시 위치 및 스타일 상수 추가 --->>>
-special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5) # 약 908
+special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5)
 special_notes_x_val = 30
-special_notes_max_width_val = 750
+special_notes_max_width_val = 750 # 이미지 가로폭에 맞춰 조정 (예: 900 - 30*2 = 840)
 special_notes_font_size_val = 15
+
+# <<<--- 이사 유형 요약 표시 위치 및 스타일 상수 추가 --->>>
+quote_date_y_val = 130 # 기존 견적일 Y 좌표
+move_type_summary_y_val = quote_date_y_val - int(item_y_spacing_val * 0.7) # 견적일보다 약간 위 (약 109)
+move_type_summary_x_val = 640 # 견적일과 같은 X 좌표 시작 (오른쪽 정렬 예정)
+move_type_summary_font_size_val = BASE_FONT_SIZE - 4 # 약간 작은 폰트 (14)
+move_type_summary_max_width_val = 250 # 견적서 이미지 우측 상단 공간 고려
 # <<<--- 상수 추가 끝 --->>>
 
 
@@ -73,15 +89,28 @@ def get_adjusted_font_size(original_size_ignored, field_key):
                      "deposit_amount_display", "storage_fee_display"]:
         return BASE_FONT_SIZE
     if field_key in ["vehicle_type_numbers_only", "actual_dispatched_vehicles_display"]: return BASE_FONT_SIZE -2
-    # <<<--- 고객 요구사항 폰트 크기 조정 추가 --->>>
     if field_key == "special_notes_display": return special_notes_font_size_val
+    # <<<--- 이사 유형 요약 폰트 크기 조정 추가 --->>>
+    if field_key == "move_type_summary_display": return move_type_summary_font_size_val
     # <<<--- 조정 추가 끝 --->>>
     return BASE_FONT_SIZE
 
 FIELD_MAP = {
+    # <<<--- 이사 유형 요약 표시를 위한 새 키 추가 --->>>
+    "move_type_summary_display": {
+        "x": move_type_summary_x_val, # 오른쪽 정렬이므로 이 X는 오른쪽 끝 기준이 됨
+        "y": move_type_summary_y_val,
+        "size": get_adjusted_font_size(0, "move_type_summary_display"),
+        "font": "bold", # 강조
+        "color": TEXT_COLOR_BLUE, # 파란색 또는 다른 강조색
+        "align": "right", # 오른쪽 정렬
+        "max_width": move_type_summary_max_width_val, # 필요시 줄바꿈
+        "line_spacing_factor": 1.1
+    },
+    # <<<--- 새 키 추가 끝 --->>>
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
-    "quote_date":     {"x": 640, "y": 130, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
+    "quote_date":     {"x": 640, "y": quote_date_y_val, "size": get_adjusted_font_size(0, "quote_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "moving_date":    {"x": 640, "y": 161, "size": get_adjusted_font_size(0, "moving_date"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "from_location":  {"x": 175, "y": 161, "size": get_adjusted_font_size(0, "from_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
@@ -105,15 +134,14 @@ FIELD_MAP = {
     "item_fridge_4door":{"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 4.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_kimchi_fridge_normal": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 5.3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_kimchi_fridge_stand": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 6.4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 549
-    "item_sofa_1seater":{"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 1.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 581
-    "item_dining_table":{"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 612
-    "item_ac_left":     {"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 3.3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 645
-    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 677
-    "item_piano_digital": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 708
-    "item_washing_machine": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 740
+    "item_sofa_3seater":{"x": item_x_col1_val, "y": _y_sofa_3seater_orig, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_sofa_1seater":{"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 1.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_dining_table":{"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_left":     {"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 3.3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_digital": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_washing_machine": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 품목 정보 (Col 2)
     "item_computer":    {"x": item_x_col2_others_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_executive_desk": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_desk":        {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -123,14 +151,13 @@ FIELD_MAP = {
     "item_blanket":     {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 0.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 594
-    "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 1.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 623
+    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 0.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 1.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    "item_plant_box":   {"x": item_x_col2_others_val, "y": 680, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 기존 Y:651 -> 680
-    "item_clothes_box": {"x": item_x_col2_others_val, "y": 709, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 기존 Y:680 -> 709
-    "item_duvet_box":   {"x": item_x_col2_others_val, "y": 738, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 기존 Y:709 -> 738
+    "item_plant_box":   {"x": item_x_col2_others_val, "y": 680, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_clothes_box": {"x": item_x_col2_others_val, "y": 709, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_duvet_box":   {"x": item_x_col2_others_val, "y": 738, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 품목 정보 (Col 3)
     "item_styler":      {"x": item_x_col3_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_massage_chair":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_acoustic":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -138,13 +165,12 @@ FIELD_MAP = {
     "item_tv_45":       {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_tv_stand":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_wall_mount_item": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 8.9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 590
-    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 620
-    "item_partition":   {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 11.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},# 653
-    "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 12.15), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},# 684
-    "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 13.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # 710
+    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 8.9), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 10), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_partition":   {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 11.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 12.15), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 13.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 비용 관련 항목들
     "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
@@ -158,18 +184,16 @@ FIELD_MAP = {
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    # <<<--- 고객 요구사항(special_notes) 표시를 위한 새 키 추가 --->>>
     "special_notes_display": {
         "x": special_notes_x_val,
         "y": special_notes_start_y_val,
-        "size": get_adjusted_font_size(0, "special_notes_display"), # get_adjusted_font_size에서 처리하도록 수정
+        "size": get_adjusted_font_size(0, "special_notes_display"),
         "font": "regular",
         "color": TEXT_COLOR_DEFAULT,
         "align": "left",
         "max_width": special_notes_max_width_val,
         "line_spacing_factor": 1.3
     }
-    # <<<--- 새 키 추가 끝 --->>>
 }
 
 ITEM_KEY_MAP = {
@@ -193,19 +217,19 @@ ITEM_KEY_MAP = {
     "중대박스": "item_large_box",
     "책바구니": "item_book_box",
     "화분": "item_plant_box",
-    "옷행거": "item_clothes_box",
+    "옷행거": "item_clothes_box", # data.py에는 '옷행거', FIELD_MAP에는 item_clothes_box. 일관성 필요
     "스타일러": "item_styler",
     "안마기": "item_massage_chair",
     "피아노(일반)": "item_piano_acoustic",
     "복합기": "item_copier",
     "TV(45인치)": "item_tv_45",
-    "TV(75인치)": "item_tv_stand", # 이 매핑은 여전히 검토 필요 (TV(75인치) 수량이 TV스탠드에?)
+    "TV(75인치)": "item_tv_stand",
     "벽걸이": "item_wall_mount_item",
     "금고": "item_safe",
     "앵글": "item_angle_shelf",
     "파티션": "item_partition",
-    "5톤진입": "item_5ton_access"
-    # "이불박스" (item_duvet_box)가 ITEM_KEY_MAP에 없는 경우, 필요시 추가: "이불박스": "item_duvet_box"
+    "5톤진입": "item_5ton_access",
+    "이불박스": "item_duvet_box" # 추가된 이불박스 매핑
 }
 
 def get_text_dimensions(text_string, font):
@@ -325,6 +349,29 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     if not os.path.exists(FONT_PATH_REGULAR): print(f"Warning: Regular font missing at {FONT_PATH_REGULAR}")
     if not os.path.exists(FONT_PATH_BOLD): print(f"Warning: Bold font missing at {FONT_PATH_BOLD}")
 
+    # <<<--- 이사 유형 요약 문자열 생성 로직 추가 --->>>
+    move_type_summary_parts = []
+    base_move_type = state_data.get('base_move_type', "이사") # 기본값 "이사"
+    if "가정" in base_move_type: move_type_summary_parts.append("가정")
+    elif "사무실" in base_move_type: move_type_summary_parts.append("사무실")
+    else: move_type_summary_parts.append(base_move_type.split(" ")[0]) # 아이콘 제외 첫 단어
+
+    if state_data.get('is_storage_move', False):
+        storage_type = state_data.get('storage_type', '')
+        if "컨테이너" in storage_type: move_type_summary_parts.append("컨테이너보관")
+        elif "실내" in storage_type: move_type_summary_parts.append("실내보관")
+        else: move_type_summary_parts.append("보관") # 기본 '보관'
+
+        if state_data.get('storage_use_electricity', False):
+            move_type_summary_parts.append("(전기사용)")
+    
+    if state_data.get('apply_long_distance', False):
+        move_type_summary_parts.append("장거리")
+    
+    move_type_summary_text = " ".join(move_type_summary_parts) + " 이사" if move_type_summary_parts else base_move_type
+    # <<<--- 요약 문자열 생성 로직 끝 --->>>
+
+
     customer_name = state_data.get('customer_name', '')
     customer_phone = state_data.get('customer_phone', '')
     moving_date_obj = state_data.get('moving_date')
@@ -397,11 +444,12 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     grand_total_num = int(float(total_cost_overall or 0))
     remaining_balance_num = grand_total_num - deposit_amount_val
     
-    # <<<--- 고객 요구사항 내용 가져오기 --->>>
     special_notes_content = state_data.get('special_notes', '')
-    # <<<--- 내용 가져오기 끝 --->>>
 
     data_to_draw = {
+        # <<<--- 이사 유형 요약 data_to_draw에 추가 --->>>
+        "move_type_summary_display": move_type_summary_text,
+        # <<<--- 추가 끝 --->>>
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
         "from_floor": from_floor, "to_floor": to_floor,
@@ -422,17 +470,15 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "deposit_amount_display": _format_currency(deposit_amount_val),
         "storage_fee_display": _format_currency(storage_fee_val),
         "remaining_balance_display": _format_currency(remaining_balance_num),
-        # <<<--- 고객 요구사항 data_to_draw에 추가 --->>>
         "special_notes_display": special_notes_content
-        # <<<--- 추가 끝 --->>>
     }
 
     try:
-        import data as app_data
+        # import data as app_data # 파일 상단으로 이동
         current_move_type = state_data.get("base_move_type")
         item_defs_for_current_type = {}
-        if hasattr(app_data, 'item_definitions') and current_move_type in app_data.item_definitions:
-            item_defs_for_current_type = app_data.item_definitions[current_move_type]
+        if app_data_for_img_gen and hasattr(app_data_for_img_gen, 'item_definitions') and current_move_type in app_data_for_img_gen.item_definitions:
+            item_defs_for_current_type = app_data_for_img_gen.item_definitions[current_move_type]
 
         for key_in_fieldmap_vals in ITEM_KEY_MAP.values():
             if key_in_fieldmap_vals.startswith("item_") and key_in_fieldmap_vals not in data_to_draw :
@@ -459,7 +505,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                         try: text_val = f"{(float(qty_int) / 3.0):.1f}"
                         except: text_val = str(qty_int)
                     data_to_draw[field_map_key_from_map] = text_val
-    except ImportError: print("Error: data.py module could not be imported in create_quote_image.")
+    # except ImportError: print("Error: data.py module could not be imported in create_quote_image.") # 이미 처리됨
     except Exception as e_item:
         print(f"Error processing item quantities for image: {e_item}")
         traceback.print_exc()
@@ -478,9 +524,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         if text_content_value is not None and str(text_content_value).strip() != "":
             final_text_to_draw = str(text_content_value)
         
-        if final_text_to_draw.strip() != "" or key == "special_notes_display": # 고객요구사항은 비어있어도 공간은 차지할 수 있도록 (선택적)
-            # 혹은, 고객요구사항도 내용이 있을 때만 그리려면:
-            # if final_text_to_draw.strip() != "":
+        if final_text_to_draw.strip() != "" or key == "special_notes_display":
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
@@ -499,39 +543,40 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
 if __name__ == '__main__':
     print("image_generator.py test mode")
     mock_state = {
-        "customer_name": "홍길동 테스트", "customer_phone": "010-9876-5432",
-        "moving_date": date(2024, 7, 15),
-        "from_location": "서울시 강남구 테헤란로 123, 삼성아파트 101동 202호 (역삼동)",
-        "to_location": "경기도 성남시 분당구 판교역로 456, 애플빌라 303동 404호 (삼평동)",
-        "from_floor": "2", "to_floor": "4",
-        "final_selected_vehicle": "5톤", "dispatched_5t": 1,
-        "from_method": "사다리차 🪜", "to_method": "엘리베이터 🛗",
-        "deposit_amount": 100000,
+        "customer_name": "김보관 테스트", "customer_phone": "010-1111-2222",
+        "moving_date": date(2024, 8, 1),
+        "from_location": "서울시 마포구 합정동",
+        "to_location": "경기도 고양시 일산서구 주엽동",
+        "from_floor": "10", "to_floor": "1",
+        "final_selected_vehicle": "7.5톤", "dispatched_5t": 1, "dispatched_2_5t": 1,
+        "from_method": "사다리차 🪜", "to_method": "계단 🚶",
+        "deposit_amount": 200000,
         "base_move_type": "가정 이사 🏠",
+        "is_storage_move": True, # 보관이사
+        "storage_type": "컨테이너 보관 📦", # data.py의 STORAGE_TYPE_OPTIONS[0]
+        "storage_use_electricity": True, # 전기 사용
+        "apply_long_distance": True, # 장거리 이사
         "qty_가정 이사 🏠_주요 품목_4도어 냉장고": 1,
-        "qty_가정 이사 🏠_주요 품목_TV(75인치)": 1,
-        "qty_가정 이사 🏠_기타_김치냉장고(스탠드형)": 1,
-        "qty_가정 이사 🏠_주요 품목_옷장": 5,
-        "qty_가정 이사 🏠_주요 품목_더블침대": 1,
-        "qty_가정 이사 🏠_포장 자재 📦_바구니": 20,
-        "qty_가정 이사 🏠_포장 자재 📦_중박스": 10,
-        "special_notes": "1. 오후 2시 이후 작업 시작 요청드립니다.\n2. 파손 주의 물품: 대형 유리 액자\n3. 애완견(소형견) 동반 예정입니다. 작업자분들께 미리 양해 구합니다. 매우 순합니다."
+        "qty_가정 이사 🏠_주요 품목_TV(75인치)": 2,
+        "qty_가정 이사 🏠_주요 품목_옷장": 9, # 3칸
+        "special_notes": "1. 이사 유형 종합 테스트입니다.\n2. 보관 이사, 장거리, 전기사용 모두 포함된 경우입니다.\n3. 여러 줄 테스트.\n4. 이사 잘 부탁드립니다."
     }
     mock_costs = [
-        ("기본 운임", 1200000, "5톤 기준"),
-        ("출발지 사다리차", 150000, "2층, 5톤 기준"),
-        ("도착지 엘리베이터 사용료", 50000, "관리실 납부 대행"),
-        ("특별 할인", -50000, "프로모션 적용")
+        ("기본 운임", 1750000, "7.5톤 기준"),
+        ("출발지 사다리차", 240000, "10층, 7.5톤 기준"), # 10층은 ladder_price_floor_ranges에서 "10~11층"
+        ("보관료", 210000, "컨테이너 보관 📦, 30일, 전기사용"), # 예시 금액
+        ("장거리 운송료", 500000, "200km 이내")
     ]
-    mock_total_cost = 1350000
-    mock_personnel = {"final_men": 3, "final_women": 1}
+    # 총액 = 175 + 24 + 21 + 50 = 270만원
+    mock_total_cost = 2700000
+    mock_personnel = {"final_men": 4, "final_women": 1}
 
     try:
         image_bytes = create_quote_image(mock_state, mock_costs, mock_total_cost, mock_personnel)
         if image_bytes:
-            with open("test_quote_image_with_notes.png", "wb") as f:
+            with open("test_quote_image_with_move_type_summary.png", "wb") as f:
                 f.write(image_bytes)
-            print("Test image 'test_quote_image_with_notes.png' saved successfully.")
+            print("Test image 'test_quote_image_with_move_type_summary.png' saved successfully.")
         else:
             print("Test image generation failed.")
     except Exception as e_main:
