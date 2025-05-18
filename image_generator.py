@@ -2,32 +2,28 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
 import io
-from datetime import date, datetime # datetime 임포트 확인
+from datetime import date
 import math
 import traceback
 import re
 
 try:
     import data as app_data_for_img_gen # data.py 임포트
-    import utils # utils.py 임포트
 except ImportError:
     app_data_for_img_gen = None
-    utils = None # utils도 None으로 초기화
-    print("Warning [image_generator.py]: data.py or utils.py not found, some defaults/functionalities might not be available.")
+    print("Warning [image_generator.py]: data.py not found, some defaults might not be available.")
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__)) if "__file__" in locals() else "."
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKGROUND_IMAGE_PATH = os.path.join(BASE_DIR, "final.png")
 FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
 FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
-# --- 색상 및 기본 폰트 크기 ---
 TEXT_COLOR_DEFAULT = (20, 20, 20)
 TEXT_COLOR_YELLOW_BG = (0,0,0)
 TEXT_COLOR_BLUE = (20, 20, 180)
-BASE_FONT_SIZE = 18
 
-# --- 품목 관련 기본 좌표 및 간격 ---
+BASE_FONT_SIZE = 18
 item_y_start_val = 334
 item_y_spacing_val = 28.8
 item_font_size_val = 15
@@ -36,53 +32,44 @@ item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
 item_x_col3_val = 756
 
-# --- Y 좌표 및 기타 계산 변수 정의 (FIELD_MAP 보다 반드시 먼저 와야 함) ---
-# 기본 Y 좌표 값
+original_vehicle_y_calc = int(275 + item_y_spacing_val)
+vehicle_display_y_val = original_vehicle_y_calc - 2
+vehicle_number_x_val = 90
+actual_vehicles_text_x_val = item_x_col2_others_val
+
+costs_section_x_align_right_val = 410
+work_method_fee_label_x_val = 35
+
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
-_y_sofa_3seater_orig = 549
+work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
+
 _y_living_room_cabinet_orig = 677
+_y_sofa_3seater_orig = 549
 _y_main_fee_yellow_box_orig = 775
 _y_grand_total_orig = 861
 
-# 차량 정보 Y
-original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 303.8
-vehicle_display_y_val = original_vehicle_y_calc - 2 # 약 301
+from_work_fee_y_val = _y_living_room_cabinet_orig + abs(_y_sofa_3seater_orig - _y_living_room_cabinet_orig) # 805
+to_work_fee_y_val = from_work_fee_y_val + item_y_spacing_val # 833.8
 
-# 고객/날짜 정보 Y
-quote_date_y_val = 130
-move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20 - 50) # 약 39 (기존 약 89에서 -50)
+fees_x_val_right_aligned = item_x_col3_val
 
-
-# 비용 관련 Y 좌표 (사용자 요청에 따라 "예전 값" 또는 조정된 값으로 설정)
-# 이 값들을 "처음 올린 파일"의 수치 또는 정확히 원하시는 값으로 설정해주세요.
-# 예시 값입니다. 실제 값을 입력해야 합니다.
-from_work_fee_y_val = 805  # <<--- 여기에 "처음 올린 파일"의 출발지 작업비 Y값 입력 또는 원하는 값
-to_work_fee_y_val = 833    # <<--- 여기에 "처음 올린 파일"의 도착지 작업비 Y값 입력 또는 원하는 값
+deposit_y_val = from_work_fee_y_val
+storage_fee_y_val = _y_main_fee_yellow_box_orig
+remaining_balance_y_val = deposit_y_val + item_y_spacing_val + (item_y_spacing_val / 2) # 약 848.2
 
 grand_total_y_new = _y_grand_total_orig + 4 # 865
 
-deposit_y_val = 789        # <<--- 여기에 "처음 올린 파일"의 계약금 Y값 입력 또는 원하는 값
-remaining_balance_y_val = 826 # <<--- 여기에 "처음 올린 파일"의 잔금 Y값 입력 또는 원하는 값
-
-storage_fee_y_val = _y_main_fee_yellow_box_orig # 보관료는 메인 비용과 같은 Y
-
-# 특이사항 Y
 special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5) # 약 908
+special_notes_x_val = 80 # X: 50 -> 80 (+30)
+special_notes_max_width_val = 700 # (이미지 가로폭 약 900 - X시작 80 - 우측여백 약 120)
+special_notes_font_size_val = BASE_FONT_SIZE # 고객명과 동일 (18)
 
-# X 좌표 관련
-vehicle_number_x_val = 90
-actual_vehicles_text_x_val = item_x_col2_others_val
-costs_section_x_align_right_val = 410
-work_method_fee_label_x_val = 35
-work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
-fees_x_val_right_aligned = item_x_col3_val # 계약금, 잔금 등의 금액 X좌표
-special_notes_x_val = 80
-special_notes_max_width_val = 700
-special_notes_font_size_val = BASE_FONT_SIZE
-move_type_summary_x_val = 640 + 100
-move_type_summary_font_size_val = BASE_FONT_SIZE
-move_type_summary_max_width_val = 150
+quote_date_y_val = 130
+move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20 - 50) # 약 39 (기존 약 89에서 -50)
+move_type_summary_x_val = 640 + 100 # 740 (기존 640에서 +100)
+move_type_summary_font_size_val = BASE_FONT_SIZE # 고객명과 동일 (18)
+move_type_summary_max_width_val = 150 # (이미지 가로폭 약 900 - X시작 740 - 우측여백 약 10)
 
 
 def get_adjusted_font_size(original_size_ignored, field_key):
@@ -91,6 +78,7 @@ def get_adjusted_font_size(original_size_ignored, field_key):
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
     if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
+    if field_key in ["fee_value_next_to_ac_right"]: return 14
     if field_key in ["from_work_method_text_display", "to_work_method_text_display"]: return BASE_FONT_SIZE - 2
     if field_key in ["from_method_label", "to_method_label",
                      "from_method_fee_value", "to_method_fee_value",
@@ -101,12 +89,16 @@ def get_adjusted_font_size(original_size_ignored, field_key):
     if field_key == "move_type_summary_display": return move_type_summary_font_size_val
     return BASE_FONT_SIZE
 
-# FIELD_MAP 정의 (모든 필요한 전역 변수 정의 이후)
 FIELD_MAP = {
     "move_type_summary_display": {
-        "x": move_type_summary_x_val, "y": move_type_summary_y_val,
-        "size": get_adjusted_font_size(0, "move_type_summary_display"), "font": "bold",
-        "color": TEXT_COLOR_BLUE, "align": "right", "max_width": move_type_summary_max_width_val, "line_spacing_factor": 1.1
+        "x": move_type_summary_x_val,
+        "y": move_type_summary_y_val,
+        "size": get_adjusted_font_size(0, "move_type_summary_display"),
+        "font": "bold",
+        "color": TEXT_COLOR_BLUE,
+        "align": "right",
+        "max_width": move_type_summary_max_width_val,
+        "line_spacing_factor": 1.1
     },
     "customer_name":  {"x": 175, "y": 130, "size": get_adjusted_font_size(0, "customer_name"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "customer_phone": {"x": 412, "y": 130, "size": get_adjusted_font_size(0, "customer_phone"), "font": "bold", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -116,10 +108,13 @@ FIELD_MAP = {
     "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "from_floor":     {"x": 180, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+
     "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
     "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220},
+
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_text_display":   {"x": work_method_text_display_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
@@ -137,6 +132,7 @@ FIELD_MAP = {
     "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_digital": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_washing_machine": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+
     "item_computer":    {"x": item_x_col2_others_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_executive_desk": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_desk":        {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -148,9 +144,11 @@ FIELD_MAP = {
     "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 0.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 1.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+
     "item_plant_box":   {"x": item_x_col2_others_val, "y": 680, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_clothes_box": {"x": item_x_col2_others_val, "y": 709, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_duvet_box":   {"x": item_x_col2_others_val, "y": 738, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+
     "item_styler":      {"x": item_x_col3_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_massage_chair":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_acoustic":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -164,19 +162,28 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 12.15), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 13.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+    "fee_value_next_to_ac_right": {"x": costs_section_x_align_right_val, "y": 680, "size": get_adjusted_font_size(0, "fee_value_next_to_ac_right"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+
     "from_method_label":  {"x": work_method_fee_label_x_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "from_method_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+
     "to_method_label":    {"x": work_method_fee_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "to_method_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
+
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "special_notes_display": {
-        "x": special_notes_x_val, "y": special_notes_start_y_val,
-        "size": get_adjusted_font_size(0, "special_notes_display"), "font": "regular",
-        "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": special_notes_max_width_val, "line_spacing_factor": 1.3
+        "x": special_notes_x_val,
+        "y": special_notes_start_y_val,
+        "size": get_adjusted_font_size(0, "special_notes_display"),
+        "font": "regular",
+        "color": TEXT_COLOR_DEFAULT,
+        "align": "left",
+        "max_width": special_notes_max_width_val,
+        "line_spacing_factor": 1.3
     }
 }
 
@@ -193,20 +200,28 @@ ITEM_KEY_MAP = {
     "사무실책상": "item_executive_desk",
     "책상&의자": "item_desk",
     "책장": "item_bookshelf",
+    "의자": "item_chair",
+    "테이블": "item_table",
+    "담요": "item_blanket",
     "바구니": "item_basket",
     "중박스": "item_medium_box",
+    "중대박스": "item_large_box",
     "책바구니": "item_book_box",
     "화분": "item_plant_box",
     "옷행거": "item_clothes_box",
     "스타일러": "item_styler",
     "안마기": "item_massage_chair",
     "피아노(일반)": "item_piano_acoustic",
+    "복합기": "item_copier",
     "TV(45인치)": "item_tv_45",
     "TV(75인치)": "item_tv_stand",
+    "벽걸이": "item_wall_mount_item",
     "금고": "item_safe",
     "앵글": "item_angle_shelf",
+    "파티션": "item_partition",
+    "5톤진입": "item_5ton_access",
+    "이불박스": "item_duvet_box"
 }
-
 
 def get_text_dimensions(text_string, font):
     if not text_string: return 0,0
@@ -242,33 +257,22 @@ def _get_font(font_type="regular", size=12):
     if font_type == "bold":
         if os.path.exists(FONT_PATH_BOLD):
             font_path_to_use = FONT_PATH_BOLD
-
-    if not os.path.exists(font_path_to_use):
-        print(f"ERROR [ImageGenerator]: Font file NOT FOUND at '{font_path_to_use}'. Falling back to PIL default.")
-        try: return ImageFont.load_default(size=size)
-        except TypeError: return ImageFont.load_default()
-        except Exception as e_pil_font:
-            print(f"CRITICAL: Error loading default PIL font: {e_pil_font}")
-            raise
-
     try:
         return ImageFont.truetype(font_path_to_use, size)
     except IOError:
-        print(f"IOError [ImageGenerator]: Font '{font_path_to_use}' found but unreadable by Pillow. Falling back to default.")
         try: return ImageFont.load_default(size=size)
         except TypeError: return ImageFont.load_default()
-        except Exception as e_pil_font_io:
-            print(f"CRITICAL: Error loading default PIL font after IOError: {e_pil_font_io}")
+        except Exception as e_pil_font:
+            print(f"Error loading default PIL font: {e_pil_font}")
             raise
     except Exception as e_font:
-        print(f"General Error loading font {font_path_to_use}: {e_font}")
+        print(f"Error loading font {font_path_to_use}: {e_font}")
         raise
 
 def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_width=None, line_spacing_factor=1.2):
     if text is None: text = ""
     text = str(text)
     lines = []
-
     if max_width:
         words = text.split(' ')
         current_line = ""
@@ -277,44 +281,36 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
             if word_width > max_width and len(word) > 1:
                 if current_line: lines.append(current_line.strip())
                 temp_word_line = ""
-                for char_in_word in word:
-                    temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char_in_word, font)
-                    if temp_word_line_plus_char_width <= max_width:
-                        temp_word_line += char_in_word
-                    else:
-                        lines.append(temp_word_line)
-                        temp_word_line = char_in_word
+                for char_idx, char in enumerate(word):
+                    temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char, font)
+                    if temp_word_line_plus_char_width <= max_width: temp_word_line += char
+                    else: lines.append(temp_word_line); temp_word_line = char
                 if temp_word_line: lines.append(temp_word_line)
                 current_line = ""
                 continue
             current_line_plus_word_width, _ = get_text_dimensions(current_line + word + " ", font) if current_line else get_text_dimensions(word + " ", font)
-            if current_line_plus_word_width <= max_width:
-                current_line += word + " "
+            if current_line_plus_word_width <= max_width: current_line += word + " "
             else:
                 if current_line: lines.append(current_line.strip())
                 current_line = word + " "
         if current_line.strip(): lines.append(current_line.strip())
         if not lines and text: lines.append(text)
-    else:
-        lines.extend(text.split('\n'))
-
-    current_y_draw = y
+    else: lines.extend(text.split('\n'))
+    current_y = y
     first_line = True
     _, typical_char_height = get_text_dimensions("A", font)
     for line in lines:
         if not line.strip() and not first_line and len(lines) > 1:
-            current_y_draw += int(typical_char_height * line_spacing_factor)
+            current_y += int(typical_char_height * line_spacing_factor)
             continue
-        text_width_draw, _ = get_text_dimensions(line, font)
-        actual_x_draw = x
-        if align == "right": actual_x_draw = x - text_width_draw
-        elif align == "center": actual_x_draw = x - text_width_draw / 2
-        
-        draw.text((actual_x_draw, current_y_draw), line, font=font, fill=color)
-        current_y_draw += int(typical_char_height * line_spacing_factor)
+        text_width, _ = get_text_dimensions(line, font)
+        actual_x = x
+        if align == "right": actual_x = x - text_width
+        elif align == "center": actual_x = x - text_width / 2
+        draw.text((actual_x, current_y), line, font=font, fill=color, anchor="lt")
+        current_y += int(typical_char_height * line_spacing_factor)
         first_line = False
-    return current_y_draw
-
+    return current_y
 
 def _format_currency(amount_val):
     if amount_val is None or str(amount_val).strip() == "": return ""
@@ -325,32 +321,25 @@ def _format_currency(amount_val):
     except ValueError:
         return str(amount_val)
 
-# create_quote_image 함수 정의 시작
 def create_quote_image(state_data, calculated_cost_items, total_cost_overall, personnel_info):
-    print("DEBUG [ImageGenerator]: create_quote_image function CALLED")
     try:
         img = Image.open(BACKGROUND_IMAGE_PATH).convert("RGBA")
         draw = ImageDraw.Draw(img)
-        print("DEBUG [ImageGenerator]: Background image loaded.")
     except FileNotFoundError:
-        print(f"ERROR [ImageGenerator]: Background image not found at {BACKGROUND_IMAGE_PATH}")
+        print(f"Error: Background image not found at {BACKGROUND_IMAGE_PATH}")
         img = Image.new('RGB', (900, 1400), color = 'white')
         draw = ImageDraw.Draw(img)
         try: error_font = _get_font(size=24)
         except: error_font = ImageFont.load_default()
         _draw_text_with_alignment(draw, "배경 이미지 파일을 찾을 수 없습니다!", 450, 480, error_font, (255,0,0), "center")
         _draw_text_with_alignment(draw, BACKGROUND_IMAGE_PATH, 450, 520, error_font, (255,0,0), "center")
-        # 이 경우 None을 반환하거나, 혹은 이 임시 이미지를 반환할 수 있습니다.
-        # 여기서는 None을 반환하여 호출부에서 처리하도록 합니다.
-        return None
     except Exception as e_bg:
-        print(f"ERROR [ImageGenerator]: Error loading background image: {e_bg}")
+        print(f"Error loading background image: {e_bg}")
         return None
 
-    if not os.path.exists(FONT_PATH_REGULAR): print(f"WARNING [ImageGenerator]: Regular font missing at {FONT_PATH_REGULAR}")
-    if not os.path.exists(FONT_PATH_BOLD): print(f"WARNING [ImageGenerator]: Bold font missing at {FONT_PATH_BOLD}")
+    if not os.path.exists(FONT_PATH_REGULAR): print(f"Warning: Regular font missing at {FONT_PATH_REGULAR}")
+    if not os.path.exists(FONT_PATH_BOLD): print(f"Warning: Bold font missing at {FONT_PATH_BOLD}")
 
-    # --- 데이터 추출 ---
     move_type_summary_parts = []
     base_move_type = state_data.get('base_move_type', "이사")
     if "가정" in base_move_type: move_type_summary_parts.append("가정")
@@ -362,10 +351,13 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         if "컨테이너" in storage_type: move_type_summary_parts.append("컨테이너보관")
         elif "실내" in storage_type: move_type_summary_parts.append("실내보관")
         else: move_type_summary_parts.append("보관")
+
         if state_data.get('storage_use_electricity', False):
             move_type_summary_parts.append("(전기사용)")
+    
     if state_data.get('apply_long_distance', False):
         move_type_summary_parts.append("장거리")
+    
     move_type_summary_text = " ".join(move_type_summary_parts) + " 이사" if move_type_summary_parts else base_move_type
 
     customer_name = state_data.get('customer_name', '')
@@ -407,37 +399,31 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     to_method_raw = state_data.get('to_method', '')
     to_method_text_for_label = "도착" + (to_method_raw.split(" ")[0] if to_method_raw else "작업")
     to_method_text_for_display_top = to_method_raw.split(" ")[0] if to_method_raw else ""
-    
-    # --- 비용 항목 계산 ---
-    total_moving_expenses_val = 0 
+
+    total_moving_expenses_val = 0
     storage_fee_val = 0
-    option_ac_cost_val = 0 
+    option_ac_cost_val = 0
     from_method_fee_val = 0
     to_method_fee_raw_val = 0
     regional_ladder_surcharge_val = 0
 
-    AC_COST_LABEL = "에어컨 이전설치비" 
-
     if calculated_cost_items and isinstance(calculated_cost_items, list):
-        for item_l, item_a, item_note_ignored in calculated_cost_items:
+        for item_l, item_a, _ in calculated_cost_items:
             label = str(item_l)
             try: amount = int(float(item_a or 0))
             except (ValueError, TypeError): amount = 0
 
-            if label == AC_COST_LABEL:
-                option_ac_cost_val += amount 
+            if label == "에어컨 설치 및 이전 비용":
+                option_ac_cost_val += amount
             elif label == '보관료':
                 storage_fee_val += amount
-            elif label.startswith('출발지 사다리차') or label.startswith('출발지 스카이'):
+            elif label.startswith('출발지'):
                 from_method_fee_val += amount
-            elif label.startswith('도착지 사다리차') or label.startswith('도착지 스카이'):
+            elif label.startswith('도착지'):
                 to_method_fee_raw_val += amount
             elif label == '지방 사다리 추가요금':
                  regional_ladder_surcharge_val += amount
-            elif label not in [AC_COST_LABEL, '보관료', '지방 사다리 추가요금'] and \
-                 not label.startswith('출발지 사다리차') and not label.startswith('출발지 스카이') and \
-                 not label.startswith('도착지 사다리차') and not label.startswith('도착지 스카이') and \
-                 "부가세" not in label and "카드결제 수수료" not in label:
+            elif "부가세" not in label and "카드결제 수수료" not in label:
                 total_moving_expenses_val += amount
             
     final_to_method_fee_val = to_method_fee_raw_val + regional_ladder_surcharge_val
@@ -448,7 +434,6 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     
     special_notes_content = state_data.get('special_notes', '')
 
-    # --- 그릴 데이터 준비 ---
     data_to_draw = {
         "move_type_summary_display": move_type_summary_text,
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
@@ -459,7 +444,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "workers_male": workers_male, "workers_female": workers_female,
         "from_work_method_text_display": from_method_text_for_display_top,
         "to_work_method_text_display": to_method_text_for_display_top,
-        
+        "fee_value_next_to_ac_right": _format_currency(option_ac_cost_val),
         "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
         "grand_total": _format_currency(grand_total_num),
 
@@ -474,34 +459,41 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "special_notes_display": special_notes_content
     }
 
-    # 품목 수량 채우기
-    print("DEBUG [ImageGenerator]: Populating item quantities...")
     try:
         current_move_type = state_data.get("base_move_type")
-        for field_map_key in ITEM_KEY_MAP.values():
-            if field_map_key.startswith("item_") and field_map_key in FIELD_MAP: # FIELD_MAP에 정의된 키만
-                data_to_draw[field_map_key] = ""
+        item_defs_for_current_type = {}
+        if app_data_for_img_gen and hasattr(app_data_for_img_gen, 'item_definitions') and current_move_type in app_data_for_img_gen.item_definitions:
+            item_defs_for_current_type = app_data_for_img_gen.item_definitions[current_move_type]
 
-        if utils and hasattr(utils, 'get_item_qty') and callable(utils.get_item_qty):
-            for data_py_item_name, field_map_key_from_map in ITEM_KEY_MAP.items():
-                if field_map_key_from_map in FIELD_MAP and field_map_key_from_map.startswith("item_"):
-                    qty_int = utils.get_item_qty(state_data, data_py_item_name)
-                    if qty_int > 0:
-                        text_val = str(qty_int)
-                        if data_py_item_name == "장롱":
-                            try: text_val = f"{(float(qty_int) / 3.0):.1f}"
-                            except: text_val = str(qty_int)
-                        data_to_draw[field_map_key_from_map] = text_val
-        else:
-            print("ERROR [ImageGenerator]: utils.get_item_qty function is not available. Cannot populate item quantities.")
-    except Exception as e_item_qty:
-        print(f"ERROR [ImageGenerator]: Error processing item quantities: {e_item_qty}")
+        for key_in_fieldmap_vals in ITEM_KEY_MAP.values():
+            if key_in_fieldmap_vals.startswith("item_") and key_in_fieldmap_vals not in data_to_draw :
+                 data_to_draw[key_in_fieldmap_vals] = ""
+
+        for data_py_item_name, field_map_key_from_map in ITEM_KEY_MAP.items():
+            found_section = None
+            if isinstance(item_defs_for_current_type, dict):
+                for section_name, item_list_in_section in item_defs_for_current_type.items():
+                    if isinstance(item_list_in_section, list) and data_py_item_name in item_list_in_section:
+                        found_section = section_name
+                        break
+            if found_section:
+                widget_key = f"qty_{current_move_type}_{found_section}_{data_py_item_name}"
+                qty_raw = state_data.get(widget_key, 0)
+                qty_int = 0
+                try:
+                    if qty_raw is not None and str(qty_raw).strip() != "":
+                        qty_int = int(float(str(qty_raw)))
+                except ValueError: qty_int = 0
+                if qty_int > 0:
+                    text_val = str(qty_int)
+                    if data_py_item_name == "장롱":
+                        try: text_val = f"{(float(qty_int) / 3.0):.1f}"
+                        except: text_val = str(qty_int)
+                    data_to_draw[field_map_key_from_map] = text_val
+    except Exception as e_item:
+        print(f"Error processing item quantities for image: {e_item}")
         traceback.print_exc()
-    # print(f"DEBUG [ImageGenerator]: data_to_draw (items part sample after population): { {k:v for k,v in data_to_draw.items() if k.startswith('item_') and v} }")
 
-
-    # --- 텍스트 그리기 ---
-    print("DEBUG [ImageGenerator]: Starting to draw text elements on image.")
     for key, M_raw in FIELD_MAP.items():
         M = {}
         for k_map, v_map in M_raw.items():
@@ -516,71 +508,60 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         if text_content_value is not None and str(text_content_value).strip() != "":
             final_text_to_draw = str(text_content_value)
         
-        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""):
+        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw):
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
-            try:
-                font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
-            except Exception as font_load_err_draw:
-                print(f"ERROR [ImageGenerator]: Critical error loading font for key '{key}'. Skipping this text. Error: {font_load_err_draw}")
-                continue 
-
+            font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
             align_val = M.get("align", "left")
+            
             max_w_val = M.get("max_width")
             line_spacing_factor = M.get("line_spacing_factor", 1.15)
             
-            # print(f"DEBUG [ImageGenerator]: Drawing: Key='{key}', Text='{final_text_to_draw[:30]}...', X={M['x']}, Y={M['y']}")
             _draw_text_with_alignment(draw, final_text_to_draw, M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
 
-    print("DEBUG [ImageGenerator]: Text drawing complete. Saving image to bytes.")
     img_byte_arr = io.BytesIO()
     img.save(img_byte_arr, format='PNG')
     img_byte_arr.seek(0)
-    print("DEBUG [ImageGenerator]: Image generation successful.")
     return img_byte_arr.getvalue()
-# 함수 정의 끝
 
-# 테스트용 if __name__ == '__main__': 블록
 if __name__ == '__main__':
     print("image_generator.py test mode")
-    AC_COST_LABEL_TEST = "에어컨 이전설치비"
-
-    mock_state_test_pos = {
-        "customer_name": "최종 점검 고객", "customer_phone": "010-1234-5678",
-        "moving_date": date(2025, 1, 10),
-        "from_location": "서울특별시 테스트구 테스트동 123-45", "to_location": "경기도 테스트시 테스트로 789",
-        "from_floor": "3", "to_floor": "7",
-        "final_selected_vehicle": "2.5톤", "dispatched_2_5t": 1,
-        "from_method": "계단 🚶", "to_method": "사다리차 🪜",
-        "deposit_amount": 100000,
+    mock_state = {
+        "customer_name": "김보관 테스트", "customer_phone": "010-1111-2222",
+        "moving_date": date(2024, 8, 1),
+        "from_location": "서울시 마포구 합정동",
+        "to_location": "경기도 고양시 일산서구 주엽동",
+        "from_floor": "10", "to_floor": "1",
+        "final_selected_vehicle": "7.5톤", "dispatched_5t": 1, "dispatched_2_5t": 1,
+        "from_method": "사다리차 🪜", "to_method": "계단 🚶",
+        "deposit_amount": 200000,
         "base_move_type": "가정 이사 🏠",
-        "special_notes": "테스트 노트입니다.\n여러 줄 테스트입니다.\n마지막 줄입니다.",
-        "qty_가정 이사 🏠_주요 품목_장롱": 6, # 2.0 칸으로 표시되어야 함
+        "is_storage_move": True,
+        "storage_type": "컨테이너 보관 📦",
+        "storage_use_electricity": True,
+        "apply_long_distance": True,
         "qty_가정 이사 🏠_주요 품목_4도어 냉장고": 1,
-        "qty_가정 이사 🏠_기타_에어컨": 1,
-        "qty_가정 이사 🏠_포장 자재 📦_바구니": 20,
-        "qty_가정 이사 🏠_포장 자재 📦_중박스": 10,
+        "qty_가정 이사 🏠_주요 품목_TV(75인치)": 2,
+        "qty_가정 이사 🏠_주요 품목_옷장": 9,
+        "special_notes": "1. 오후 2시 이후 작업 시작 요청드립니다.\n2. 파손 주의 물품: 대형 유리 액자\n3. 애완견(소형견) 동반 예정입니다. 작업자분들께 미리 양해 구합니다. 매우 순합니다."
     }
-    mock_costs_test_pos = [
-        ("기본 운임", 900000, "2.5톤 기준"),
-        # 출발지는 계단이므로 비용 없음
-        ("도착지 사다리차", 180000, "7층, 5톤(기본) 기준"), # 2.5톤 차량이지만 사다리는 5톤 기준으로 계산될 수 있음
-        (AC_COST_LABEL_TEST, 50000, "에어컨 1대 기본"),
+    mock_costs = [
+        ("기본 운임", 1750000, "7.5톤 기준"),
+        ("출발지 사다리차", 240000, "10층, 7.5톤 기준"),
+        ("보관료", 210000, "컨테이너 보관 📦, 30일, 전기사용"),
+        ("장거리 운송료", 500000, "200km 이내")
     ]
-    mock_total_cost_test_pos = 900000 + 180000 + 50000
-    mock_personnel_test_pos = {"final_men": 2, "final_women": 1}
+    mock_total_cost = 2700000
+    mock_personnel = {"final_men": 4, "final_women": 1}
 
     try:
-        image_bytes_test = create_quote_image(mock_state_test_pos, mock_costs_test_pos, mock_total_cost_test_pos, mock_personnel_test_pos)
-        
-        if image_bytes_test:
-            timestamp_test = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename_test = f"test_image_final_check_{timestamp_test}.png"
-            with open(filename_test, "wb") as f:
-                f.write(image_bytes_test)
-            print(f"Test image '{filename_test}' saved successfully. Please verify all elements and positions.")
+        image_bytes = create_quote_image(mock_state, mock_costs, mock_total_cost, mock_personnel)
+        if image_bytes:
+            with open("test_quote_image_final_adjust_v4.png", "wb") as f: # 파일명 변경
+                f.write(image_bytes)
+            print("Test image 'test_quote_image_final_adjust_v4.png' saved successfully.")
         else:
-            print("Test image generation failed. Check logs above for [ImageGenerator] messages.")
-    except Exception as e_main_test:
-        print(f"Error in test run: {e_main_test}")
+            print("Test image generation failed.")
+    except Exception as e_main:
+        print(f"Error in test run: {e_main}")
         traceback.print_exc()
