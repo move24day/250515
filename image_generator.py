@@ -61,17 +61,15 @@ remaining_balance_y_val = deposit_y_val + item_y_spacing_val + (item_y_spacing_v
 grand_total_y_new = _y_grand_total_orig + 4 # 865
 
 special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5) # 약 908
-special_notes_x_val = 80
-special_notes_max_width_val = 700
-special_notes_font_size_val = BASE_FONT_SIZE
+special_notes_x_val = 80 # X: 50 -> 80 (+30)
+special_notes_max_width_val = 700 # (이미지 가로폭 약 900 - X시작 80 - 우측여백 약 120)
+special_notes_font_size_val = BASE_FONT_SIZE # 고객명과 동일 (18)
 
 quote_date_y_val = 130
-# <<<--- 이사 유형 요약 위치 및 스타일 상수 수정 --->>>
-move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20 - 50) # 약 39
-move_type_summary_x_val = 640 + 100 # 740
-move_type_summary_font_size_val = BASE_FONT_SIZE
-move_type_summary_max_width_val = 150 # 우측 정렬 및 X 위치 고려하여 최대 너비 조정
-# <<<--- 상수 수정 끝 --->>>
+move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20 - 50) # 약 39 (기존 약 89에서 -50)
+move_type_summary_x_val = 640 + 100 # 740 (기존 640에서 +100)
+move_type_summary_font_size_val = BASE_FONT_SIZE # 고객명과 동일 (18)
+move_type_summary_max_width_val = 150 # (이미지 가로폭 약 900 - X시작 740 - 우측여백 약 10)
 
 
 def get_adjusted_font_size(original_size_ignored, field_key):
@@ -120,7 +118,6 @@ FIELD_MAP = {
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_text_display":   {"x": work_method_text_display_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # 품목 정보 (Col 1)
     "item_jangrong":    {"x": item_x_col1_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -560,9 +557,9 @@ if __name__ == '__main__':
     try:
         image_bytes = create_quote_image(mock_state, mock_costs, mock_total_cost, mock_personnel)
         if image_bytes:
-            with open("test_quote_image_final_adjust_v3.png", "wb") as f: # 파일명 변경
+            with open("test_quote_image_final_adjust_v4.png", "wb") as f: # 파일명 변경
                 f.write(image_bytes)
-            print("Test image 'test_quote_image_final_adjust_v3.png' saved successfully.")
+            print("Test image 'test_quote_image_final_adjust_v4.png' saved successfully.")
         else:
             print("Test image generation failed.")
     except Exception as e_main:
