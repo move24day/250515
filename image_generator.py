@@ -62,14 +62,16 @@ grand_total_y_new = _y_grand_total_orig + 4 # 865
 
 special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5) # 약 908
 special_notes_x_val = 80
-special_notes_max_width_val = 700 # 이미지 가로폭 (약 900) - X시작(80) - 우측여백(20~?) 고려
+special_notes_max_width_val = 700
 special_notes_font_size_val = BASE_FONT_SIZE
 
 quote_date_y_val = 130
-move_type_summary_y_val = quote_date_y_val - int(item_y_spacing_val * 0.7) - 20 # 약 89
-move_type_summary_x_val = 640 # FIELD_MAP에서 right align되므로, 이 X는 오른쪽 끝 기준점
+# <<<--- 이사 유형 요약 위치 및 스타일 상수 수정 --->>>
+move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20 - 50) # 약 39
+move_type_summary_x_val = 640 + 100 # 740
 move_type_summary_font_size_val = BASE_FONT_SIZE
-move_type_summary_max_width_val = 250 # 이사 유형 요약 텍스트가 들어갈 최대 너비
+move_type_summary_max_width_val = 150 # 우측 정렬 및 X 위치 고려하여 최대 너비 조정
+# <<<--- 상수 수정 끝 --->>>
 
 
 def get_adjusted_font_size(original_size_ignored, field_key):
@@ -118,6 +120,7 @@ FIELD_MAP = {
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_text_display":   {"x": work_method_text_display_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
+    # 품목 정보 (Col 1)
     "item_jangrong":    {"x": item_x_col1_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -557,9 +560,9 @@ if __name__ == '__main__':
     try:
         image_bytes = create_quote_image(mock_state, mock_costs, mock_total_cost, mock_personnel)
         if image_bytes:
-            with open("test_quote_image_final_adjust_v2.png", "wb") as f: # 파일명 변경
+            with open("test_quote_image_final_adjust_v3.png", "wb") as f: # 파일명 변경
                 f.write(image_bytes)
-            print("Test image 'test_quote_image_final_adjust_v2.png' saved successfully.")
+            print("Test image 'test_quote_image_final_adjust_v3.png' saved successfully.")
         else:
             print("Test image generation failed.")
     except Exception as e_main:
