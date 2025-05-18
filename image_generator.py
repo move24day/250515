@@ -57,13 +57,13 @@ move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20
 # 비용 관련 Y 좌표 (사용자 요청에 따라 "예전 값" 또는 조정된 값으로 설정)
 # 이 값들을 "처음 올린 파일"의 수치 또는 정확히 원하시는 값으로 설정해주세요.
 # 예시 값입니다. 실제 값을 입력해야 합니다.
-from_work_fee_y_val = 805  # 예: 이전 값 또는 원하는 값
-to_work_fee_y_val = 833    # 예: from_work_fee_y_val + item_y_spacing_val
+from_work_fee_y_val = 805  # <<--- 여기에 "처음 올린 파일"의 출발지 작업비 Y값 입력 또는 원하는 값
+to_work_fee_y_val = 833    # <<--- 여기에 "처음 올린 파일"의 도착지 작업비 Y값 입력 또는 원하는 값
 
 grand_total_y_new = _y_grand_total_orig + 4 # 865
 
-deposit_y_val = 789        # 예: 이전 값 또는 원하는 값
-remaining_balance_y_val = 826 # 예: 이전 값 또는 원하는 값
+deposit_y_val = 789        # <<--- 여기에 "처음 올린 파일"의 계약금 Y값 입력 또는 원하는 값
+remaining_balance_y_val = 826 # <<--- 여기에 "처음 올린 파일"의 잔금 Y값 입력 또는 원하는 값
 
 storage_fee_y_val = _y_main_fee_yellow_box_orig # 보관료는 메인 비용과 같은 Y
 
@@ -76,7 +76,7 @@ actual_vehicles_text_x_val = item_x_col2_others_val
 costs_section_x_align_right_val = 410
 work_method_fee_label_x_val = 35
 work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
-fees_x_val_right_aligned = item_x_col3_val
+fees_x_val_right_aligned = item_x_col3_val # 계약금, 잔금 등의 금액 X좌표
 special_notes_x_val = 80
 special_notes_max_width_val = 700
 special_notes_font_size_val = BASE_FONT_SIZE
@@ -193,27 +193,18 @@ ITEM_KEY_MAP = {
     "사무실책상": "item_executive_desk",
     "책상&의자": "item_desk",
     "책장": "item_bookshelf",
-    # "의자": "item_chair", # 양식에 따라 추가/제외
-    # "테이블": "item_table", # 양식에 따라 추가/제외
-    # "담요": "item_blanket", # 양식에 따라 추가/제외
     "바구니": "item_basket",
-    "중박스": "item_medium_box", # data.py의 품목명과 일치하는지 확인 ("중자바구니"일 수도 있음)
-    # "중대박스": "item_large_box", # data.py에 해당 품목이 정의되어 있고, FIELD_MAP에도 위치가 정의되어야 함
+    "중박스": "item_medium_box",
     "책바구니": "item_book_box",
     "화분": "item_plant_box",
-    "옷행거": "item_clothes_box", # FIELD_MAP 키와 일치
+    "옷행거": "item_clothes_box",
     "스타일러": "item_styler",
     "안마기": "item_massage_chair",
     "피아노(일반)": "item_piano_acoustic",
-    # "복합기": "item_copier", # data.py 및 FIELD_MAP에 정의 필요
     "TV(45인치)": "item_tv_45",
-    "TV(75인치)": "item_tv_stand", # FIELD_MAP 키와 일치 (TV 스탠드가 아닌 TV 자체를 의미할 경우 주의)
-    # "벽걸이": "item_wall_mount_item", # data.py 및 FIELD_MAP에 정의 필요
+    "TV(75인치)": "item_tv_stand",
     "금고": "item_safe",
     "앵글": "item_angle_shelf",
-    # "파티션": "item_partition", # data.py 및 FIELD_MAP에 정의 필요
-    # "5톤진입": "item_5ton_access", # 품목인지, 조건인지 확인. FIELD_MAP에 정의 필요
-    # "이불박스": "item_duvet_box" # data.py 및 FIELD_MAP에 정의 필요
 }
 
 
@@ -334,15 +325,23 @@ def _format_currency(amount_val):
     except ValueError:
         return str(amount_val)
 
+# create_quote_image 함수 정의 시작
 def create_quote_image(state_data, calculated_cost_items, total_cost_overall, personnel_info):
-    print("DEBUG [ImageGenerator]: create_quote_image function CALLED") # 함수 호출 확인
+    print("DEBUG [ImageGenerator]: create_quote_image function CALLED")
     try:
         img = Image.open(BACKGROUND_IMAGE_PATH).convert("RGBA")
         draw = ImageDraw.Draw(img)
         print("DEBUG [ImageGenerator]: Background image loaded.")
     except FileNotFoundError:
         print(f"ERROR [ImageGenerator]: Background image not found at {BACKGROUND_IMAGE_PATH}")
-        # ... (에러 처리) ...
+        img = Image.new('RGB', (900, 1400), color = 'white')
+        draw = ImageDraw.Draw(img)
+        try: error_font = _get_font(size=24)
+        except: error_font = ImageFont.load_default()
+        _draw_text_with_alignment(draw, "배경 이미지 파일을 찾을 수 없습니다!", 450, 480, error_font, (255,0,0), "center")
+        _draw_text_with_alignment(draw, BACKGROUND_IMAGE_PATH, 450, 520, error_font, (255,0,0), "center")
+        # 이 경우 None을 반환하거나, 혹은 이 임시 이미지를 반환할 수 있습니다.
+        # 여기서는 None을 반환하여 호출부에서 처리하도록 합니다.
         return None
     except Exception as e_bg:
         print(f"ERROR [ImageGenerator]: Error loading background image: {e_bg}")
@@ -412,12 +411,12 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     # --- 비용 항목 계산 ---
     total_moving_expenses_val = 0 
     storage_fee_val = 0
-    option_ac_cost_val = 0 # 에어컨 비용은 계산하지만, FIELD_MAP에서 그리는 부분이 없으므로 표시 안됨
+    option_ac_cost_val = 0 
     from_method_fee_val = 0
     to_method_fee_raw_val = 0
     regional_ladder_surcharge_val = 0
 
-    AC_COST_LABEL = "에어컨 이전설치비" # calculations.py의 레이블과 일치해야 함
+    AC_COST_LABEL = "에어컨 이전설치비" 
 
     if calculated_cost_items and isinstance(calculated_cost_items, list):
         for item_l, item_a, item_note_ignored in calculated_cost_items:
@@ -426,7 +425,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             except (ValueError, TypeError): amount = 0
 
             if label == AC_COST_LABEL:
-                option_ac_cost_val += amount
+                option_ac_cost_val += amount 
             elif label == '보관료':
                 storage_fee_val += amount
             elif label.startswith('출발지 사다리차') or label.startswith('출발지 스카이'):
@@ -444,7 +443,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     final_to_method_fee_val = to_method_fee_raw_val + regional_ladder_surcharge_val
 
     deposit_amount_val = int(float(state_data.get('deposit_amount', 0) or 0))
-    grand_total_num = int(float(total_cost_overall or 0)) # 함수 인자로 받은 전체 비용 사용
+    grand_total_num = int(float(total_cost_overall or 0))
     remaining_balance_num = grand_total_num - deposit_amount_val
     
     special_notes_content = state_data.get('special_notes', '')
@@ -479,30 +478,26 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     print("DEBUG [ImageGenerator]: Populating item quantities...")
     try:
         current_move_type = state_data.get("base_move_type")
-        # 모든 FIELD_MAP의 품목 키에 대해 빈 문자열로 초기화 (수량 없으면 안 그려지도록)
-        for field_map_key in FIELD_MAP.keys(): # FIELD_MAP의 모든 키 순회
-            if field_map_key.startswith("item_"): # 품목 관련 키라면
-                data_to_draw[field_map_key] = "" # 기본적으로 빈 문자열 할당
+        for field_map_key in ITEM_KEY_MAP.values():
+            if field_map_key.startswith("item_") and field_map_key in FIELD_MAP: # FIELD_MAP에 정의된 키만
+                data_to_draw[field_map_key] = ""
 
         if utils and hasattr(utils, 'get_item_qty') and callable(utils.get_item_qty):
             for data_py_item_name, field_map_key_from_map in ITEM_KEY_MAP.items():
-                # ITEM_KEY_MAP에 있는 키가 FIELD_MAP에도 정의되어 있는지 확인
                 if field_map_key_from_map in FIELD_MAP and field_map_key_from_map.startswith("item_"):
                     qty_int = utils.get_item_qty(state_data, data_py_item_name)
-                    # print(f"DEBUG [ImageGenerator]: Item: {data_py_item_name}, Mapped Key: {field_map_key_from_map}, Qty: {qty_int}") # 수량 확인 로그
                     if qty_int > 0:
                         text_val = str(qty_int)
                         if data_py_item_name == "장롱":
                             try: text_val = f"{(float(qty_int) / 3.0):.1f}"
                             except: text_val = str(qty_int)
                         data_to_draw[field_map_key_from_map] = text_val
-                        # print(f"DEBUG [ImageGenerator]: Added to data_to_draw: {field_map_key_from_map} = {text_val}")
         else:
             print("ERROR [ImageGenerator]: utils.get_item_qty function is not available. Cannot populate item quantities.")
     except Exception as e_item_qty:
         print(f"ERROR [ImageGenerator]: Error processing item quantities: {e_item_qty}")
         traceback.print_exc()
-    print(f"DEBUG [ImageGenerator]: data_to_draw (items part sample): { {k:v for k,v in data_to_draw.items() if k.startswith('item_') and v} }")
+    # print(f"DEBUG [ImageGenerator]: data_to_draw (items part sample after population): { {k:v for k,v in data_to_draw.items() if k.startswith('item_') and v} }")
 
 
     # --- 텍스트 그리기 ---
@@ -521,7 +516,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         if text_content_value is not None and str(text_content_value).strip() != "":
             final_text_to_draw = str(text_content_value)
         
-        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""): # 빈 특이사항도 그릴 수 있도록
+        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""):
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             try:
                 font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
@@ -534,7 +529,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             max_w_val = M.get("max_width")
             line_spacing_factor = M.get("line_spacing_factor", 1.15)
             
-            # print(f"DEBUG [ImageGenerator]: Drawing: Key='{key}', Text='{final_text_to_draw[:30]}...', X={M['x']}, Y={M['y']}") # 그리기 직전 로그
+            # print(f"DEBUG [ImageGenerator]: Drawing: Key='{key}', Text='{final_text_to_draw[:30]}...', X={M['x']}, Y={M['y']}")
             _draw_text_with_alignment(draw, final_text_to_draw, M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
 
     print("DEBUG [ImageGenerator]: Text drawing complete. Saving image to bytes.")
@@ -543,51 +538,49 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     img_byte_arr.seek(0)
     print("DEBUG [ImageGenerator]: Image generation successful.")
     return img_byte_arr.getvalue()
+# 함수 정의 끝
 
 # 테스트용 if __name__ == '__main__': 블록
 if __name__ == '__main__':
     print("image_generator.py test mode")
-    # (이전과 동일한 테스트 코드 유지 또는 필요에 따라 수정)
-    AC_COST_LABEL_TEST = "에어컨 이전설치비" 
+    AC_COST_LABEL_TEST = "에어컨 이전설치비"
 
     mock_state_test_pos = {
-        "customer_name": "위치조정 고객님", "customer_phone": "010-9999-0000",
-        "moving_date": date(2025, 12, 25),
-        "from_location": "경기도 수원시 영통구 이의동 광교", "to_location": "서울시 서초구 반포동 아크로리버파크",
-        "from_floor": "5", "to_floor": "10",
-        "final_selected_vehicle": "5톤", "dispatched_5t": 1, 
-        "from_method": "사다리차 🪜", "to_method": "계단 🚶",
-        "deposit_amount": 200000,
-        "base_move_type": "가정 이사 🏠", # 이사 유형
-        "special_notes": "계약금, 잔금, 사다리 요금 위치 확인용 테스트입니다.\n두 번째 줄 테스트입니다.",
-        # utils.get_item_qty가 읽을 수 있도록 세션 상태 키 형식으로 품목 수량 설정
-        "qty_가정 이사 🏠_주요 품목_장롱": 3, # 장롱 3칸 -> 이미지에 1.0으로 표시되어야 함
-        "qty_가정 이사 🏠_주요 품목_더블침대": 1,
-        "qty_가정 이사 🏠_기타_에어컨": 1, # 에어컨 수량 (이 값은 이미지에 직접 표시되지는 않음, 비용계산에만 사용)
-        "qty_가정 이사 🏠_포장 자재 📦_바구니": 10,
+        "customer_name": "최종 점검 고객", "customer_phone": "010-1234-5678",
+        "moving_date": date(2025, 1, 10),
+        "from_location": "서울특별시 테스트구 테스트동 123-45", "to_location": "경기도 테스트시 테스트로 789",
+        "from_floor": "3", "to_floor": "7",
+        "final_selected_vehicle": "2.5톤", "dispatched_2_5t": 1,
+        "from_method": "계단 🚶", "to_method": "사다리차 🪜",
+        "deposit_amount": 100000,
+        "base_move_type": "가정 이사 🏠",
+        "special_notes": "테스트 노트입니다.\n여러 줄 테스트입니다.\n마지막 줄입니다.",
+        "qty_가정 이사 🏠_주요 품목_장롱": 6, # 2.0 칸으로 표시되어야 함
+        "qty_가정 이사 🏠_주요 품목_4도어 냉장고": 1,
+        "qty_가정 이사 🏠_기타_에어컨": 1,
+        "qty_가정 이사 🏠_포장 자재 📦_바구니": 20,
+        "qty_가정 이사 🏠_포장 자재 📦_중박스": 10,
     }
     mock_costs_test_pos = [
-        ("기본 운임", 1200000, "5톤 기준"),
-        ("출발지 사다리차", 150000, "5층, 5톤 기준"),
-        (AC_COST_LABEL_TEST, 100000, "에어컨 1대 기본 설치"), # 에어컨 비용은 있지만, FIELD_MAP에서 해당 항목을 지웠으므로 그려지지 않음
+        ("기본 운임", 900000, "2.5톤 기준"),
+        # 출발지는 계단이므로 비용 없음
+        ("도착지 사다리차", 180000, "7층, 5톤(기본) 기준"), # 2.5톤 차량이지만 사다리는 5톤 기준으로 계산될 수 있음
+        (AC_COST_LABEL_TEST, 50000, "에어컨 1대 기본"),
     ]
-    mock_total_cost_test_pos = 1200000 + 150000 + 100000 # 총계에는 에어컨 비용 포함
-    mock_personnel_test_pos = {"final_men": 3, "final_women": 1}
-
-    # utils.py의 get_item_qty를 모킹할 필요 없이, mock_state_test_pos에 올바른 키로 값을 넣어주면 됨
-    # (단, utils.py가 정상적으로 임포트되고 data.py를 참조할 수 있어야 함)
+    mock_total_cost_test_pos = 900000 + 180000 + 50000
+    mock_personnel_test_pos = {"final_men": 2, "final_women": 1}
 
     try:
         image_bytes_test = create_quote_image(mock_state_test_pos, mock_costs_test_pos, mock_total_cost_test_pos, mock_personnel_test_pos)
         
         if image_bytes_test:
             timestamp_test = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename_test = f"test_image_final_{timestamp_test}.png"
+            filename_test = f"test_image_final_check_{timestamp_test}.png"
             with open(filename_test, "wb") as f:
                 f.write(image_bytes_test)
-            print(f"Test image '{filename_test}' saved successfully. Please check all elements.")
+            print(f"Test image '{filename_test}' saved successfully. Please verify all elements and positions.")
         else:
-            print("Test image generation failed. Check logs above.")
+            print("Test image generation failed. Check logs above for [ImageGenerator] messages.")
     except Exception as e_main_test:
         print(f"Error in test run: {e_main_test}")
         traceback.print_exc()
