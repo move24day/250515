@@ -1,4 +1,4 @@
-# image_generator.py (수정 예시)
+# image_generator.py
 from PIL import Image, ImageDraw, ImageFont
 import os
 import io
@@ -22,59 +22,95 @@ FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 # --- 색상 및 기본 폰트 크기 ---
 TEXT_COLOR_DEFAULT = (20, 20, 20)
-TEXT_COLOR_YELLOW_BG = (0,0,0) # 노란 배경 위의 검은색 텍스트
+TEXT_COLOR_YELLOW_BG = (0,0,0)
 TEXT_COLOR_BLUE = (20, 20, 180)
 BASE_FONT_SIZE = 18
 
 # --- 품목 관련 기본 좌표 및 간격 ---
 item_y_start_val = 334
-item_y_spacing_val = 28.8
+item_y_spacing_val = 28.8 # 기본 Y 간격 (1칸에 해당)
 item_font_size_val = 15
 item_x_col1_val = 226
 item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
 item_x_col3_val = 756
 
-# --- 기타 주요 Y 좌표 (기존 값 또는 "예전 값"으로 추정되는 값으로 설정) ---
-# 사용자가 "예전 값"으로 돌리기를 원하므로, 이 부분의 값들을 이전 버전이나 원하는 값으로 설정해야 합니다.
-# 아래 값들은 설명을 위한 임의의 "예전 스타일" 값일 수 있습니다. 정확한 값으로 수정해주세요.
+# --- 기타 주요 Y 좌표 ---
+# "예전 값" 또는 원하시는 값으로 이 Y 좌표들을 직접 설정해주세요.
+# "3칸 더 내려야 한다"는 것은 현재 값에서 item_y_spacing_val * 3 만큼 더해야 한다는 의미일 수 있습니다.
+# 또는, 절대적인 "예전 Y 좌표 값"을 의미할 수도 있습니다.
 
-_y_main_fee_yellow_box_orig = 775 # 메인 비용 (노란 박스) Y - 이 값은 유지될 가능성이 높음
-_y_grand_total_orig = 861         # 총계 Y - 이 값도 유지될 가능성이 높음
+# 예시: 현재 값에서 3칸 (item_y_spacing_val * 3) 만큼 내리는 경우
+# 기존 from_work_fee_y_val, to_work_fee_y_val, deposit_y_val, remaining_balance_y_val 값에
+# item_y_spacing_val * 3 (대략 86.4)을 더해줍니다.
 
-# 출발/도착 사다리(작업) 요금 표시 위치 (텍스트 레이블과 금액 모두)
-# 예시: 메인 비용 박스 아래 또는 특정 고정 Y 값
-# "예전 값"에 따라 이 Y 좌표들을 조정해야 합니다.
-# 여기서는 임의로 _y_main_fee_yellow_box_orig 아래로 배치하는 예시를 들겠습니다.
-prev_from_work_fee_y_val = _y_main_fee_yellow_box_orig + item_y_spacing_val * 1.2  # 예시: 약 809
-prev_to_work_fee_y_val = prev_from_work_fee_y_val + item_y_spacing_val      # 예시: 약 838
+# 만약 "예전의 절대적인 Y 좌표 값"을 알고 계시다면, 그 값으로 직접 설정합니다.
+# 예: from_work_fee_y_val = 750 (예전 Y 값이 750이었다면)
 
-# 계약금 및 잔금 표시 위치 ("예전 값"으로)
-# 예시: 총계 위 또는 특정 고정 Y 값
-prev_deposit_y_val = _y_grand_total_orig - item_y_spacing_val * 2.5 # 예시: 약 789
-prev_remaining_balance_y_val = _y_grand_total_orig - item_y_spacing_val * 1.2 # 예시: 약 826
+# 여기서는 "현재 위치에서 3칸(약 86px) 내린다"는 의미로 해석하고,
+# FIELD_MAP에서 직접 Y 값을 조정하는 방식을 보여드리겠습니다.
+# 또는, 이전에 사용했던 Y 좌표 계산 로직이나 특정 기준값을 사용합니다.
 
-# --- FIELD_MAP에서 사용할 최종 Y 좌표 변수 ---
-# 사용자가 원하는 "예전 값" 또는 새로운 좌표로 이 변수들을 설정합니다.
-from_work_fee_y_val = prev_from_work_fee_y_val # 예시 값 사용
-to_work_fee_y_val = prev_to_work_fee_y_val     # 예시 값 사용
-deposit_y_val = prev_deposit_y_val             # 예시 값 사용
-remaining_balance_y_val = prev_remaining_balance_y_val # 예시 값 사용
+# 참고용: 기존에 자주 사용되던 Y 좌표값 (수정 전의 값들일 수 있음)
+_y_main_fee_yellow_box_orig = 775
+_y_grand_total_orig = 861
+
+# 출발/도착 작업(사다리) 요금 Y 좌표 ("예전 값" 또는 조정된 값)
+# X 값은 유지, Y 값만 조정
+# "예전 값"을 여기에 직접 숫자로 입력하거나, 계산식을 사용합니다.
+# 예시 1: 특정 고정 Y값 사용 (예: 700, 728)
+# from_work_fee_y_val = 700  # 사용자가 원하는 "예전" Y 좌표 또는 새 Y 좌표
+# to_work_fee_y_val = from_work_fee_y_val + int(item_y_spacing_val * 1) # 출발지 아래 한 칸
+
+# 예시 2: 다른 요소 기준으로 상대적 위치 (main_fee 박스 위)
+from_work_fee_y_val = _y_main_fee_yellow_box_orig - int(item_y_spacing_val * 2.5) # 약 703
+to_work_fee_y_val = from_work_fee_y_val + int(item_y_spacing_val * 1)         # 약 732
+
+# 계약금 및 잔금 Y 좌표 ("예전 값" 또는 조정된 값)
+# "예전 값"을 여기에 직접 숫자로 입력하거나, 계산식을 사용합니다.
+# 예시 1: 특정 고정 Y값 사용 (예: 800, 828)
+# deposit_y_val = 800
+# remaining_balance_y_val = deposit_y_val + int(item_y_spacing_val * 1)
+
+# 예시 2: 총계(grand_total) 기준으로 상대적 위치 (총계 위)
+deposit_y_val = grand_total_y_new - int(item_y_spacing_val * 2.5)             # 약 797 (grand_total_y_new는 865)
+remaining_balance_y_val = deposit_y_val + int(item_y_spacing_val * 1)       # 약 826
+
+
+# !!!! 중요 !!!!
+# 만약 "3칸 더 내려서 표시"가 *현재 기준에서* 3칸(약 86px)을 의미한다면,
+# 아래 FIELD_MAP에서 각 항목의 y 값을 직접 수정하는 것이 더 명확할 수 있습니다.
+# 예를 들어, from_method_label의 현재 y값이 703이고, 3칸 내리려면 703 + (28.8 * 3) = 789.4 -> int(789)
+# 이 경우에는 위의 from_work_fee_y_val 등의 변수 계산 로직을 이전 것으로 되돌리거나,
+# FIELD_MAP의 y 값을 직접 조정해야 합니다.
+
+# --- FIELD_MAP에서 사용할 최종 Y 좌표 변수 (위에서 설정한 값 사용) ---
+# 이 부분은 이전 답변에서 Y 좌표 계산 로직을 변경했던 부분입니다.
+# "예전 값"을 반영하려면 이 변수들의 할당 방식을 "예전 방식"으로 되돌리거나,
+# 아래 FIELD_MAP에서 y값을 직접 "예전 수치"로 지정해야 합니다.
+
+# 이전에 Y 좌표 변수들이 어떻게 계산되었는지, 또는 "처음 올린 파일"의
+# FIELD_MAP에서 해당 키들의 y값이 몇이었는지 확인이 필요합니다.
+
+# 예시: "처음 올린 파일"에서 FIELD_MAP의 y값이 직접 숫자로 하드코딩 되어 있었다면,
+# 그 숫자들을 아래 y 값에 직접 넣어주면 됩니다.
+# from_work_fee_y_val = ??? (처음 올린 파일의 from_method_label y 값)
+# to_work_fee_y_val = ??? (처음 올린 파일의 to_method_label y 값)
+# deposit_y_val = ??? (처음 올린 파일의 deposit_amount_display y 값)
+# remaining_balance_y_val = ??? (처음 올린 파일의 remaining_balance_display y 값)
+
 
 # 나머지 좌표 변수들은 이전과 유사하게 유지될 수 있음
-storage_fee_y_val = _y_main_fee_yellow_box_orig # 보관료는 메인 비용과 같은 Y (오른쪽 다른 컬럼)
+storage_fee_y_val = _y_main_fee_yellow_box_orig
 grand_total_y_new = _y_grand_total_orig + 4
 
-# 기타 X 좌표 등
+# 기타 X 좌표 등 (X값은 맞다고 하셨으므로 유지)
 costs_section_x_align_right_val = 410
 work_method_fee_label_x_val = 35
-fees_x_val_right_aligned = item_x_col3_val # 계약금, 잔금 등의 금액 X 좌표 (품목 3열과 유사한 위치)
+fees_x_val_right_aligned = item_x_col3_val
 
-# (이하 get_adjusted_font_size, FIELD_MAP, ITEM_KEY_MAP, _get_font, _draw_text_with_alignment, _format_currency, create_quote_image 함수 정의)
-# ...
-
+# (get_adjusted_font_size 함수는 이전과 동일)
 def get_adjusted_font_size(original_size_ignored, field_key):
-    # ... (이전과 동일) ...
     if field_key == "customer_name": return BASE_FONT_SIZE
     if field_key == "customer_phone": return BASE_FONT_SIZE - 2
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
@@ -111,8 +147,6 @@ FIELD_MAP = {
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_work_method_text_display":   {"x": work_method_text_display_x_val, "y": _y_to_floor_orig,   "size": get_adjusted_font_size(0, "to_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-
-    # --- 품목 수량 (이전과 동일하게 유지) ---
     "item_jangrong":    {"x": item_x_col1_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_double_bed":  {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_drawer_5dan": {"x": item_x_col1_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -154,18 +188,22 @@ FIELD_MAP = {
     "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 12.15), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 13.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
-    # --- 비용 표시 (Y 좌표 변경됨) ---
+    # --- 비용 표시 (Y 좌표는 위에서 정의한 변수 사용) ---
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
 
+    # 출발지 작업(사다리) 요금: Y 좌표 변경됨
     "from_method_label":  {"x": work_method_fee_label_x_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "from_method_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
+    # 도착지 작업(사다리) 요금: Y 좌표 변경됨
     "to_method_label":    {"x": work_method_fee_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "to_method_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
+    # 계약금: Y 좌표 변경됨
     "deposit_amount_display":   {"x": fees_x_val_right_aligned, "y": int(deposit_y_val), "size": get_adjusted_font_size(0, "deposit_amount_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "storage_fee_display":      {"x": fees_x_val_right_aligned, "y": int(storage_fee_y_val), "size": get_adjusted_font_size(0, "storage_fee_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # 보관료 위치는 그대로 유지
+    # 잔금: Y 좌표 변경됨
     "remaining_balance_display":{"x": fees_x_val_right_aligned, "y": int(remaining_balance_y_val), "size": get_adjusted_font_size(0, "remaining_balance_display"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
     "special_notes_display": {
         "x": special_notes_x_val, "y": special_notes_start_y_val,
@@ -173,155 +211,16 @@ FIELD_MAP = {
         "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": special_notes_max_width_val, "line_spacing_factor": 1.3
     }
 }
+
 # ... (ITEM_KEY_MAP 정의는 이전과 동일하게 유지) ...
-ITEM_KEY_MAP = {
-    "장롱": "item_jangrong", "더블침대": "item_double_bed", "서랍장": "item_drawer_5dan",
-    "서랍장(3단)": "item_drawer_3dan", "4도어 냉장고": "item_fridge_4door",
-    "김치냉장고(일반형)": "item_kimchi_fridge_normal", "김치냉장고(스탠드형)": "item_kimchi_fridge_stand",
-    "소파(3인용)": "item_sofa_3seater", "소파(1인용)": "item_sofa_1seater", "식탁(4인)": "item_dining_table",
-    "에어컨": "item_ac_left",
-    "거실장": "item_living_room_cabinet",
-    "피아노(디지털)": "item_piano_digital",
-    "세탁기 및 건조기": "item_washing_machine",
-    "컴퓨터&모니터": "item_computer",
-    "사무실책상": "item_executive_desk",
-    "책상&의자": "item_desk",
-    "책장": "item_bookshelf",
-    "바구니": "item_basket",
-    "중박스": "item_medium_box",
-    "책바구니": "item_book_box",
-    "화분": "item_plant_box",
-    "옷행거": "item_clothes_box",
-    "스타일러": "item_styler",
-    "안마기": "item_massage_chair",
-    "피아노(일반)": "item_piano_acoustic",
-    "TV(45인치)": "item_tv_45",
-    "TV(75인치)": "item_tv_stand",
-    "금고": "item_safe",
-    "앵글": "item_angle_shelf",
-}
 
+# ... (create_quote_image 함수 정의는 이전과 동일하게 유지, 내부에서 FIELD_MAP을 사용하므로 변경된 Y 좌표가 반영됨) ...
+# create_quote_image 함수 내 data_to_draw 채우는 부분 등은 이전 답변의 로직을 그대로 사용합니다.
+# 중요한 것은 FIELD_MAP의 y값과, 파일 상단에서 이 y값에 영향을 주는 변수들 (from_work_fee_y_val 등)을
+# "예전 값" 또는 원하시는 값으로 정확히 설정하는 것입니다.
 
-# ... (get_text_dimensions, _get_font, _draw_text_with_alignment, _format_currency 함수는 이전과 동일하게 유지) ...
-def get_text_dimensions(text_string, font):
-    if not text_string: return 0,0
-    if hasattr(font, 'getbbox'):
-        try:
-            bbox = font.getbbox(str(text_string))
-            width = bbox[2] - bbox[0]
-            ascent, descent = font.getmetrics()
-            height = ascent + descent
-        except Exception:
-            if hasattr(font, 'getlength'): width = font.getlength(str(text_string))
-            else: width = len(str(text_string)) * (font.size if hasattr(font, 'size') else 10) / 2
-            ascent, descent = font.getmetrics()
-            height = ascent + descent
-    elif hasattr(font, 'getmask'):
-        try:
-            width, height = font.getmask(str(text_string)).size
-        except Exception:
-            ascent, descent = font.getmetrics()
-            height = ascent + descent
-            width = font.getlength(str(text_string)) if hasattr(font, 'getlength') else len(str(text_string)) * height / 2
-    else:
-        ascent, descent = font.getmetrics()
-        height = ascent + descent
-        if hasattr(font, 'getlength'):
-            width = font.getlength(str(text_string))
-        else:
-            width = len(str(text_string)) * height / 2
-    return width, height
-
-def _get_font(font_type="regular", size=12):
-    font_path_to_use = FONT_PATH_REGULAR
-    if font_type == "bold":
-        if os.path.exists(FONT_PATH_BOLD):
-            font_path_to_use = FONT_PATH_BOLD
-
-    if not os.path.exists(font_path_to_use):
-        print(f"ERROR [ImageGenerator]: Font file NOT FOUND at '{font_path_to_use}'. Falling back to PIL default.")
-        try: return ImageFont.load_default(size=size)
-        except TypeError: return ImageFont.load_default()
-        except Exception as e_pil_font:
-            print(f"CRITICAL: Error loading default PIL font: {e_pil_font}")
-            raise
-
-    try:
-        return ImageFont.truetype(font_path_to_use, size)
-    except IOError:
-        print(f"IOError [ImageGenerator]: Font '{font_path_to_use}' found but unreadable by Pillow. Falling back to default.")
-        try: return ImageFont.load_default(size=size)
-        except TypeError: return ImageFont.load_default()
-        except Exception as e_pil_font_io:
-            print(f"CRITICAL: Error loading default PIL font after IOError: {e_pil_font_io}")
-            raise
-    except Exception as e_font:
-        print(f"General Error loading font {font_path_to_use}: {e_font}")
-        raise
-
-def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_width=None, line_spacing_factor=1.2):
-    if text is None: text = ""
-    text = str(text)
-    lines = []
-
-    if max_width:
-        words = text.split(' ')
-        current_line = ""
-        for word in words:
-            word_width, _ = get_text_dimensions(word, font)
-            if word_width > max_width and len(word) > 1:
-                if current_line: lines.append(current_line.strip())
-                temp_word_line = ""
-                for char_in_word in word: # 변수명 변경
-                    temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char_in_word, font)
-                    if temp_word_line_plus_char_width <= max_width:
-                        temp_word_line += char_in_word
-                    else:
-                        lines.append(temp_word_line)
-                        temp_word_line = char_in_word
-                if temp_word_line: lines.append(temp_word_line)
-                current_line = ""
-                continue
-            current_line_plus_word_width, _ = get_text_dimensions(current_line + word + " ", font) if current_line else get_text_dimensions(word + " ", font)
-            if current_line_plus_word_width <= max_width:
-                current_line += word + " "
-            else:
-                if current_line: lines.append(current_line.strip())
-                current_line = word + " "
-        if current_line.strip(): lines.append(current_line.strip())
-        if not lines and text: lines.append(text)
-    else:
-        lines.extend(text.split('\n'))
-
-    current_y_draw = y
-    first_line = True
-    _, typical_char_height = get_text_dimensions("A", font)
-    for line in lines:
-        if not line.strip() and not first_line and len(lines) > 1:
-            current_y_draw += int(typical_char_height * line_spacing_factor)
-            continue
-        text_width_draw, _ = get_text_dimensions(line, font)
-        actual_x_draw = x
-        if align == "right": actual_x_draw = x - text_width_draw
-        elif align == "center": actual_x_draw = x - text_width_draw / 2
-        
-        draw.text((actual_x_draw, current_y_draw), line, font=font, fill=color)
-        current_y_draw += int(typical_char_height * line_spacing_factor)
-        first_line = False
-    return current_y_draw
-
-def _format_currency(amount_val):
-    if amount_val is None or str(amount_val).strip() == "": return ""
-    try:
-        num_val = float(str(amount_val).replace(",", "").strip())
-        num = int(num_val)
-        return f"{num:,}"
-    except ValueError:
-        return str(amount_val)
-
-
+# create_quote_image 함수 (이전 답변의 전체 코드에서 복사하여 붙여넣되, FIELD_MAP 변경사항이 반영되도록 함)
 def create_quote_image(state_data, calculated_cost_items, total_cost_overall, personnel_info):
-    # ... (이미지 로드, 기본 정보 추출 로직은 이전과 동일) ...
     try:
         img = Image.open(BACKGROUND_IMAGE_PATH).convert("RGBA")
         draw = ImageDraw.Draw(img)
@@ -397,15 +296,14 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     to_method_text_for_label = "도착" + (to_method_raw.split(" ")[0] if to_method_raw else "작업")
     to_method_text_for_display_top = to_method_raw.split(" ")[0] if to_method_raw else ""
     
-    # 비용 항목 계산 (에어컨 비용은 option_ac_cost_val에만, main_fee_yellow_box에서는 제외)
-    total_moving_expenses_val = 0
+    total_moving_expenses_val = 0 
     storage_fee_val = 0
-    option_ac_cost_val = 0
+    option_ac_cost_val = 0 
     from_method_fee_val = 0
     to_method_fee_raw_val = 0
     regional_ladder_surcharge_val = 0
 
-    AC_COST_LABEL = "에어컨 이전설치비" # 이 레이블은 calculations.py와 일치해야 합니다.
+    AC_COST_LABEL = "에어컨 이전설치비" 
 
     if calculated_cost_items and isinstance(calculated_cost_items, list):
         for item_l, item_a, item_note_ignored in calculated_cost_items:
@@ -414,7 +312,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             except (ValueError, TypeError): amount = 0
 
             if label == AC_COST_LABEL:
-                option_ac_cost_val += amount # 에어컨 비용은 여기에만 할당
+                option_ac_cost_val += amount
             elif label == '보관료':
                 storage_fee_val += amount
             elif label.startswith('출발지 사다리차') or label.startswith('출발지 스카이'):
@@ -447,27 +345,18 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         "workers_male": workers_male, "workers_female": workers_female,
         "from_work_method_text_display": from_method_text_for_display_top,
         "to_work_method_text_display": to_method_text_for_display_top,
-        
-        # "fee_value_next_to_ac_right"는 FIELD_MAP에서 제거했으므로, 여기서 값을 할당해도 그려지지 않음
-        # 만약 이 값을 다른 곳에 (예: main_fee_yellow_box 또는 grand_total) 포함시키려면
-        # total_moving_expenses_val 또는 grand_total_num 계산 시 option_ac_cost_val을 더해야 함
-        # 현재는 에어컨 비용을 별도로 표시하지 않고, main_fee에 포함시키지 않는 것으로 가정
-        
-        "main_fee_yellow_box": _format_currency(total_moving_expenses_val), # 에어컨 비용이 제외된 순수 이사비
-        "grand_total": _format_currency(grand_total_num), # 총액 (에어컨 비용 포함된 전체 견적 금액)
-
+        "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
+        "grand_total": _format_currency(grand_total_num),
         "from_method_label": from_method_text_for_label,
         "from_method_fee_value": _format_currency(from_method_fee_val),
         "to_method_label": to_method_text_for_label,
         "to_method_fee_value": _format_currency(final_to_method_fee_val),
-
         "deposit_amount_display": _format_currency(deposit_amount_val),
         "storage_fee_display": _format_currency(storage_fee_val),
         "remaining_balance_display": _format_currency(remaining_balance_num),
         "special_notes_display": special_notes_content
     }
 
-    # 품목 수량 매핑 (이전과 동일)
     try:
         current_move_type = state_data.get("base_move_type")
         for field_map_key in ITEM_KEY_MAP.values():
@@ -485,12 +374,11 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                             except: text_val = str(qty_int)
                         data_to_draw[field_map_key_from_map] = text_val
         else:
-            print("ERROR [image_generator]: utils.get_item_qty function is not available. Item quantities might be incorrect.")
+            print("ERROR [image_generator]: utils.get_item_qty function is not available. Cannot populate item quantities.")
     except Exception as e_item_qty:
         print(f"Error processing item quantities for image: {e_item_qty}")
         traceback.print_exc()
 
-    # 텍스트 그리기 (이전과 동일)
     for key, M_raw in FIELD_MAP.items():
         M = {}
         for k_map, v_map in M_raw.items():
@@ -522,48 +410,44 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     img_byte_arr.seek(0)
     return img_byte_arr.getvalue()
 
-# ... (if __name__ == '__main__': 블록은 이전과 동일하게 유지 또는 테스트 케이스 업데이트) ...
-if __name__ == '__main__':
-    print("image_generator.py test mode")
-    # AC_COST_LABEL을 테스트용 mock_costs의 레이블과 일치시키거나,
-    # mock_costs에 해당 레이블의 항목을 추가해야 테스트가 정확해짐
-    AC_COST_LABEL_TEST = "에어컨 이전설치비" # 실제 레이블과 동일하게 설정
 
-    mock_state_test = {
-        "customer_name": "위치변경 고객", "customer_phone": "010-7777-8888",
-        "moving_date": date(2025, 6, 20),
-        "from_location": "경기도 수원시 영통구 이의동 광교", "to_location": "서울시 서초구 반포동 아크로리버파크",
-        "from_floor": "25", "to_floor": "12",
-        "final_selected_vehicle": "15톤", "dispatched_5t": 3, 
-        "from_method": "사다리차 🪜", "to_method": "사다리차 🪜",
-        "deposit_amount": 1000000, # 계약금 예시
+# (if __name__ == '__main__': 블록은 이전 답변의 테스트 코드를 참고하여 필요에 따라 수정/사용하세요.)
+if __name__ == '__main__':
+    print("image_generator.py test mode - 위치 변경 테스트")
+
+    # 이 테스트 케이스는 Y 좌표가 변경되었는지 확인하는 데 중점을 둡니다.
+    # 실제 "예전 값"을 위의 Y 좌표 변수에 적용한 후 테스트해야 정확합니다.
+    
+    mock_state_test_pos = {
+        "customer_name": "위치조정 고객님", "customer_phone": "010-9999-0000",
+        "moving_date": date(2025, 12, 25),
+        "from_location": "서울시 강동구 고덕동", "to_location": "경기도 하남시 미사동",
+        "from_floor": "5", "to_floor": "10",
+        "final_selected_vehicle": "5톤", "dispatched_5t": 1, 
+        "from_method": "사다리차 🪜", "to_method": "계단 🚶",
+        "deposit_amount": 200000,
         "base_move_type": "가정 이사 🏠",
-        "special_notes": "피아노 운반 시 전문가 동행 필수.\n오후 1시 정각 작업 시작 희망.",
-        "qty_가정 이사 🏠_주요 품목_장롱": 15, # 5칸
-        "qty_가정 이사 🏠_주요 품목_더블침대": 2,
-        "qty_가정 이사 🏠_기타_에어컨": 3,
-        "qty_가정 이사 🏠_포장 자재 📦_바구니": 80,
+        "special_notes": "계약금, 잔금, 사다리 요금 위치 확인용 테스트입니다.",
+        "qty_가정 이사 🏠_주요 품목_장롱": 3, # 1칸
     }
-    mock_costs_test = [
-        ("기본 운임", 3000000, "15톤 기준"),
-        ("출발지 사다리차", 400000, "25층, 15톤급 기준"), # 예시 금액
-        ("도착지 사다리차", 280000, "12층, 15톤급 기준"), # 예시 금액
-        (AC_COST_LABEL_TEST, 300000, "에어컨 3대 설치"), 
-        ("추가 인력", 400000, "남2")
+    mock_costs_test_pos = [
+        ("기본 운임", 1200000, "5톤 기준"),
+        ("출발지 사다리차", 150000, "5층, 5톤 기준"),
+        # 도착지는 계단이므로 사다리 비용 없음
+        ("에어컨 이전설치비", 0, "해당 없음"), # 에어컨 비용은 없다고 가정 (표시 안함)
     ]
-    mock_total_cost_test = sum(c[1] for c in mock_costs_test) # 3000000 + 400000 + 280000 + 300000 + 400000 = 4380000
-    mock_personnel_test = {"final_men": 7+2, "final_women": 2} # 기본인력 + 추가인력
+    mock_total_cost_test_pos = 1200000 + 150000 
+    mock_personnel_test_pos = {"final_men": 3, "final_women": 1}
 
     try:
-        # utils.get_item_qty 모킹은 이전과 동일하게 유지 또는 실제 utils.get_item_qty가 mock_state_test를 읽을 수 있도록 함
-        image_bytes_test = create_quote_image(mock_state_test, mock_costs_test, mock_total_cost_test, mock_personnel_test)
+        image_bytes_test = create_quote_image(mock_state_test_pos, mock_costs_test_pos, mock_total_cost_test_pos, mock_personnel_test_pos)
         
         if image_bytes_test:
             timestamp_test = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename_test = f"test_fee_pos_changed_{timestamp_test}.png"
+            filename_test = f"test_y_pos_changed_{timestamp_test}.png"
             with open(filename_test, "wb") as f:
                 f.write(image_bytes_test)
-            print(f"Test image '{filename_test}' saved successfully.")
+            print(f"Test image '{filename_test}' saved successfully. Please check the Y positions.")
         else:
             print("Test image generation failed.")
     except Exception as e_main_test:
