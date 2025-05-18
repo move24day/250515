@@ -461,13 +461,13 @@ def render_tab3():
                     if moving_date_obj_for_summary_display:
                         try:
                             weekday_str_summary = ["월", "화", "수", "목", "금", "토", "일"][moving_date_obj_for_summary_display.weekday()]
-                            formatted_moving_date_summary = f"🗓️ 이사일: {moving_date_obj_for_summary_display.strftime('%Y-%m-%d')} ({weekday_str_summary})"
+                            formatted_moving_date_summary = f"이사일: {moving_date_obj_for_summary_display.strftime('%Y-%m-%d')} ({weekday_str_summary})"
                         except Exception: 
-                            formatted_moving_date_summary = f"🗓️ 이사일: {str(moving_date_obj_for_summary_display)}"
+                            formatted_moving_date_summary = f"이사일: {str(moving_date_obj_for_summary_display)}"
                     elif moving_date_val_for_summary:
-                        formatted_moving_date_summary = f"🗓️ 이사일: {str(moving_date_val_for_summary)}"
+                        formatted_moving_date_summary = f"이사일: {str(moving_date_val_for_summary)}"
                     else:
-                        formatted_moving_date_summary = "🗓️ 이사일: 정보 없음"
+                        formatted_moving_date_summary = "이사일: 정보 없음"
                     summary_lines.append(formatted_moving_date_summary)
 
                     # 2. 주소 흐름 요약
@@ -476,55 +476,55 @@ def render_tab3():
 
                     if st.session_state.get('has_via_point', False):
                         via_location_summary_flow = st.session_state.get('via_point_location', '경유지 정보 없음')
-                        address_flow_parts_summary.append(f"↪️ {via_location_summary_flow}")
+                        address_flow_parts_summary.append(f"{via_location_summary_flow}")
 
                     if is_storage_move_summary and storage_details_text:
-                        address_flow_parts_summary.append(f"📦 {storage_details_text}")
+                        address_flow_parts_summary.append(f"{storage_details_text}")
                     
                     address_flow_parts_summary.append(to_addr_summary if to_addr_summary else "도착지 정보 없음")
                     
                     vehicle_display_text_summary = f"({vehicle_tonnage_summary if vehicle_tonnage_summary else vehicle_type_summary})"
                     address_flow_parts_summary.append(vehicle_display_text_summary)
 
-                    summary_lines.append(" ⏩ ".join(address_flow_parts_summary))
+                    summary_lines.append("".join(address_flow_parts_summary))
                     summary_lines.append("──────────────────────────────")
 
                     # 3. 고객 정보
-                    if customer_name_summary: summary_lines.append(f"👤 고객명: {customer_name_summary}")
-                    if phone_summary and phone_summary != '-': summary_lines.append(f"📞 전화번호: {phone_summary}")
-                    if email_summary and email_summary != '-': summary_lines.append(f"📧 이메일: {email_summary}")
+                    if customer_name_summary: summary_lines.append(f"고객명: {customer_name_summary}")
+                    if phone_summary and phone_summary != '-': summary_lines.append(f" 전화번호: {phone_summary}")
+                    if email_summary and email_summary != '-': summary_lines.append(f" 이메일: {email_summary}")
                     summary_lines.append("")
 
                     # 4. 상세 주소 목록
-                    summary_lines.append("📍 출발지 주소:")
+                    summary_lines.append("출발지 주소:")
                     summary_lines.append(f"  {from_addr_summary if from_addr_summary else '정보 없음'}")
 
                     if st.session_state.get('has_via_point', False):
                         via_location_detail_summary = st.session_state.get('via_point_location', '정보 없음')
-                        summary_lines.append("↪️ 경유지 주소:")
+                        summary_lines.append("경유지 주소:")
                         summary_lines.append(f"  {via_location_detail_summary}")
 
                     if is_storage_move_summary and storage_details_text:
-                        summary_lines.append("📦 보관 정보:")
+                        summary_lines.append("보관 정보:")
                         summary_lines.append(f"  {storage_details_text}")
                     
-                    summary_lines.append("🏁 도착지 주소:")
+                    summary_lines.append("도착지 주소:")
                     summary_lines.append(f"  {to_addr_summary if to_addr_summary else '정보 없음'}")
                     summary_lines.append("──────────────────────────────")
 
                     # 5. 그 외 기존 정보
-                    summary_lines.append(f"🚛 차량/인원: {vehicle_tonnage_summary if vehicle_tonnage_summary else vehicle_type_summary} / {ppl_summary}")
+                    summary_lines.append(f"차량/인원: {vehicle_tonnage_summary if vehicle_tonnage_summary else vehicle_type_summary} / {ppl_summary}")
                     summary_lines.append("")
-                    summary_lines.append(f"🛠️ 출발지 작업: {from_method_full}")
+                    summary_lines.append(f"출발지 작업: {from_method_full}")
                     if st.session_state.get('has_via_point', False): # 경유지 작업 방법 추가
-                        summary_lines.append(f"↪️ 경유지 작업: {via_method_full}")
-                    summary_lines.append(f"🛠️ 도착지 작업: {to_method_full}")
+                        summary_lines.append(f" 경유지 작업: {via_method_full}")
+                    summary_lines.append(f"도착지 작업: {to_method_full}")
                     summary_lines.append("")
-                    summary_lines.append(f"💳 계약금 {deposit_for_summary:,.0f}원 / 잔금 {remaining_for_summary:,.0f}원")
+                    summary_lines.append(f"계약금 {deposit_for_summary:,.0f}원 / 잔금 {remaining_for_summary:,.0f}원")
                     if payment_options_summary:
                         summary_lines.append(f"  ({payment_options_summary})")
                     summary_lines.append("")
-                    summary_lines.append(f"💰 총 {calculated_total_for_summary:,.0f}원 중:")
+                    summary_lines.append(f"총 {calculated_total_for_summary:,.0f}원 중:")
 
                     processed_for_summary_text = set()
                     cost_detail_lines = []
@@ -560,11 +560,11 @@ def render_tab3():
                     summary_lines.append("")
 
                     if bask_summary_str and bask_summary_str != "포장자재 정보 없음":
-                         summary_lines.append(f"📦 포장자재: {bask_summary_str}")
+                         summary_lines.append(f"포장자재: {bask_summary_str}")
                          summary_lines.append("")
                     
                     if note_summary and note_summary.strip() and note_summary != '-':
-                        summary_lines.append("📝 고객요구사항:")
+                        summary_lines.append("고객요구사항:")
                         summary_lines.extend([f"  - {note_line.strip()}" for note_line in note_summary.strip().replace('\r\n', '\n').split('\n') if note_line.strip()])
 
                     st.text_area("요약 정보", "\n".join(summary_lines), height=400, key="summary_text_area_readonly_tab3", disabled=True)
