@@ -26,7 +26,8 @@ except ImportError as e:
         elif e.name == "image_generator": st.error("image_generator.py 로드 실패! 양식 기반 이미지 생성 비활성화.")
     if "MOVE_TYPE_OPTIONS" not in globals():
         MOVE_TYPE_OPTIONS = ["가정 이사 🏠", "사무실 이사 🏢"]
-    if not all(module_name in globals() for module_name in ["data", "utils", "calculations", "callbacks", "state_manager", "image_generator"]): # image_generator 추가
+    # image_generator도 필수 모듈 목록에 추가 (app.py 실행 시 필요)
+    if not all(module_name in globals() for module_name in ["data", "utils", "calculations", "callbacks", "state_manager", "image_generator"]):
         st.error("UI Tab 3: 핵심 데이터/유틸리티 모듈 로딩 실패.")
 except Exception as e:
     st.error(f"UI Tab 3: 모듈 로딩 중 오류 - {e}")
@@ -36,7 +37,7 @@ except Exception as e:
     st.stop()
 
 
-def get_validation_warnings(state):
+def get_validation_warnings(state): # 매개변수명을 'state'로 사용
     warnings = []
     try:
         kst = pytz.timezone("Asia/Seoul")
@@ -44,6 +45,7 @@ def get_validation_warnings(state):
     except Exception:
         quote_date = datetime.now().date()
     
+    # 'state_data'를 'state'로 변경
     moving_date_input = state.get('moving_date')
     
     if isinstance(moving_date_input, date):
@@ -58,6 +60,7 @@ def get_validation_warnings(state):
     else: 
         warnings.append(f"이사 예정일의 형식이 올바르지 않습니다: {moving_date_input}. 날짜를 다시 선택해주세요.")
 
+    # 'state_data'를 'state'로 변경
     from_floor = str(state.get('from_floor', '')).strip()
     to_floor = str(state.get('to_floor', '')).strip()
     if not from_floor:
@@ -65,19 +68,22 @@ def get_validation_warnings(state):
     if not to_floor:
         warnings.append("도착지 층수 정보가 입력되지 않았습니다. '고객 정보' 탭에서 입력해주세요.")
 
+    # 'state_data'를 'state'로 변경
     final_selected_vehicle_for_calc = state.get('final_selected_vehicle')
     if not final_selected_vehicle_for_calc:
         warnings.append("견적 계산용 차량 종류가 선택되지 않았습니다. '차량 선택' 섹션에서 차량을 선택해주세요.")
 
+    # 'state_data'를 'state'로 변경
     to_location = str(state.get('to_location', '')).strip()
     if not to_location:
         warnings.append("도착지 주소 정보가 입력되지 않았습니다. '고객 정보' 탭에서 입력해주세요.")
 
     if final_selected_vehicle_for_calc:
-        dispatched_1t = state_data.get('dispatched_1t', 0)
-        dispatched_2_5t = state_data.get('dispatched_2_5t', 0)
-        dispatched_3_5t = state_data.get('dispatched_3_5t', 0)
-        dispatched_5t = state_data.get('dispatched_5t', 0)
+        # 'state_data'를 'state'로 변경
+        dispatched_1t = state.get('dispatched_1t', 0)
+        dispatched_2_5t = state.get('dispatched_2_5t', 0)
+        dispatched_3_5t = state.get('dispatched_3_5t', 0)
+        dispatched_5t = state.get('dispatched_5t', 0)
         total_dispatched_trucks = (dispatched_1t or 0) + (dispatched_2_5t or 0) + (dispatched_3_5t or 0) + (dispatched_5t or 0)
         if total_dispatched_trucks == 0:
             warnings.append("실제 투입 차량 대수가 입력되지 않았습니다. '실제 투입 차량' 섹션에서 각 톤수별 차량 대수를 입력해주세요.")
@@ -272,49 +278,50 @@ def render_tab3():
              with cols_extra_fees[1]:
                 st.number_input("↪️ 경유지 추가요금", min_value=0, step=10000, key="via_point_surcharge", format="%d")
         else:
-            with cols_extra_fees[1]: # 경유지 없어도 공간 차지하도록 빈 패스
+            with cols_extra_fees[1]:
                 pass
     st.divider()
 
-    # --- 최종 견적 결과 표시 ---
     st.header("💵 최종 견적 결과")
     final_selected_vehicle_for_calc = st.session_state.get("final_selected_vehicle")
     total_cost_display, cost_items_display, personnel_info_display, has_cost_error = 0, [], {}, False
-    
-    # 유효성 검사 메시지 (get_validation_warnings 함수는 그대로 사용)
-    # validation_messages = get_validation_warnings(st.session_state) # render_tab3 상단으로 이동 또는 여기서 호출
-    # if validation_messages:
-    #     # ... (경고 메시지 표시 로직) ...
 
-    if not final_selected_vehicle_for_calc : # 차량 미선택시 안내
+    validation_messages = get_validation_warnings(st.session_state.to_dict())
+    if validation_messages:
+        warning_html = "<div style='padding:10px; border: 1px solid #FFC107; background-color: #FFF3CD; border-radius: 5px; color: #664D03; margin-bottom: 15px;'>"
+        warning_html += "<h5 style='margin-top:0; margin-bottom:10px;'>⚠️ 다음 필수 정보를 확인하거나 수정해주세요:</h5><ul style='margin-bottom: 0px; padding-left: 20px;'>"
+        for msg in validation_messages:
+            warning_html += f"<li style='margin-bottom: 5px;'>{msg}</li>"
+        warning_html += "</ul></div>"
+        st.markdown(warning_html, unsafe_allow_html=True)
+
+
+    if not final_selected_vehicle_for_calc and not validation_messages :
         st.info("차량을 선택하고 필수 정보(주소, 층수 등)를 입력하시면 최종 견적 결과를 확인할 수 있습니다.")
-    else: # 차량 선택되었을 경우 비용 계산 및 표시
+    elif final_selected_vehicle_for_calc: # 차량이 선택되었고, 유효성 검사 메시지가 없거나 있더라도 일단 계산은 시도
         try:
-            if st.session_state.get("is_storage_move"): # 보관이사 시 보관기간 자동 계산
+            if st.session_state.get("is_storage_move"):
                 m_dt = st.session_state.get("moving_date")
                 a_dt = st.session_state.get("arrival_date")
                 if isinstance(m_dt, date) and isinstance(a_dt, date) and a_dt >= m_dt:
                     st.session_state.storage_duration = max(1, (a_dt - m_dt).days + 1)
-                else: # 날짜가 유효하지 않으면 기본 1일
+                else:
                     st.session_state.storage_duration = 1
             
-            current_state_dict = st.session_state.to_dict() # 현재 세션 상태를 딕셔너리로
+            current_state_dict = st.session_state.to_dict()
             if hasattr(calculations, "calculate_total_moving_cost") and callable(calculations.calculate_total_moving_cost):
                 total_cost_display, cost_items_display, personnel_info_display = calculations.calculate_total_moving_cost(current_state_dict)
-                # PDF/이미지 생성용 데이터 세션 상태에 저장
                 st.session_state.update({
                     "calculated_cost_items_for_pdf": cost_items_display,
                     "total_cost_for_pdf": total_cost_display,
                     "personnel_info_for_pdf": personnel_info_display
                 })
-                # 비용 계산 중 오류 항목 확인
                 if any(isinstance(item, (list, tuple)) and len(item) > 0 and str(item[0]) == "오류" for item in cost_items_display):
                     has_cost_error = True
             else:
                 st.error("최종 비용 계산 함수 로드 실패."); has_cost_error = True
                 st.session_state.update({"calculated_cost_items_for_pdf": [], "total_cost_for_pdf": 0, "personnel_info_for_pdf": {}})
 
-            # 최종 금액, 계약금, 잔금 표시
             total_cost_num = int(total_cost_display) if isinstance(total_cost_display, (int, float)) else 0
             deposit_val = st.session_state.get("deposit_amount", 0)
             deposit_amount_num = int(deposit_val) if deposit_val is not None else 0
@@ -325,7 +332,6 @@ def render_tab3():
             st.subheader(f"➡️ 잔금 (총 비용 - 계약금): {remaining_balance_num:,.0f} 원")
             st.write("")
 
-            # 비용 상세 내역 테이블 표시
             st.subheader("📊 비용 상세 내역")
             if has_cost_error:
                 err_item = next((item for item in cost_items_display if isinstance(item, (list, tuple)) and len(item)>0 and str(item[0]) == "오류"), None)
@@ -344,18 +350,16 @@ def render_tab3():
             else: st.info("ℹ️ 계산된 비용 항목 없음.")
             st.write("")
 
-            # 고객요구사항 표시
             special_notes = st.session_state.get('special_notes')
             if special_notes and special_notes.strip():
                 st.subheader("📝 고객요구사항")
                 st.info(special_notes)
 
-            # 이사 정보 요약 (Text Area)
             st.subheader("📋 이사 정보 요약 (텍스트)")
             summary_display_possible = bool(final_selected_vehicle_for_calc) and not has_cost_error
+
             if summary_display_possible:
                 try:
-                    # ... (요약 정보 생성 로직은 이전과 동일하게 유지) ...
                     customer_name_summary = st.session_state.get('customer_name', '')
                     phone_summary = st.session_state.get('customer_phone', '')
                     email_summary = st.session_state.get('customer_email', '')
@@ -363,7 +367,7 @@ def render_tab3():
                     vehicle_type_summary = final_selected_vehicle_for_calc
                     vehicle_tonnage_summary = ""
                     if isinstance(vehicle_type_summary, str):
-                        match_summary = re.search(r'(\d+(\.\d+)?)', vehicle_type_summary) # 톤수만 추출
+                        match_summary = re.search(r'(\d+(\.\d+)?)', vehicle_type_summary)
                         vehicle_tonnage_summary = match_summary.group(1).strip() if match_summary else vehicle_type_summary.replace("톤","").strip()
 
 
@@ -390,7 +394,7 @@ def render_tab3():
                         try:
                             q_b_s = int(st.session_state.get(f"qty_{move_t_summary}_{b_name_summary}_바구니", 0))
                             q_mb_s_key1 = f"qty_{move_t_summary}_{b_name_summary}_중박스"
-                            q_mb_s_key2 = f"qty_{move_t_summary}_{b_name_summary}_중자바구니" # 호환성
+                            q_mb_s_key2 = f"qty_{move_t_summary}_{b_name_summary}_중자바구니"
                             q_mb_s = int(st.session_state.get(q_mb_s_key1, st.session_state.get(q_mb_s_key2, 0)))
                             q_book_s = int(st.session_state.get(f"qty_{move_t_summary}_{b_name_summary}_책바구니", 0))
                         except Exception: pass
@@ -484,32 +488,22 @@ def render_tab3():
 
                 except Exception as e_summary_direct:
                     st.error(f"❌ 요약 정보 생성 중 오류: {e_summary_direct}"); traceback.print_exc()
-            else: st.info("ℹ️ 요약 정보 표시 불가 (차량 미선택 또는 오류).")
+            elif not final_selected_vehicle_for_calc:
+                if not validation_messages or not any("차량 종류가 선택되지 않았습니다" in msg for msg in validation_messages):
+                    st.info("ℹ️ 견적 계산용 차량 미선택으로 요약 정보 표시 불가.")
             st.divider()
         except Exception as calc_err_outer_display:
             st.error(f"최종 견적 표시 중 외부 오류 발생: {calc_err_outer_display}")
             traceback.print_exc()
     
-    # 유효성 검사 메시지 (get_validation_warnings 함수는 그대로 사용)
-    validation_messages = get_validation_warnings(st.session_state.to_dict()) # .to_dict() 추가
-    if validation_messages:
-        warning_html = "<div style='padding:10px; border: 1px solid #FFC107; background-color: #FFF3CD; border-radius: 5px; color: #664D03; margin-bottom: 15px;'>"
-        warning_html += "<h5 style='margin-top:0; margin-bottom:10px;'>⚠️ 다음 필수 정보를 확인하거나 수정해주세요:</h5><ul style='margin-bottom: 0px; padding-left: 20px;'>"
-        for msg in validation_messages:
-            warning_html += f"<li style='margin-bottom: 5px;'>{msg}</li>"
-        warning_html += "</ul></div>"
-        st.markdown(warning_html, unsafe_allow_html=True)
-
-
     # --- 견적서 생성, 발송 및 다운로드 섹션 ---
     st.subheader("📄 견적서 생성, 발송 및 다운로드")
     can_generate_anything = bool(final_selected_vehicle_for_calc) and not has_cost_error and \
                           st.session_state.get("calculated_cost_items_for_pdf") and \
                           st.session_state.get("total_cost_for_pdf", 0) > 0
     
-    actions_disabled = False # 필요시 이 변수 사용
+    actions_disabled = False
 
-    # --- 고객용 견적서 (PDF 및 이미지) ---
     with st.container(border=True):
         st.markdown("**고객용 견적서 (PDF & 이미지)**")
         
@@ -586,8 +580,6 @@ def render_tab3():
              st.caption("PDF 및 이미지 생성 불가 (견적 내용 또는 모듈 확인)")
     st.divider()
 
-
-    # --- 기타 파일 생성 (Excel 등) 및 이메일 발송 ---
     with st.container(border=True):
         st.markdown("**내부 관리 및 발송**")
         cols_actions_internal = st.columns(2)
@@ -597,6 +589,7 @@ def render_tab3():
             excel_possible = hasattr(excel_filler, "fill_final_excel_template") and bool(final_selected_vehicle_for_calc)
             if st.button("📊 내부용 Excel 생성", key="generate_internal_excel_tab3", disabled=actions_disabled or not excel_possible):
                 if excel_possible:
+                    # Excel 생성용 인자는 현재 세션 상태에서 직접 계산
                     _total_cost_excel, _cost_items_excel, _personnel_info_excel = calculations.calculate_total_moving_cost(st.session_state.to_dict())
                     with st.spinner("내부용 Excel 파일 생성 중..."):
                         filled_excel_data_dl = excel_filler.fill_final_excel_template(st.session_state.to_dict(), _cost_items_excel, _total_cost_excel, _personnel_info_excel)
@@ -617,7 +610,7 @@ def render_tab3():
         with cols_actions_internal[1]:
             st.markdown("**이메일 발송 (PDF 첨부)**")
             email_possible = (hasattr(email_utils, "send_quote_email") and 
-                              hasattr(pdf_generator, "generate_pdf") and 
+                              hasattr(pdf_generator, "generate_pdf") and # PDF 생성 모듈 확인
                               can_generate_anything and 
                               st.session_state.get("customer_email"))
             
@@ -626,8 +619,8 @@ def render_tab3():
                 customer_name_send = st.session_state.get("customer_name", "고객")
                 
                 pdf_email_bytes_send = st.session_state.get('customer_quote_pdf_data') # 이미 생성된 고객용 PDF 사용
-                if not pdf_email_bytes_send and pdf_possible_cust: # 고객용 PDF가 없다면 이메일 발송을 위해 생성
-                    pdf_args_email = {
+                if not pdf_email_bytes_send and pdf_possible_cust: 
+                    pdf_args_email = { # PDF 생성에 필요한 인자들
                         "state_data": st.session_state.to_dict(),
                         "calculated_cost_items": st.session_state.get("calculated_cost_items_for_pdf", []),
                         "total_cost": st.session_state.get("total_cost_for_pdf", 0),
