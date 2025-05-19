@@ -33,6 +33,11 @@ item_x_col2_baskets_val = 491
 item_x_col2_others_val = 491
 item_x_col3_val = 756
 
+# --- 수정된 부분: vehicle_number_x_val 및 actual_vehicles_text_x_val 정의 추가 ---
+vehicle_number_x_val = 80  # 차량 번호(톤수) 표시 X 좌표 (예시 값, 레이아웃에 맞게 조정 필요)
+actual_vehicles_text_x_val = 450 # 실제 투입 차량 텍스트 표시 X 좌표 (예시 값, 레이아웃에 맞게 조정 필요)
+# --- 수정 끝 ---
+
 _y_from_floor_orig = 226
 _y_to_floor_orig = 258
 _y_sofa_3seater_orig = 549
@@ -106,10 +111,10 @@ FIELD_MAP = {
     "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "from_floor":     {"x": 180, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    
+
     "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_number_y_adjusted), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
     "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(actual_vehicles_text_y_adjusted), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220},
-    
+
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -162,7 +167,7 @@ FIELD_MAP = {
     "from_method_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "to_method_label":    {"x": work_method_fee_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "to_method_fee_value":  {"x": costs_section_x_align_right_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
-    
+
     "via_method_label":   {"x": via_point_fee_label_x_val, "y": int(via_point_fee_y_val), "size": get_adjusted_font_size(0, "via_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "via_method_fee_value": {"x": via_point_fee_value_x_val, "y": int(via_point_fee_y_val), "size": get_adjusted_font_size(0, "via_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
 
@@ -191,15 +196,15 @@ ITEM_KEY_MAP = {
     "책장": "item_bookshelf",
     "바구니": "item_basket",
     "중박스": "item_medium_box",
-    "중대박스": "item_large_box",
+    "중대박스": "item_large_box", # "item_large_box" 키가 FIELD_MAP에 정의되어 있는지 확인 필요 (현재는 없음)
     "책바구니": "item_book_box",
     "화분": "item_plant_box",
-    "옷행거": "item_clothes_box",
-    "이불박스": "item_duvet_box",
+    "옷행거": "item_clothes_box", # "item_clothes_box"로 변경됨 (기존: item_hanger_box)
+    "이불박스": "item_duvet_box",   # "item_duvet_box"로 변경됨 (기존: item_bedding_box)
     "스타일러": "item_styler",
     "안마기": "item_massage_chair",
     "피아노(일반)": "item_piano_acoustic",
-    "복합기": "item_copier",
+    "복합기": "item_copier", # "item_copier"로 변경됨 (기존: item_printer)
     "TV(45인치)": "item_tv_45",
     "TV(75인치)": "item_tv_stand", # 이 항목이 TV다이(TV Stand)를 의미한다고 가정
     "벽걸이": "item_wall_mount_item",
@@ -207,6 +212,9 @@ ITEM_KEY_MAP = {
     "앵글": "item_angle_shelf",
     "파티션": "item_partition",
     "5톤진입": "item_5ton_access"
+    # "의자": "item_chair", -> FIELD_MAP에 "item_chair" 정의 필요
+    # "테이블": "item_table", -> FIELD_MAP에 "item_table" 정의 필요
+    # "담요": "item_blanket", -> FIELD_MAP에 "item_blanket" 정의 필요
 }
 
 
@@ -274,15 +282,16 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
                 if current_line: current_line += " "
                 continue
             word_width, _ = get_text_dimensions(word, font)
-            if word_width > max_width and len(word) > 1:
+            if word_width > max_width and len(word) > 1: # 단어가 너무 길어서 한 줄에 다 못 들어가는 경우
                 if current_line.strip(): lines.append(current_line.strip()); current_line = ""
                 temp_word_line = ""
-                for char_in_word in word:
+                for char_in_word in word: # 글자 단위로 잘라서 넣기
                     temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char_in_word, font)
                     if temp_word_line_plus_char_width <= max_width: temp_word_line += char_in_word
                     else: lines.append(temp_word_line); temp_word_line = char_in_word
-                if temp_word_line: lines.append(temp_word_line)
-                continue
+                if temp_word_line: lines.append(temp_word_line) # 남은 부분 추가
+                continue # 다음 단어로
+            # 일반적인 단어 추가 로직
             test_line = (current_line + " " + word).strip() if current_line else word
             current_line_plus_word_width, _ = get_text_dimensions(test_line, font)
             if current_line_plus_word_width <= max_width: current_line = test_line
@@ -290,8 +299,9 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
                 if current_line: lines.append(current_line.strip())
                 current_line = word
         if current_line.strip(): lines.append(current_line.strip())
-        if not lines and text.strip(): lines.append(text.strip())
+        if not lines and text.strip(): lines.append(text.strip()) # 빈 줄만 있거나 한 단어만 있는 경우
     else: lines.extend(text.split('\n'))
+
 
     current_y_draw = y
     _, typical_char_height = get_text_dimensions("Ay", font) # Use a string with ascenders and descenders
@@ -303,28 +313,29 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
         actual_x_draw = x
         if align == "right": actual_x_draw = x - text_width_draw
         elif align == "center": actual_x_draw = x - text_width_draw / 2
-        draw.text((actual_x_draw, current_y_draw), line_to_draw, font=font, fill=color, anchor="lt")
-        if i < len(lines) - 1 : current_y_draw += actual_line_spacing
-    return current_y_draw
+        draw.text((actual_x_draw, current_y_draw), line_to_draw, font=font, fill=color, anchor="lt") # anchor='lt' for consistent positioning
+        if i < len(lines) - 1 : current_y_draw += actual_line_spacing # 마지막 줄에는 간격 추가 안 함
+    return current_y_draw # 마지막으로 그려진 텍스트의 Y 좌표 반환 (필요시 사용)
 
 
 def _format_currency(amount_val):
     if amount_val is None or str(amount_val).strip() == "": return ""
     try:
-        num_val = float(str(amount_val).replace(",", "").strip())
-        num = int(num_val)
-        return f"{num:,}"
+        num_val = float(str(amount_val).replace(",", "").strip()) # 쉼표 제거 후 float 변환
+        num = int(num_val) # 정수 부분만 사용
+        return f"{num:,}" # 천단위 쉼표 포맷
     except ValueError:
-        return str(amount_val)
+        return str(amount_val) # 변환 실패 시 원본 문자열 반환
 
 def create_quote_image(state_data, calculated_cost_items, total_cost_overall, personnel_info):
     print("DEBUG [ImageGenerator]: create_quote_image function CALLED")
     utils_module = None
     try:
-        import utils as local_utils
+        import utils as local_utils # create_quote_image 함수 내에서 utils 임포트
         utils_module = local_utils
     except ImportError:
         print("ERROR [ImageGenerator]: utils.py not found inside create_quote_image. Item quantities will be missing.")
+        # utils_module은 None으로 유지됨
 
     try:
         img = Image.open(BACKGROUND_IMAGE_PATH).convert("RGBA")
@@ -337,44 +348,51 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
         print(f"ERROR [ImageGenerator]: Error loading background image: {e_bg}")
         return None
 
+    # 폰트 파일 존재 여부 확인 (필수 아님, _get_font에서 처리)
     if not os.path.exists(FONT_PATH_REGULAR): print(f"WARNING [ImageGenerator]: Regular font missing at {FONT_PATH_REGULAR}")
     if not os.path.exists(FONT_PATH_BOLD): print(f"WARNING [ImageGenerator]: Bold font missing at {FONT_PATH_BOLD}")
 
+
+    # --- 데이터 준비 ---
+    # 이사 유형 요약
     move_type_summary_parts = []
-    base_move_type_raw = state_data.get('base_move_type', "이사")
-    base_move_type = base_move_type_raw.split(" ")[0]
-    move_type_summary_parts.append(base_move_type)
+    base_move_type_raw = state_data.get('base_move_type', "이사") # 기본값 "이사"
+    base_move_type = base_move_type_raw.split(" ")[0] # 이모티콘 제거 (예: "가정")
+    move_type_summary_parts.append(base_move_type) # 예: "가정" 추가
 
     if state_data.get('is_storage_move', False):
         storage_type_raw = state_data.get('storage_type', '')
-        storage_type = storage_type_raw.split(" ")[0]
-        move_type_summary_parts.append(f"{storage_type}보관")
+        storage_type = storage_type_raw.split(" ")[0] # 이모티콘 제거
+        move_type_summary_parts.append(f"{storage_type}보관") # 예: "컨테이너보관" 추가
         if state_data.get('storage_use_electricity', False):
             move_type_summary_parts.append("(전기)")
     if state_data.get('apply_long_distance', False):
         move_type_summary_parts.append("장거리")
     if state_data.get('has_via_point', False):
         move_type_summary_parts.append("경유")
-    move_type_summary_text = " ".join(list(dict.fromkeys(move_type_summary_parts))) + "이사"
+    move_type_summary_text = " ".join(list(dict.fromkeys(move_type_summary_parts))) + "이사" # 중복 제거 후 "이사" 추가
+
 
     customer_name = state_data.get('customer_name', '')
     customer_phone = state_data.get('customer_phone', '')
     moving_date_obj = state_data.get('moving_date')
     moving_date_str = moving_date_obj.strftime('%Y-%m-%d') if isinstance(moving_date_obj, date) else str(moving_date_obj)
-    quote_date_str = date.today().strftime('%Y-%m-%d')
+    quote_date_str = date.today().strftime('%Y-%m-%d') # 견적일은 항상 오늘
     from_location = state_data.get('from_location', '')
     to_location = state_data.get('to_location', '')
     from_floor = str(state_data.get('from_floor', ''))
     to_floor = str(state_data.get('to_floor', ''))
-    
+
+    # 차량 톤수 정보 (계산용으로 선택된 차량 기준)
     selected_vehicle_for_calc = state_data.get('final_selected_vehicle', '')
     vehicle_tonnage_display = ""
     if isinstance(selected_vehicle_for_calc, str):
-        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_for_calc)
-        if match: vehicle_tonnage_display = match.group(1)
-    elif isinstance(selected_vehicle_for_calc, (int, float)):
+        match = re.search(r'(\d+(\.\d+)?)', selected_vehicle_for_calc) # 숫자 부분 추출
+        if match: vehicle_tonnage_display = match.group(1) # 예: "5"
+    elif isinstance(selected_vehicle_for_calc, (int, float)): # 드물지만 숫자 타입일 경우 대비
         vehicle_tonnage_display = str(selected_vehicle_for_calc)
 
+    # 실제 투입 차량 정보 (견적서 표시용)
     dispatched_1t = state_data.get('dispatched_1t', 0)
     dispatched_2_5t = state_data.get('dispatched_2_5t', 0)
     dispatched_3_5t = state_data.get('dispatched_3_5t', 0)
@@ -386,134 +404,160 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     if dispatched_5t > 0: actual_dispatched_vehicles_parts.append(f"5톤:{dispatched_5t}")
     actual_dispatched_vehicles_text = ", ".join(actual_dispatched_vehicles_parts) if actual_dispatched_vehicles_parts else ""
 
+
     workers_male = str(personnel_info.get('final_men', '0'))
     workers_female = str(personnel_info.get('final_women', '0'))
 
+    # 출발지/도착지/경유지 작업 방법 텍스트 준비
     from_method_raw = state_data.get('from_method', '')
-    from_method_prefix = from_method_raw.split(" ")[0] if from_method_raw else ""
+    from_method_prefix = from_method_raw.split(" ")[0] if from_method_raw else "" # 이모티콘 제거
     from_method_text_for_label = "출발" + (from_method_prefix if from_method_prefix else "작업")
-    from_method_text_for_display_top = from_method_prefix
+    from_method_text_for_display_top = from_method_prefix # 상단 표시용 (이모티콘 없이)
 
     to_method_raw = state_data.get('to_method', '')
     to_method_prefix = to_method_raw.split(" ")[0] if to_method_raw else ""
     to_method_text_for_label = "도착" + (to_method_prefix if to_method_prefix else "작업")
     to_method_text_for_display_top = to_method_prefix
-    
-    via_method_raw = state_data.get('via_point_method', '')
-    via_method_prefix = via_method_raw.split(" ")[0] if via_method_raw else ""
-    via_method_text_for_label = "경유" + (via_method_prefix if via_method_prefix else "작업")
 
-    total_moving_expenses_val = 0 
+    via_method_raw = state_data.get('via_point_method', '') # 경유지 작업 방법
+    via_method_prefix = via_method_raw.split(" ")[0] if via_method_raw else ""
+    via_method_text_for_label = "경유" + (via_method_prefix if via_method_prefix else "작업") # 경유지용 레이블
+
+    # 비용 계산 (image_generator 내에서 직접 계산)
+    total_moving_expenses_val = 0 # 이사 비용 (작업비, 보관료, VAT 제외)
     storage_fee_val = 0
     from_method_fee_val = 0
-    to_method_fee_raw_val = 0
-    regional_ladder_surcharge_val = 0
-    via_point_surcharge_val = 0
+    to_method_fee_raw_val = 0 # 도착지 순수 작업비 (지방 사다리 추가금 제외)
+    regional_ladder_surcharge_val = 0 # 지방 사다리 추가금 (별도)
+    via_point_surcharge_val = 0 # 경유지 추가 요금
 
     if calculated_cost_items and isinstance(calculated_cost_items, list):
         for item_l, item_a, item_note_ignored in calculated_cost_items:
             label = str(item_l)
-            try: amount = int(float(item_a or 0))
+            try: amount = int(float(item_a or 0)) # 금액은 정수로 변환
             except (ValueError, TypeError): amount = 0
 
             if label == '보관료':
                 storage_fee_val += amount
             elif label.startswith('출발지 사다리차') or label.startswith('출발지 스카이 장비'):
                 from_method_fee_val += amount
-                if label.startswith('출발지 스카이 장비'): from_method_text_for_label = "출발스카이"
+                if label.startswith('출발지 스카이 장비'): from_method_text_for_label = "출발스카이" # 레이블 변경
             elif label.startswith('도착지 사다리차') or label.startswith('도착지 스카이 장비'):
-                to_method_fee_raw_val += amount
-                if label.startswith('도착지 스카이 장비'): to_method_text_for_label = "도착스카이"
+                to_method_fee_raw_val += amount # 순수 도착 작업비에 합산
+                if label.startswith('도착지 스카이 장비'): to_method_text_for_label = "도착스카이" # 레이블 변경
             elif label == '지방 사다리 추가요금':
-                 regional_ladder_surcharge_val += amount
+                 regional_ladder_surcharge_val += amount # 별도 저장
             elif label == '경유지 추가요금':
-                 via_point_surcharge_val += amount
+                 via_point_surcharge_val += amount # 경유지 추가 요금 저장
+            # 아래 조건에서 VAT 및 카드 수수료 항목 제외
             elif label not in ['보관료', '지방 사다리 추가요금', '경유지 추가요금'] and \
                  not label.startswith('출발지 사다리차') and not label.startswith('출발지 스카이 장비') and \
                  not label.startswith('도착지 사다리차') and not label.startswith('도착지 스카이 장비') and \
-                 "부가세" not in label and "카드결제" not in label:
+                 "부가세" not in label and "카드결제" not in label: # VAT 및 카드결제 항목 제외
                 total_moving_expenses_val += amount
-            
+
+    # 도착지 최종 작업비 = 순수 도착 작업비 + 지방 사다리 추가금
     final_to_method_fee_val = to_method_fee_raw_val + regional_ladder_surcharge_val
 
-    deposit_amount_val = int(float(state_data.get('deposit_amount', 0) or 0))
-    grand_total_num = int(float(total_cost_overall or 0))
+    # 계약금, 총액, 잔금
+    deposit_amount_val = int(float(state_data.get('deposit_amount', 0) or 0)) # state_data에서 직접 가져옴
+    grand_total_num = int(float(total_cost_overall or 0)) # 전체 총액
     remaining_balance_num = grand_total_num - deposit_amount_val
+
+    # 특이사항
     special_notes_content = state_data.get('special_notes', '')
 
+
+    # 그릴 데이터 딕셔너리
     data_to_draw = {
         "move_type_summary_display": move_type_summary_text,
         "customer_name": customer_name, "customer_phone": customer_phone, "quote_date": quote_date_str,
         "moving_date": moving_date_str, "from_location": from_location, "to_location": to_location,
         "from_floor": from_floor, "to_floor": to_floor,
-        "vehicle_type_numbers_only": vehicle_tonnage_display,
-        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text,
+        "vehicle_type_numbers_only": vehicle_tonnage_display, # 계산용 차량 톤수
+        "actual_dispatched_vehicles_display": actual_dispatched_vehicles_text, # 실제 투입 차량 텍스트
         "workers_male": workers_male, "workers_female": workers_female,
-        "from_work_method_text_display": from_method_text_for_display_top,
-        "to_work_method_text_display": to_method_text_for_display_top,
-        "main_fee_yellow_box": _format_currency(total_moving_expenses_val),
-        "grand_total": _format_currency(grand_total_num),
-        "from_method_label": from_method_text_for_label if from_method_fee_val > 0 else "",
-        "from_method_fee_value": _format_currency(from_method_fee_val) if from_method_fee_val > 0 else "",
-        "to_method_label": to_method_text_for_label if final_to_method_fee_val > 0 else "",
-        "to_method_fee_value": _format_currency(final_to_method_fee_val) if final_to_method_fee_val > 0 else "",
-        "via_method_label": via_method_text_for_label if via_point_surcharge_val > 0 else "",
-        "via_method_fee_value": _format_currency(via_point_surcharge_val) if via_point_surcharge_val > 0 else "",
-        "deposit_amount_display": _format_currency(deposit_amount_val),
-        "storage_fee_display": _format_currency(storage_fee_val),
-        "remaining_balance_display": _format_currency(remaining_balance_num),
-        "special_notes_display": special_notes_content
+        "from_work_method_text_display": from_method_text_for_display_top, # 상단 출발 방법 (이모티콘X)
+        "to_work_method_text_display": to_method_text_for_display_top,     # 상단 도착 방법 (이모티콘X)
+        "main_fee_yellow_box": _format_currency(total_moving_expenses_val), # 노란 박스 안의 총 이사 비용
+        "grand_total": _format_currency(grand_total_num),                # 최종 합계 금액 (VAT 등 포함)
+        "from_method_label": from_method_text_for_label if from_method_fee_val > 0 else "", # 출발 작업비 레이블
+        "from_method_fee_value": _format_currency(from_method_fee_val) if from_method_fee_val > 0 else "", # 출발 작업비
+        "to_method_label": to_method_text_for_label if final_to_method_fee_val > 0 else "",     # 도착 작업비 레이블
+        "to_method_fee_value": _format_currency(final_to_method_fee_val) if final_to_method_fee_val > 0 else "",   # 도착 작업비 (지방사다리 포함)
+        "via_method_label": via_method_text_for_label if via_point_surcharge_val > 0 and state_data.get('has_via_point', False) else "", # 경유지 작업비 레이블
+        "via_method_fee_value": _format_currency(via_point_surcharge_val) if via_point_surcharge_val > 0 and state_data.get('has_via_point', False) else "", # 경유지 작업비
+        "deposit_amount_display": _format_currency(deposit_amount_val),          # 계약금
+        "storage_fee_display": _format_currency(storage_fee_val),             # 보관료
+        "remaining_balance_display": _format_currency(remaining_balance_num), # 잔금
+        "special_notes_display": special_notes_content # 특이사항
     }
 
+    # --- 품목 수량 채우기 (utils.get_item_qty 사용) ---
     print("DEBUG [ImageGenerator]: Populating item quantities...")
     try:
-        current_move_type_for_items_img = state_data.get("base_move_type")
+        current_move_type_for_items_img = state_data.get("base_move_type") # 현재 이사 유형 (이모티콘 포함)
+
+        # 모든 품목 키에 대해 빈 문자열로 초기화 (값이 없는 경우 아무것도 안그리기 위함)
         for field_map_key_img in ITEM_KEY_MAP.values():
-            if field_map_key_img.startswith("item_") and field_map_key_img in FIELD_MAP:
+            if field_map_key_img.startswith("item_") and field_map_key_img in FIELD_MAP: # FIELD_MAP에 정의된 품목 키만
                 data_to_draw[field_map_key_img] = ""
+
         if utils_module and hasattr(utils_module, 'get_item_qty') and callable(utils_module.get_item_qty):
             for data_py_item_name, field_map_key_from_map_img in ITEM_KEY_MAP.items():
+                # ITEM_KEY_MAP의 키(field_map_key_from_map_img)가 FIELD_MAP에도 정의되어 있는지 확인
                 if field_map_key_from_map_img in FIELD_MAP and field_map_key_from_map_img.startswith("item_"):
-                    qty_int = utils_module.get_item_qty(state_data, data_py_item_name)
+                    qty_int = utils_module.get_item_qty(state_data, data_py_item_name) # state_data와 실제품목명 전달
                     if qty_int > 0:
                         text_val = str(qty_int)
+                        # 장롱 특별 처리 (칸 수 / 3.0)
                         if data_py_item_name == "장롱":
-                            try: text_val = f"{(float(qty_int) / 3.0):.1f}"
-                            except: text_val = str(qty_int)
+                            try: text_val = f"{(float(qty_int) / 3.0):.1f}" # 소수점 한자리까지
+                            except: text_val = str(qty_int) # 오류 시 원래 수량
                         data_to_draw[field_map_key_from_map_img] = text_val
         else:
-            print("ERROR [ImageGenerator]: utils.get_item_qty function is not available.")
+            print("ERROR [ImageGenerator]: utils.get_item_qty function is not available. Item quantities might be incorrect.")
     except Exception as e_item_qty_img:
         print(f"ERROR [ImageGenerator]: Error processing item quantities: {e_item_qty_img}")
         traceback.print_exc()
 
+
+    # --- 텍스트 그리기 ---
     print("DEBUG [ImageGenerator]: Starting to draw text elements on image.")
     for key, M_raw in FIELD_MAP.items():
+        # 좌표값 int 변환 (이미 위에서 처리되었어야 함, 안전장치)
         M = {}
         for k_map, v_map in M_raw.items():
-            if k_map in ["x", "y", "size", "max_width"]:
+            if k_map in ["x", "y", "size", "max_width"]: # 숫자여야 하는 속성들
                 try: M[k_map] = int(v_map)
-                except (ValueError, TypeError) : M[k_map] = v_map
+                except (ValueError, TypeError) : M[k_map] = v_map # 변환 실패시 원본 유지
             else: M[k_map] = v_map
-        text_content_value = M.get("text_override", data_to_draw.get(key))
+
+        text_content_value = M.get("text_override", data_to_draw.get(key)) # text_override 우선
         final_text_to_draw = ""
-        if text_content_value is not None and str(text_content_value).strip() != "":
+        if text_content_value is not None and str(text_content_value).strip() != "": # 공백만 있는 경우도 제외
             final_text_to_draw = str(text_content_value)
-        if key in ["from_method_label", "from_method_fee_value", 
+
+        # 특정 레이블/값 쌍은 값이 있을 때만 그리도록 (예: 작업비)
+        if key in ["from_method_label", "from_method_fee_value",
                    "to_method_label", "to_method_fee_value",
                    "via_method_label", "via_method_fee_value"] and not final_text_to_draw.strip():
-            continue
-        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""): # 특이사항은 내용 없어도 영역 표시
+            continue # 내용 없으면 다음 키로
+
+        # 내용이 있거나, 특이사항처럼 내용 없어도 영역 표시해야 하는 경우
+        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""):
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             try:
                 font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
-            except Exception as font_load_err_draw_img:
+            except Exception as font_load_err_draw_img: # 폰트 로드 실패 시
                 print(f"ERROR [ImageGenerator]: Font loading error for key '{key}'. Skipping. Error: {font_load_err_draw_img}")
-                continue 
+                continue # 해당 텍스트 그리기는 건너뜀
+
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
             align_val = M.get("align", "left")
-            max_w_val = M.get("max_width")
-            line_spacing_factor = M.get("line_spacing_factor", 1.15) # 기본 줄간격
+            max_w_val = M.get("max_width") # 자동 줄바꿈 최대 폭
+            line_spacing_factor = M.get("line_spacing_factor", 1.15) # 기본 줄간격 (기존 1.2에서 약간 줄임)
+
             _draw_text_with_alignment(draw, final_text_to_draw, M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
 
     print("DEBUG [ImageGenerator]: Text drawing complete. Saving image to bytes.")
@@ -523,49 +567,60 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
     print("DEBUG [ImageGenerator]: Image generation successful.")
     return img_byte_arr.getvalue()
 
+
+# --- 테스트용 코드 (선택적) ---
 if __name__ == '__main__':
     print("image_generator.py test mode")
+
+    # 테스트 데이터 (via_point 관련 정보 포함, 차량 및 비용 정보 수정)
     mock_state_test_via = {
         "customer_name": "박경유 스타일러", "customer_phone": "010-5555-6666",
         "moving_date": date(2025, 3, 20),
-        "from_location": "서울시 용산구 한남동 빌라", "to_location": "경기도 하남시 미사강변도시 아파트",
+        "from_location": "서울시 용산구 한남동 빌라 한강대로123가길 45-6 101동 202호", "to_location": "경기도 하남시 미사강변도시 아파트 미사강변남로 789 XYZ타워 303동 1501호",
         "from_floor": "2", "to_floor": "15",
         "final_selected_vehicle": "6톤", # 차량 변경
         "dispatched_5t": 1, "dispatched_1t":1, # 투입 차량 변경
-        "from_method": "계단 🚶", 
+        "from_method": "계단 🚶",
         "to_method": "스카이 🏗️", "sky_hours_final": 3, # 스카이 시간 변경
-        "has_via_point": True, 
-        "via_point_location": "서울시 송파구 잠실동 중간경유",
+        "has_via_point": True, # 경유지 있음
+        "via_point_location": "서울시 송파구 잠실동 중간경유지 ABC빌딩 12층", # 경유지 주소
         "via_point_method": "사다리차 🪜", # 경유지 작업 변경
-        "via_point_surcharge": 70000,    
+        "via_point_surcharge": 70000,    # 경유지 추가요금 (calculations에서 계산됨)
         "deposit_amount": 200000,
         "base_move_type": "가정 이사 🏠",
         "apply_long_distance": False, # 장거리 아님
         "is_storage_move": False,    # 보관 아님
-        "special_notes": "스타일러 및 금고, 앵글 포함 견적 테스트.\nTV다이 위치 확인 필요.\n전화번호 폰트 크기 확인.",
+        "special_notes": "스타일러 및 금고, 앵글 포함 견적 테스트 요청드립니다.\nTV다이 위치 확인 필요.\n전화번호 폰트 크기가 너무 작지 않은지 확인 부탁드립니다.\n여러 줄 메모 테스트입니다. 줄바꿈이 잘 되는지 확인해야 합니다. 이미지 생성 시 특이사항 란에 표시됩니다.",
         "qty_가정 이사 🏠_기타_스타일러": 1,
         "qty_가정 이사 🏠_기타_금고": 1,
         "qty_가정 이사 🏠_기타_앵글": 2,
-        "qty_가정 이사 🏠_주요 품목_TV(75인치)": 1, # TV다이로 매핑됨
-        "qty_가정 이사 🏠_기타_TV(45인치)": 1,
-        "qty_가정 이사 🏠_기타_피아노(디지털)": 1,
-        "qty_가정 이사 🏠_포장 자재 📦_중대박스": 5, # 중대박스 수량
+        "qty_가정 이사 🏠_주요 품목_TV(75인치)": 1, # ITEM_KEY_MAP에서 'item_tv_stand'로 매핑됨
+        "qty_가정 이사 🏠_기타_TV(45인치)": 1,    # 'item_tv_45'
+        "qty_가정 이사 🏠_기타_피아노(디지털)": 1, # 'item_piano_digital'
+        "qty_가정 이사 🏠_포장 자재 📦_중대박스": 5, # ITEM_KEY_MAP에서 'item_large_box'로 매핑됨
     }
+
+    # 테스트용 비용 항목 (실제 calculations.py 결과와 유사하게)
     mock_costs_test_via = [
         ("기본 운임", 1350000, "6톤 기준"), # 6톤 가격으로 변경
-        # 출발지 계단이므로 작업비 0 또는 없음
+        # 출발지 계단이므로 작업비 0 또는 없음 (표시 안됨)
         ("도착지 스카이 장비", 440000, "도착(3h): 기본 300,000 + 추가 140,000"), # 3시간
         ("경유지 추가요금", 70000, "수동입력 (사다리 가정)"), # 경유지 요금
+        # 필요시 다른 비용 항목 추가 (예: 날짜 할증, 추가 인력 등)
     ]
-    mock_total_cost_test_via = 1350000 + 440000 + 70000
-    mock_personnel_test_via = {"final_men": 3, "final_women": 1} # 6톤 인원
+    # 전체 총액 (위 비용들의 합계. 실제로는 VAT, 카드수수료 등 포함될 수 있음)
+    mock_total_cost_test_via = 1350000 + 440000 + 70000 # 예시 합계
+
+    # 테스트용 인원 정보 (6톤 기준)
+    mock_personnel_test_via = {"final_men": 3, "final_women": 1}
 
     try:
+        # 이미지 생성 함수 호출
         image_bytes_test = create_quote_image(mock_state_test_via, mock_costs_test_via, mock_total_cost_test_via, mock_personnel_test_via)
-        
+
         if image_bytes_test:
             timestamp_test = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename_test = f"test_image_final_coords_{timestamp_test}.png"
+            filename_test = f"test_image_final_coords_with_vars_{timestamp_test}.png"
             with open(filename_test, "wb") as f:
                 f.write(image_bytes_test)
             print(f"Test image '{filename_test}' saved successfully.")
