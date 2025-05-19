@@ -268,6 +268,9 @@ def _get_font(font_type="regular", size=12):
     except Exception as e_font:
         print(f"General Error loading font {font_path_to_use}: {e_font}")
         raise
+# image_generator.py
+
+# ... (다른 코드는 그대로 유지) ...
 
 def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_width=None, line_spacing_factor=1.2):
     if text is None: text = ""
@@ -278,46 +281,53 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
         words = text.split(' ')
         current_line = ""
         for word in words:
-            if not word:
-                if current_line: current_line += " "
-                continue
             word_width, _ = get_text_dimensions(word, font)
-            if word_width > max_width and len(word) > 1: # 단어가 너무 길어서 한 줄에 다 못 들어가는 경우
-                if current_line.strip(): lines.append(current_line.strip()); current_line = ""
-                temp_word_line = ""
-                for char_in_word in word: # 글자 단위로 잘라서 넣기
-                    temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char_in_word, font)
-                    if temp_word_line_plus_char_width <= max_width: temp_word_line += char_in_word
-                    else: lines.append(temp_word_line); temp_word_line = char_in_word
-                if temp_word_line: lines.append(temp_word_line) # 남은 부분 추가
-                continue # 다음 단어로
-            # 일반적인 단어 추가 로직
-            test_line = (current_line + " " + word).strip() if current_line else word
-            current_line_plus_word_width, _ = get_text_dimensions(test_line, font)
-            if current_line_plus_word_width <= max_width: current_line = test_line
-            else:
+            if word_width > max_width and len(word) > 1: 
                 if current_line: lines.append(current_line.strip())
-                current_line = word
-        if current_line.strip(): lines.append(current_line.strip())
-        if not lines and text.strip(): lines.append(text.strip()) # 빈 줄만 있거나 한 단어만 있는 경우
-    else: lines.extend(text.split('\n'))
+                temp_word_line = ""
+                for char_in_word in word:
+                    temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char_in_word, font)
+                    if temp_word_line_plus_char_width <= max_width:
+                        temp_word_line += char_in_word
+                    else: 
+                        lines.append(temp_word_line) 
+                        temp_word_line = char_in_word 
+                if temp_word_line: lines.append(temp_word_line) 
+                current_line = "" 
+                continue
 
+            current_line_plus_word_width, _ = get_text_dimensions(current_line + word + " ", font) if current_line else get_text_dimensions(word + " ", font)
+            if current_line_plus_word_width <= max_width:
+                current_line += word + " "
+            else: 
+                if current_line: lines.append(current_line.strip()) 
+                current_line = word + " " 
+        if current_line.strip(): lines.append(current_line.strip()) 
+        if not lines and text: lines.append(text) 
+    else: 
+        lines.extend(text.split('\n'))
 
     current_y_draw = y
-    _, typical_char_height = get_text_dimensions("Ay", font) # Use a string with ascenders and descenders
-    actual_line_spacing = int(typical_char_height * line_spacing_factor)
+    first_line = True
+    _, typical_char_height = get_text_dimensions("A", font) 
+    for line in lines: # line_to_draw 대신 line 사용
+        if not line.strip() and not first_line and len(lines) > 1: 
+            current_y_draw += int(typical_char_height * line_spacing_factor)
+            continue
 
-    for i, line in enumerate(lines):
-        line_to_draw = line # No strip here to preserve intended spacing if any (e.g. for multi-line notes)
-        text_width_draw, _ = get_text_dimensions(line_to_draw, font)
+        text_width_draw, _ = get_text_dimensions(line, font) # line_to_draw 대신 line 사용
         actual_x_draw = x
         if align == "right": actual_x_draw = x - text_width_draw
         elif align == "center": actual_x_draw = x - text_width_draw / 2
-        draw.text((actual_x_draw, current_y_draw), line_to_draw, font=font, fill=color, anchor="lt") # anchor='lt' for consistent positioning
-        if i < len(lines) - 1 : current_y_draw += actual_line_spacing # 마지막 줄에는 간격 추가 안 함
-    return current_y_draw # 마지막으로 그려진 텍스트의 Y 좌표 반환 (필요시 사용)
+        
+        # 수정: draw.text() 호출 시 anchor 파라미터 제거
+        draw.text((actual_x_draw, current_y_draw), line, font=font, fill=color) # line_to_draw 대신 line 사용, anchor 제거
 
+        current_y_draw += int(typical_char_height * line_spacing_factor) 
+        first_line = False
+    return current_y_draw
 
+# ... (create_quote_image 및 나머지 코드는 이전과 동일하게 유지) ...
 def _format_currency(amount_val):
     if amount_val is None or str(amount_val).strip() == "": return ""
     try:
