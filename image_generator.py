@@ -21,12 +21,12 @@ FONT_PATH_REGULAR = os.path.join(BASE_DIR, "NanumGothic.ttf")
 FONT_PATH_BOLD = os.path.join(BASE_DIR, "NanumGothicBold.ttf")
 
 TEXT_COLOR_DEFAULT = (20, 20, 20)
-TEXT_COLOR_YELLOW_BG = (0, 0, 0) # 검은색 텍스트
+TEXT_COLOR_YELLOW_BG = (0, 0, 0)
 TEXT_COLOR_BLUE = (20, 20, 180)
-BASE_FONT_SIZE = 18
+BASE_FONT_SIZE = 18 # 전화번호 외 기본 폰트 크기
 
 item_y_start_val = 334
-item_y_spacing_val = 28.8  # 한 칸의 기준 높이로 사용 가능
+item_y_spacing_val = 28.8
 item_font_size_val = 15
 item_x_col1_val = 226
 item_x_col2_baskets_val = 491
@@ -40,55 +40,45 @@ _y_living_room_cabinet_orig = 677
 _y_main_fee_yellow_box_orig = 775
 _y_grand_total_orig = 861
 
-# 실제 차량 선택 표시 Y값 조정 (요청: 10만큼 위로)
-original_vehicle_y_calc = int(275 + item_y_spacing_val) # 약 303.8
-vehicle_display_y_val = original_vehicle_y_calc - 2 - 10 # 최종: 약 291
-vehicle_number_x_val = 90
-actual_vehicles_text_x_val = item_x_col2_others_val
+# Y 좌표 조정값 적용
+vehicle_display_y_adjusted = int(275 + item_y_spacing_val) - 2 - 10 # 실제차량선택 표시: 10 위로
+vehicle_number_y_adjusted = vehicle_display_y_adjusted + 1 # 선택된 차량 숫자: 1 아래로 (실제차량 기준에서)
+actual_vehicles_text_y_adjusted = vehicle_display_y_adjusted + 1 # 실제투입차량 텍스트: 1 아래로 (실제차량 기준에서)
 
-
-# 작업비 관련 Y 좌표 (출발/도착)
-from_work_fee_y_val = 805 # 출발지 작업비 Y
-to_work_fee_y_val = 833   # 도착지 작업비 Y
-
-# 계약금, 잔금 Y 좌표 조정
-# 계약금: 이전 789에서 반 칸(item_y_spacing_val / 2) 아래로 -> 789 + 14 = 803
+from_work_fee_y_val = 805
+to_work_fee_y_val = 833
 deposit_y_val_adjusted = 789 + int(item_y_spacing_val / 2)
-# 잔금: 이전 826에서 한 칸(item_y_spacing_val) 아래로 -> 826 + 29 = 855
 remaining_balance_y_val_adjusted = 826 + int(item_y_spacing_val)
-
 storage_fee_y_val = _y_main_fee_yellow_box_orig
+grand_total_y_adjusted = _y_grand_total_orig + 4 + 1 # 합계금액: 1 아래로
 
-grand_total_y_new = _y_grand_total_orig + 4 # 865
-
-# 특이사항 Y
-special_notes_start_y_val = int(grand_total_y_new + item_y_spacing_val * 1.5)
+special_notes_start_y_val = int(grand_total_y_adjusted + item_y_spacing_val * 1.5) # 조정된 합계금액 기준
 special_notes_x_val = 80
 special_notes_max_width_val = 700
 special_notes_font_size_val = BASE_FONT_SIZE
 
-# 이사 종류 요약 표시 Y
 quote_date_y_val = 130
 move_type_summary_y_val = int(quote_date_y_val - (item_y_spacing_val * 0.7) - 20 - 50)
 move_type_summary_x_val = 640 + 100
 move_type_summary_font_size_val = BASE_FONT_SIZE
 move_type_summary_max_width_val = 150
 
-# 비용 섹션 X 좌표
 costs_section_x_align_right_val = 410
 work_method_fee_label_x_val = 35
 work_method_text_display_x_val = int((item_x_col1_val + item_x_col2_baskets_val) / 2)
 fees_x_val_right_aligned = item_x_col3_val
 
-# 경유지 요금 표시 좌표
 via_point_fee_y_val = int((from_work_fee_y_val + to_work_fee_y_val) / 2)
-via_point_fee_label_x_val = work_method_fee_label_x_val + 50 # 기존 레이블에서 50픽셀 오른쪽
+via_point_fee_label_x_val = work_method_fee_label_x_val + 50
 via_point_fee_value_x_val = costs_section_x_align_right_val
+
+# 전화번호 폰트 크기 조정용 상수
+CUSTOMER_PHONE_FONT_SIZE = BASE_FONT_SIZE - 3 # 기존 BASE_FONT_SIZE - 2 에서 1 더 줄임
 
 
 def get_adjusted_font_size(original_size_ignored, field_key):
     if field_key == "customer_name": return BASE_FONT_SIZE
-    if field_key == "customer_phone": return BASE_FONT_SIZE - 2
+    if field_key == "customer_phone": return CUSTOMER_PHONE_FONT_SIZE # 조정된 폰트 크기 사용
     if field_key.startswith("item_") and field_key not in ["item_x_col1_val", "item_x_col2_baskets_val", "item_x_col2_others_val", "item_x_col3_val"]:
         return item_font_size_val
     if field_key in ["grand_total", "remaining_balance_display"]: return BASE_FONT_SIZE + 2
@@ -116,8 +106,10 @@ FIELD_MAP = {
     "to_location":    {"x": 175, "y": 192, "size": get_adjusted_font_size(0, "to_location"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 380, "line_spacing_factor": 1.1},
     "from_floor":     {"x": 180, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "to_floor":       {"x": 180, "y": _y_to_floor_orig, "size": get_adjusted_font_size(0, "to_floor"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
-    "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(vehicle_display_y_val), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220},
+    
+    "vehicle_type_numbers_only": {"x": vehicle_number_x_val, "y": int(vehicle_number_y_adjusted), "size": get_adjusted_font_size(0, "vehicle_type_numbers_only"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": (item_x_col1_val - vehicle_number_x_val - 5)},
+    "actual_dispatched_vehicles_display": {"x": actual_vehicles_text_x_val, "y": int(actual_vehicles_text_y_adjusted), "size": get_adjusted_font_size(0, "actual_dispatched_vehicles_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left", "max_width": 220},
+    
     "workers_male":   {"x": 758, "y": 228, "size": get_adjusted_font_size(0, "workers_male"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "workers_female": {"x": 758, "y": 258, "size": get_adjusted_font_size(0, "workers_female"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "from_work_method_text_display": {"x": work_method_text_display_x_val, "y": _y_from_floor_orig, "size": get_adjusted_font_size(0, "from_work_method_text_display"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -135,7 +127,7 @@ FIELD_MAP = {
     "item_dining_table":{"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_left":     {"x": item_x_col1_val, "y": int(_y_sofa_3seater_orig + item_y_spacing_val * 3.3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_living_room_cabinet": {"x": item_x_col1_val, "y": _y_living_room_cabinet_orig, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_piano_digital": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_piano_digital": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 1) + 1, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # Y 조정 (+1 아래로)
     "item_washing_machine": {"x": item_x_col1_val, "y": int(_y_living_room_cabinet_orig + item_y_spacing_val * 2.2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_computer":    {"x": item_x_col2_others_val, "y": item_y_start_val, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_executive_desk": {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
@@ -146,26 +138,26 @@ FIELD_MAP = {
     "item_blanket":     {"x": item_x_col2_others_val, "y": int(item_y_start_val + item_y_spacing_val * 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_basket":      {"x": item_x_col2_baskets_val, "y": 549, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_medium_box":  {"x": item_x_col2_baskets_val, "y": 581, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 0.45) - 3, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # Y 조정
+    "item_large_box":   {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 0.45) - 3, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_book_box":    {"x": item_x_col2_baskets_val, "y": int(581 + item_y_spacing_val * 1.45), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_plant_box":   {"x": item_x_col2_others_val, "y": 680, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_clothes_box": {"x": item_x_col2_others_val, "y": 709, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_duvet_box":   {"x": item_x_col2_others_val, "y": 738, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_styler":      {"x": item_x_col3_val, "y": item_y_start_val - 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # Y 조정
+    "item_styler":      {"x": item_x_col3_val, "y": item_y_start_val - 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_massage_chair":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_piano_acoustic":{"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 2), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_copier":      {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 3), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_45":       {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 4), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_tv_stand":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 5), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_tv_45":       {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 4) + 1, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # Y 조정 (+1 아래로)
+    "item_tv_stand":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 5) + 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # TV다이: Y 조정 (+2 아래로)
     "item_wall_mount_item": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 6), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
-    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 8.9) - 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # Y 조정
-    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 10) - 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"}, # Y 조정
+    "item_safe":        {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 8.9) - 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
+    "item_angle_shelf": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 10) - 2, "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_partition":   {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 11.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_5ton_access": {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 12.15), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
     "item_ac_right":    {"x": item_x_col3_val, "y": int(item_y_start_val + item_y_spacing_val * 13.1), "size": item_font_size_val, "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "center"},
 
     "main_fee_yellow_box": {"x": costs_section_x_align_right_val, "y": _y_main_fee_yellow_box_orig, "size": get_adjusted_font_size(0, "main_fee_yellow_box"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
-    "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_new), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"},
+    "grand_total":      {"x": costs_section_x_align_right_val, "y": int(grand_total_y_adjusted), "size": get_adjusted_font_size(0, "grand_total"), "font": "bold", "color": TEXT_COLOR_YELLOW_BG, "align": "right"}, # Y 조정
     "from_method_label":  {"x": work_method_fee_label_x_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
     "from_method_fee_value": {"x": costs_section_x_align_right_val, "y": int(from_work_fee_y_val), "size": get_adjusted_font_size(0, "from_method_fee_value"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "right"},
     "to_method_label":    {"x": work_method_fee_label_x_val, "y": int(to_work_fee_y_val),   "size": get_adjusted_font_size(0, "to_method_label"), "font": "regular", "color": TEXT_COLOR_DEFAULT, "align": "left"},
@@ -209,7 +201,7 @@ ITEM_KEY_MAP = {
     "피아노(일반)": "item_piano_acoustic",
     "복합기": "item_copier",
     "TV(45인치)": "item_tv_45",
-    "TV(75인치)": "item_tv_stand",
+    "TV(75인치)": "item_tv_stand", # 이 항목이 TV다이(TV Stand)를 의미한다고 가정
     "벽걸이": "item_wall_mount_item",
     "금고": "item_safe",
     "앵글": "item_angle_shelf",
@@ -220,32 +212,26 @@ ITEM_KEY_MAP = {
 
 def get_text_dimensions(text_string, font):
     if not text_string: return 0,0
-    if hasattr(font, 'getbbox'):
-        try:
+    try:
+        if hasattr(font, 'getbbox'): # Pillow 9.2.0+
             bbox = font.getbbox(str(text_string))
             width = bbox[2] - bbox[0]
             ascent, descent = font.getmetrics()
             height = ascent + descent
-        except Exception:
-            if hasattr(font, 'getlength'): width = font.getlength(str(text_string))
-            else: width = len(str(text_string)) * (font.size if hasattr(font, 'size') else 10) / 2
+        elif hasattr(font, 'getsize'): # Older Pillow
+            width, height = font.getsize(str(text_string))
+        else: # Fallback if methods are missing (should not happen with standard Pillow)
             ascent, descent = font.getmetrics()
             height = ascent + descent
-    elif hasattr(font, 'getmask'):
-        try:
-            width, height = font.getmask(str(text_string)).size
-        except Exception:
-            ascent, descent = font.getmetrics()
-            height = ascent + descent
-            width = font.getlength(str(text_string)) if hasattr(font, 'getlength') else len(str(text_string)) * height / 2
-    else:
-        ascent, descent = font.getmetrics()
-        height = ascent + descent
-        if hasattr(font, 'getlength'):
-            width = font.getlength(str(text_string))
-        else:
-            width = len(str(text_string)) * height / 2
-    return width, height
+            width = len(str(text_string)) * (font.size / 2 if hasattr(font, 'size') else 5) # Very rough estimate
+        return width, height
+    except Exception as e:
+        print(f"Warning: Error in get_text_dimensions for '{text_string[:20]}...': {e}")
+        # Fallback to a simple length based estimation if Pillow methods fail unexpectedly
+        fallback_size = 10
+        if hasattr(font, 'size'): fallback_size = font.size
+        return len(str(text_string)) * fallback_size * 0.6, fallback_size * 1.2
+
 
 def _get_font(font_type="regular", size=12):
     font_path_to_use = FONT_PATH_REGULAR
@@ -256,7 +242,8 @@ def _get_font(font_type="regular", size=12):
     if not os.path.exists(font_path_to_use):
         print(f"ERROR [ImageGenerator]: Font file NOT FOUND at '{font_path_to_use}'. Falling back to PIL default.")
         try: return ImageFont.load_default(size=size)
-        except TypeError: return ImageFont.load_default()
+        except AttributeError: # 'size' argument for load_default might not be in very old Pillow
+            return ImageFont.load_default()
         except Exception as e_pil_font:
             print(f"CRITICAL: Error loading default PIL font: {e_pil_font}")
             raise
@@ -264,9 +251,9 @@ def _get_font(font_type="regular", size=12):
     try:
         return ImageFont.truetype(font_path_to_use, size)
     except IOError:
-        print(f"IOError [ImageGenerator]: Font '{font_path_to_use}' found but unreadable by Pillow. Falling back to default.")
+        print(f"IOError [ImageGenerator]: Font '{font_path_to_use}' found but unreadable. Falling back to default.")
         try: return ImageFont.load_default(size=size)
-        except TypeError: return ImageFont.load_default()
+        except AttributeError: return ImageFont.load_default()
         except Exception as e_pil_font_io:
             print(f"CRITICAL: Error loading default PIL font after IOError: {e_pil_font_io}")
             raise
@@ -284,60 +271,42 @@ def _draw_text_with_alignment(draw, text, x, y, font, color, align="left", max_w
         current_line = ""
         for word in words:
             if not word:
-                if current_line:
-                    current_line += " "
+                if current_line: current_line += " "
                 continue
-
             word_width, _ = get_text_dimensions(word, font)
             if word_width > max_width and len(word) > 1:
-                if current_line.strip():
-                    lines.append(current_line.strip())
-                    current_line = ""
+                if current_line.strip(): lines.append(current_line.strip()); current_line = ""
                 temp_word_line = ""
                 for char_in_word in word:
                     temp_word_line_plus_char_width, _ = get_text_dimensions(temp_word_line + char_in_word, font)
-                    if temp_word_line_plus_char_width <= max_width:
-                        temp_word_line += char_in_word
-                    else:
-                        lines.append(temp_word_line)
-                        temp_word_line = char_in_word
-                if temp_word_line:
-                    lines.append(temp_word_line)
+                    if temp_word_line_plus_char_width <= max_width: temp_word_line += char_in_word
+                    else: lines.append(temp_word_line); temp_word_line = char_in_word
+                if temp_word_line: lines.append(temp_word_line)
                 continue
             test_line = (current_line + " " + word).strip() if current_line else word
             current_line_plus_word_width, _ = get_text_dimensions(test_line, font)
-            if current_line_plus_word_width <= max_width:
-                current_line = test_line
+            if current_line_plus_word_width <= max_width: current_line = test_line
             else:
-                if current_line:
-                    lines.append(current_line.strip())
+                if current_line: lines.append(current_line.strip())
                 current_line = word
-        if current_line.strip():
-            lines.append(current_line.strip())
-        if not lines and text.strip():
-            lines.append(text.strip())
-    else:
-        lines.extend(text.split('\n'))
+        if current_line.strip(): lines.append(current_line.strip())
+        if not lines and text.strip(): lines.append(text.strip())
+    else: lines.extend(text.split('\n'))
 
     current_y_draw = y
-    first_line = True
-    _, typical_char_height = get_text_dimensions("A", font)
+    _, typical_char_height = get_text_dimensions("Ay", font) # Use a string with ascenders and descenders
     actual_line_spacing = int(typical_char_height * line_spacing_factor)
 
     for i, line in enumerate(lines):
-        line_to_draw = line.strip()
-        if not line_to_draw and not first_line and len(lines) > 1:
-            current_y_draw += actual_line_spacing
-            continue
+        line_to_draw = line # No strip here to preserve intended spacing if any (e.g. for multi-line notes)
         text_width_draw, _ = get_text_dimensions(line_to_draw, font)
         actual_x_draw = x
         if align == "right": actual_x_draw = x - text_width_draw
         elif align == "center": actual_x_draw = x - text_width_draw / 2
         draw.text((actual_x_draw, current_y_draw), line_to_draw, font=font, fill=color, anchor="lt")
-        if i < len(lines) - 1 :
-             current_y_draw += actual_line_spacing
-        first_line = False
+        if i < len(lines) - 1 : current_y_draw += actual_line_spacing
     return current_y_draw
+
 
 def _format_currency(amount_val):
     if amount_val is None or str(amount_val).strip() == "": return ""
@@ -384,7 +353,7 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
             move_type_summary_parts.append("(전기)")
     if state_data.get('apply_long_distance', False):
         move_type_summary_parts.append("장거리")
-    if state_data.get('has_via_point', False): # 경유지 이사 표시 추가
+    if state_data.get('has_via_point', False):
         move_type_summary_parts.append("경유")
     move_type_summary_text = " ".join(list(dict.fromkeys(move_type_summary_parts))) + "이사"
 
@@ -451,10 +420,10 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                 storage_fee_val += amount
             elif label.startswith('출발지 사다리차') or label.startswith('출발지 스카이 장비'):
                 from_method_fee_val += amount
-                if label.startswith('출발지 스카이 장비'): from_method_text_for_label = "출발스카이" # 레이블 변경
+                if label.startswith('출발지 스카이 장비'): from_method_text_for_label = "출발스카이"
             elif label.startswith('도착지 사다리차') or label.startswith('도착지 스카이 장비'):
                 to_method_fee_raw_val += amount
-                if label.startswith('도착지 스카이 장비'): to_method_text_for_label = "도착스카이" # 레이블 변경
+                if label.startswith('도착지 스카이 장비'): to_method_text_for_label = "도착스카이"
             elif label == '지방 사다리 추가요금':
                  regional_ladder_surcharge_val += amount
             elif label == '경유지 추가요금':
@@ -498,24 +467,24 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
 
     print("DEBUG [ImageGenerator]: Populating item quantities...")
     try:
-        current_move_type_for_items = state_data.get("base_move_type")
-        for field_map_key in ITEM_KEY_MAP.values():
-            if field_map_key.startswith("item_") and field_map_key in FIELD_MAP:
-                data_to_draw[field_map_key] = ""
+        current_move_type_for_items_img = state_data.get("base_move_type")
+        for field_map_key_img in ITEM_KEY_MAP.values():
+            if field_map_key_img.startswith("item_") and field_map_key_img in FIELD_MAP:
+                data_to_draw[field_map_key_img] = ""
         if utils_module and hasattr(utils_module, 'get_item_qty') and callable(utils_module.get_item_qty):
-            for data_py_item_name, field_map_key_from_map in ITEM_KEY_MAP.items():
-                if field_map_key_from_map in FIELD_MAP and field_map_key_from_map.startswith("item_"):
+            for data_py_item_name, field_map_key_from_map_img in ITEM_KEY_MAP.items():
+                if field_map_key_from_map_img in FIELD_MAP and field_map_key_from_map_img.startswith("item_"):
                     qty_int = utils_module.get_item_qty(state_data, data_py_item_name)
                     if qty_int > 0:
                         text_val = str(qty_int)
                         if data_py_item_name == "장롱":
                             try: text_val = f"{(float(qty_int) / 3.0):.1f}"
                             except: text_val = str(qty_int)
-                        data_to_draw[field_map_key_from_map] = text_val
+                        data_to_draw[field_map_key_from_map_img] = text_val
         else:
             print("ERROR [ImageGenerator]: utils.get_item_qty function is not available.")
-    except Exception as e_item_qty:
-        print(f"ERROR [ImageGenerator]: Error processing item quantities: {e_item_qty}")
+    except Exception as e_item_qty_img:
+        print(f"ERROR [ImageGenerator]: Error processing item quantities: {e_item_qty_img}")
         traceback.print_exc()
 
     print("DEBUG [ImageGenerator]: Starting to draw text elements on image.")
@@ -534,17 +503,17 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
                    "to_method_label", "to_method_fee_value",
                    "via_method_label", "via_method_fee_value"] and not final_text_to_draw.strip():
             continue
-        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""):
+        if final_text_to_draw.strip() != "" or (key == "special_notes_display" and final_text_to_draw == ""): # 특이사항은 내용 없어도 영역 표시
             size_to_use = get_adjusted_font_size(M.get("size", BASE_FONT_SIZE), key)
             try:
                 font_obj = _get_font(font_type=M.get("font", "regular"), size=size_to_use)
-            except Exception as font_load_err_draw:
-                print(f"ERROR [ImageGenerator]: Font loading error for key '{key}'. Skipping. Error: {font_load_err_draw}")
+            except Exception as font_load_err_draw_img:
+                print(f"ERROR [ImageGenerator]: Font loading error for key '{key}'. Skipping. Error: {font_load_err_draw_img}")
                 continue 
             color_val = M.get("color", TEXT_COLOR_DEFAULT)
             align_val = M.get("align", "left")
             max_w_val = M.get("max_width")
-            line_spacing_factor = M.get("line_spacing_factor", 1.15)
+            line_spacing_factor = M.get("line_spacing_factor", 1.15) # 기본 줄간격
             _draw_text_with_alignment(draw, final_text_to_draw, M["x"], M["y"], font_obj, color_val, align_val, max_w_val, line_spacing_factor)
 
     print("DEBUG [ImageGenerator]: Text drawing complete. Saving image to bytes.")
@@ -557,39 +526,46 @@ def create_quote_image(state_data, calculated_cost_items, total_cost_overall, pe
 if __name__ == '__main__':
     print("image_generator.py test mode")
     mock_state_test_via = {
-        "customer_name": "박경유 테스트", "customer_phone": "010-3333-4444",
-        "moving_date": date(2025, 2, 15),
-        "from_location": "서울시 강남구 역삼동 출발지",
-        "to_location": "경기도 수원시 영통구 도착지",
-        "from_floor": "5", "to_floor": "12",
-        "final_selected_vehicle": "5톤", "dispatched_5t": 1,
-        "from_method": "사다리차 🪜", 
-        "to_method": "스카이 🏗️", "sky_hours_final": 2,
-        "has_via_point": True,
-        "via_point_location": "경기도 성남시 분당구 경유지 아파트",
-        "via_point_method": "승강기 🛗",
-        "via_point_surcharge": 50000,
-        "deposit_amount": 150000,
+        "customer_name": "박경유 스타일러", "customer_phone": "010-5555-6666",
+        "moving_date": date(2025, 3, 20),
+        "from_location": "서울시 용산구 한남동 빌라", "to_location": "경기도 하남시 미사강변도시 아파트",
+        "from_floor": "2", "to_floor": "15",
+        "final_selected_vehicle": "6톤", # 차량 변경
+        "dispatched_5t": 1, "dispatched_1t":1, # 투입 차량 변경
+        "from_method": "계단 🚶", 
+        "to_method": "스카이 🏗️", "sky_hours_final": 3, # 스카이 시간 변경
+        "has_via_point": True, 
+        "via_point_location": "서울시 송파구 잠실동 중간경유",
+        "via_point_method": "사다리차 🪜", # 경유지 작업 변경
+        "via_point_surcharge": 70000,    
+        "deposit_amount": 200000,
         "base_move_type": "가정 이사 🏠",
-        "special_notes": "경유지에서 일부 짐만 내립니다.\n도착지 작업 시간 엄수 부탁드립니다.",
-        "qty_가정 이사 🏠_주요 품목_장롱": 3,
-        "qty_가정 이사 🏠_주요 품목_소파(3인용)": 1,
-        "qty_가정 이사 🏠_포장 자재 📦_바구니": 30,
+        "apply_long_distance": False, # 장거리 아님
+        "is_storage_move": False,    # 보관 아님
+        "special_notes": "스타일러 및 금고, 앵글 포함 견적 테스트.\nTV다이 위치 확인 필요.\n전화번호 폰트 크기 확인.",
+        "qty_가정 이사 🏠_기타_스타일러": 1,
+        "qty_가정 이사 🏠_기타_금고": 1,
+        "qty_가정 이사 🏠_기타_앵글": 2,
+        "qty_가정 이사 🏠_주요 품목_TV(75인치)": 1, # TV다이로 매핑됨
+        "qty_가정 이사 🏠_기타_TV(45인치)": 1,
+        "qty_가정 이사 🏠_기타_피아노(디지털)": 1,
+        "qty_가정 이사 🏠_포장 자재 📦_중대박스": 5, # 중대박스 수량
     }
     mock_costs_test_via = [
-        ("기본 운임", 1200000, "5톤 기준"),
-        ("출발지 사다리차", 150000, "5층, 5톤 기준"),
-        ("도착지 스카이 장비", 370000, "도착(2h): 기본 300,000 + 추가 70,000"),
-        ("경유지 추가요금", 50000, "수동입력"),
+        ("기본 운임", 1350000, "6톤 기준"), # 6톤 가격으로 변경
+        # 출발지 계단이므로 작업비 0 또는 없음
+        ("도착지 스카이 장비", 440000, "도착(3h): 기본 300,000 + 추가 140,000"), # 3시간
+        ("경유지 추가요금", 70000, "수동입력 (사다리 가정)"), # 경유지 요금
     ]
-    mock_total_cost_test_via = 1200000 + 150000 + 370000 + 50000
-    mock_personnel_test_via = {"final_men": 3, "final_women": 1}
+    mock_total_cost_test_via = 1350000 + 440000 + 70000
+    mock_personnel_test_via = {"final_men": 3, "final_women": 1} # 6톤 인원
 
     try:
         image_bytes_test = create_quote_image(mock_state_test_via, mock_costs_test_via, mock_total_cost_test_via, mock_personnel_test_via)
+        
         if image_bytes_test:
             timestamp_test = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename_test = f"test_image_via_point_{timestamp_test}.png"
+            filename_test = f"test_image_final_coords_{timestamp_test}.png"
             with open(filename_test, "wb") as f:
                 f.write(image_bytes_test)
             print(f"Test image '{filename_test}' saved successfully.")
