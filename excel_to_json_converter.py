@@ -10,9 +10,6 @@ import pandas as pd
 try:
     import google_drive_helper as gdrive
     import data # data.py의 METHOD_OPTIONS, DEFAULT_STORAGE_TYPE 등을 위함
-    # state_manager 모듈에서 STATE_KEYS_TO_SAVE, MOVE_TYPE_OPTIONS는 현재 이 스크립트에서 직접 사용되지 않음
-    # 만약 해당 변수들이 필요하다면 주석 해제 또는 data.py 등을 통해 가져오도록 수정
-    # from state_manager import STATE_KEYS_TO_SAVE, MOVE_TYPE_OPTIONS
 except ImportError as e:
     st.error(f"필수 모듈 로딩 실패: {e}. (google_drive_helper.py, data.py 등을 현재 스크립트와 같은 폴더에 위치시켜주세요)")
     st.stop()
@@ -28,68 +25,49 @@ except pytz.UnknownTimeZoneError:
 DEFAULT_CUSTOMER_NAME = "무명"
 DEFAULT_MOVE_TYPE = data.MOVE_TYPE_OPTIONS[0] if hasattr(data, 'MOVE_TYPE_OPTIONS') and data.MOVE_TYPE_OPTIONS else "가정 이사 🏠"
 DEFAULT_STORAGE_TYPE = data.DEFAULT_STORAGE_TYPE if hasattr(data, 'DEFAULT_STORAGE_TYPE') else "컨테이너 보관 📦"
+# 작업 방법 기본값은 parse_line_to_json_flexible 함수 내에서 "계단 🚶"으로 설정됨
 DEFAULT_FROM_METHOD = data.METHOD_OPTIONS[0] if hasattr(data, 'METHOD_OPTIONS') and data.METHOD_OPTIONS else "사다리차 🪜"
 DEFAULT_TO_METHOD = data.METHOD_OPTIONS[0] if hasattr(data, 'METHOD_OPTIONS') and data.METHOD_OPTIONS else "사다리차 🪜"
+STAIR_METHOD_DEFAULT = "계단 🚶" # 요청된 기본 작업 방법
+
 TODAY_ISO_DATE = datetime.now(KST).date().isoformat()
 
 # --- 공통 헬퍼 함수 ---
 def parse_date_flexible(date_str_input, current_year):
-    """
-    다양한 형식의 날짜 문자열 또는 datetime 객체를 YYYY-MM-DD 형식의 문자열로 변환합니다.
-    시간 정보는 제거됩니다. "미정"이거나 빈 값이거나 인식 불가능한 형식이면 오늘 날짜를 반환합니다.
-    """
-    if isinstance(date_str_input, (datetime, date)): # 이미 datetime 또는 date 객체인 경우
+    if isinstance(date_str_input, (datetime, date)):
         return date_str_input.strftime('%Y-%m-%d')
-
     if not date_str_input or str(date_str_input).strip().lower() == "미정":
-        return TODAY_ISO_DATE # "미정" 또는 빈 값이면 오늘 날짜로 설정
-
+        return TODAY_ISO_DATE
     date_str = str(date_str_input).strip()
-    # 시간 정보 제거 시도 (예: "5/10 14시", "2024-05-10 14:00")
-    date_str = re.split(r'\s+[0-9]{1,2}\s*[:시]', date_str)[0].strip() # 공백 후 숫자 + : 또는 시
-
+    date_str = re.split(r'\s+[0-9]{1,2}\s*[:시]', date_str)[0].strip()
     patterns = [
-        # YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD, YYYY년 MM월 DD일
         (r'(\d{4})\s*[-/년\.]?\s*(\d{1,2})\s*[-/월\.]?\s*(\d{1,2})\s*(일?)', lambda m: (int(m.group(1)), int(m.group(2)), int(m.group(3)))),
-        # MM-DD, MM/DD, MM.DD, MM월 DD일 (현재 연도 사용)
-        (r'(\d{1,2})\s*[-/월\.]\s*(\d{1,2})\s*(일?)', lambda m: (current_year, int(m.group(1)), int(m.group(2)))),
-        # YY-MM-DD, YY/MM/DD, YY.MM.DD (20YY년으로 간주)
+        (r'(\d{1,2})\s*[-/월\.]\s*(\d{1,2})\s*(일?)', lambda m: (current_year, int(m.group(1)), int(m.group(2)))), # "06월 30일" 처리 가능
         (r'(\d{2})\s*[-/년\.]?\s*(\d{1,2})\s*[-/월\.]?\s*(\d{1,2})\s*(일?)', lambda m: (2000 + int(m.group(1)), int(m.group(2)), int(m.group(3))))
     ]
-
     for pattern, extractor in patterns:
         match = re.match(pattern, date_str)
         if match:
-            # 매치된 부분 외에 다른 문자가 남아있는지 확인하여 정확도 향상 시도
-            # 예: "5/10 가" 와 같이 날짜 뒤에 추가 텍스트가 있는 경우를 걸러내기 위함.
-            # 하지만 현재 정규식은 이미 날짜로 끝나는 부분을 잘 처리하고 있을 수 있음.
-            # 좀 더 엄격하게 하려면, match.group(0) (매치된 전체 문자열)의 길이와
-            # 원본 date_str의 길이가 같은지, 또는 남은 부분이 공백인지 등을 확인할 수 있음.
-            # 여기서는 기존 로직을 유지하되, 주석으로 가능성을 남겨둡니다.
-            # if len(match.group(0)) != len(date_str) and date_str[len(match.group(0)):].strip():
-            #     continue # 날짜 패턴 뒤에 유효하지 않은 문자가 있으면 다음 패턴으로
             try:
                 year, month, day = extractor(match)
-                return datetime(year, month, day).strftime('%Y-%m-%d')
-            except ValueError: # 잘못된 날짜 (예: 2월 30일)
+                # Ensure the matched part is the whole date string part
+                if len(match.group(0).replace(" ","")) == len(date_str.replace(" ","")): # 공백제거후 길이비교 (유연성)
+                     return datetime(year, month, day).strftime('%Y-%m-%d')
+            except ValueError:
                 continue
-
-    return TODAY_ISO_DATE # 어떤 패턴과도 맞지 않으면 오늘 날짜로
+    return TODAY_ISO_DATE
 
 def normalize_phone_number_for_filename(phone_str):
     if not phone_str or not isinstance(phone_str, str): return None
     return "".join(filter(str.isdigit, phone_str))
 
 def get_default_state():
-    # state_manager.py 와 최대한 유사하게 기본값 설정 (필요시 해당 파일에서 가져오도록 수정)
     return {
         "moving_date": TODAY_ISO_DATE, "customer_name": DEFAULT_CUSTOMER_NAME, "customer_phone": "",
         "base_move_type": DEFAULT_MOVE_TYPE, "from_location": "", "to_location": "", "special_notes": "",
         "from_floor": "", "to_floor": "",
-        "from_method": DEFAULT_FROM_METHOD,
-        "to_method": DEFAULT_TO_METHOD,
-        "is_storage_move": False,
-        "storage_type": DEFAULT_STORAGE_TYPE,
+        "from_method": DEFAULT_FROM_METHOD, "to_method": DEFAULT_TO_METHOD,
+        "is_storage_move": False, "storage_type": DEFAULT_STORAGE_TYPE,
         "apply_long_distance": False, "has_via_point": False,
         "deposit_amount": 0, "adjustment_amount": 0,
         "issue_tax_invoice": False, "card_payment": False, "remove_base_housewife": False,
@@ -97,80 +75,48 @@ def get_default_state():
         "sky_hours_from": 1, "sky_hours_final": 1,
         "waste_tons_input": 0.5, "has_waste_check": False,
         "uploaded_image_paths": [],
-        "vehicle_select_radio": "자동 추천 차량 사용",
-        "manual_vehicle_select_value": None,
-        "final_selected_vehicle": None,
-        "recommended_vehicle_auto": None,
-        "storage_duration": 1,
-        "storage_use_electricity": False,
+        "vehicle_select_radio": "자동 추천 차량 사용", "manual_vehicle_select_value": None,
+        "final_selected_vehicle": None, "recommended_vehicle_auto": None,
+        "storage_duration": 1, "storage_use_electricity": False,
         "long_distance_selector": data.long_distance_options[0] if hasattr(data, 'long_distance_options') and data.long_distance_options else "선택 안 함",
-        "via_point_location": "",
-        "via_point_method": DEFAULT_FROM_METHOD, # 경유지 작업 방법 기본값
-        "via_point_floor": "",                  # 경유지 층수 기본값
-        "via_point_surcharge": 0,
+        "via_point_location": "", "via_point_method": DEFAULT_FROM_METHOD,
+        "via_point_floor": "", "via_point_surcharge": 0,
         "regional_ladder_surcharge": 0,
         "date_opt_0_widget": False, "date_opt_1_widget": False, "date_opt_2_widget": False,
         "date_opt_3_widget": False, "date_opt_4_widget": False,
-        # state_manager.py에 정의된 다른 모든 키의 기본값을 여기에 추가하는 것이 좋습니다.
-        # (예: total_volume, total_weight, 기타 UI 관련 상태 등은 0이나 None, False로)
         "total_volume": 0.0, "total_weight": 0.0,
         "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0, "tab3_regional_ladder_surcharge": 0,
         "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False,
         "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
         "prev_final_selected_vehicle": None,
         "gdrive_search_term": "", "gdrive_search_results": [],
-        "gdrive_file_options_map": {},
-        "gdrive_selected_filename": None,
-        "gdrive_selected_file_id": None,
+        "gdrive_file_options_map": {}, "gdrive_selected_filename": None, "gdrive_selected_file_id": None,
     }
 
-def extract_floor_from_address_enhanced(address_str): #
-    """
-    주소 문자열에서 층수 정보를 추출하고, "OO호" 앞부분을 주소로 사용합니다.
-    "XXX호" 패턴이 우선하며, 그 다음 "N층" 패턴을 확인합니다.
-    """
+def extract_floor_from_address_enhanced(address_str):
     if not address_str or not isinstance(address_str, str):
-        return address_str if address_str else "", "" # 입력이 없으면 그대로 반환
-
+        return address_str if address_str else "", ""
     address_cleaned = address_str.strip()
     parsed_floor = ""
-    address_part = address_cleaned # 기본 주소 부분은 원본 (수정될 수 있음)
-
-    # 패턴 1: "XXX호" (예: "1102호", "302 호")
-    # "호" 바로 앞의 숫자 전체를 캡처. "호" 뒤에 다른 숫자가 오지 않도록 (?!\d) 사용 (예: "101호텔" 방지)
+    address_part = address_cleaned
     ho_match = re.search(r'(\d+)\s*호(?!\d)', address_cleaned)
     if ho_match:
-        ho_number_str = ho_match.group(1) # "호" 앞의 숫자 문자열 (예: "1102", "302")
-
-        # 층수 파싱: 숫자 길이가 3 이상이면 뒤 2자리 제외 (예: "1102" -> "11"), 그 외는 숫자 전체 사용
-        if len(ho_number_str) > 2:
-            parsed_floor = ho_number_str[:-2]
-        elif len(ho_number_str) > 0:
-            parsed_floor = ho_number_str
-        # else: ho_number_str이 비었으면 parsed_floor는 "" 유지
-
-        # "OO호" 패턴으로 층수가 성공적으로 파싱된 경우
-        if parsed_floor:
-            # 주소 부분은 "OO호" 패턴의 시작점 이전까지의 문자열로 정의
+        ho_number_str = ho_match.group(1)
+        if len(ho_number_str) > 2: parsed_floor = ho_number_str[:-2]
+        elif len(ho_number_str) > 0: parsed_floor = ho_number_str # 1~2자리 숫자면 그대로 층수로 (예: 52호 -> 52층) - 정책 변경 시 수정
+        
+        if parsed_floor: # "호" 패턴에서 유효한 층수 파싱 성공 시
             address_part = address_cleaned[:ho_match.start(0)].strip()
             return address_part, parsed_floor
-        # else: "OO호" 패턴은 찾았으나 유효한 층수 숫자를 못 얻었으면 (예: "호"만 있거나) 다음 패턴으로 넘어감
-
-    # 패턴 2: 주소 문자열 끝에 "숫자+층/F/f" (예: "OO빌딩 3층", "XX아파트 10F", "엘리베이터 B2층")
-    # 이 패턴은 "호" 패턴에서 층수를 찾지 못했을 경우에만 시도됨.
-    # ^(.*?) : 주소의 시작부터 최대한 많은 문자 (non-greedy) - 주소 부분
-    # (\s*(-?\d+)\s*(층|F|f)) : 공백 + (선택적 마이너스 + 숫자) + 공백 + (층 또는 F 또는 f) - 층수 부분
-    # $ : 문자열의 끝
+    
     floor_ending_match = re.search(r'^(.*?)(\s*(-?\d+)\s*(층|F|f))$', address_cleaned, re.IGNORECASE)
     if floor_ending_match:
-        address_part = floor_ending_match.group(1).strip() # 층수 부분을 제외한 주소
-        parsed_floor = floor_ending_match.group(3)      # 숫자 부분 (음수 포함 가능)
+        address_part = floor_ending_match.group(1).strip()
+        parsed_floor = floor_ending_match.group(3)
         return address_part, parsed_floor
-
-    # 어떤 패턴에도 해당 없으면, 원래 주소와 빈 층수 반환
     return address_cleaned, ""
 
-# --- 텍스트 입력 처리 함수 ---
+# --- 텍스트 입력 처리 함수 (사용자 요청사항 반영) ---
 PHONE_REGEX_TEXT = re.compile(r'(01[016789]-?\d{3,4}-?\d{4}|0\d{1,2}-?\d{3,4}-?\d{4})')
 MOVE_TYPE_KEYWORDS_TEXT = {"가정": ["가정", "가"], "사무실": ["사무실", "사"]}
 
@@ -181,121 +127,148 @@ def parse_line_to_json_flexible(line_text, current_year, line_number_display="")
 
     phone_match = PHONE_REGEX_TEXT.search(original_line)
     if not phone_match: return None, None, f"{line_number_display}전화번호 없음 (필수)"
-    state["customer_phone"] = phone_match.group(0)
+    state["customer_phone"] = phone_match.group(0).strip()
     filename_phone_part = normalize_phone_number_for_filename(state["customer_phone"])
     if not filename_phone_part: return None, None, f"{line_number_display}유효하지 않은 전화번호"
 
-    before_phone = original_line[:phone_match.start()].strip()
-    after_phone = original_line[phone_match.end():].strip()
+    text_before_phone = original_line[:phone_match.start()].strip()
+    text_after_phone = original_line[phone_match.end():].strip()
 
-    parts_before_phone = [p.strip() for p in re.split(r'\s+|\t+', before_phone) if p.strip()]
-    potential_name_parts = []
-    date_found_in_before = False
-
-    # 텍스트 첫 부분에서 날짜 우선 파싱
-    if parts_before_phone:
-        first_part_for_date = parts_before_phone[0]
-        parsed_date_from_first = parse_date_flexible(first_part_for_date, current_year)
-        # 첫 부분이 성공적으로 다른 날짜로 파싱되거나, 또는 오늘이지만 원본이 비어있지 않고 "미정"도 아니면
-        if parsed_date_from_first != TODAY_ISO_DATE or \
-           (parsed_date_from_first == TODAY_ISO_DATE and first_part_for_date and first_part_for_date.lower() != "미정"):
-            state["moving_date"] = parsed_date_from_first
-            date_found_in_before = True
-            potential_name_parts.extend(parts_before_phone[1:]) # 첫 부분을 날짜로 썼으니 이름은 나머지
-        else: # 첫 부분이 날짜가 아니면, 전체를 이름 후보로
-            potential_name_parts.extend(parts_before_phone)
+    # 1. 날짜 및 이름 파싱 (연락처 앞부분)
+    parts_before_phone = [p.strip() for p in text_before_phone.split(maxsplit=2) if p.strip()] # 최대 2~3덩어리로 예상 (날짜 여러단어, 이름)
+                                                                                              # 예: "06월 30일", "금지원"
     
-    # 이름 후보들 중에서 다시 날짜 찾아보기 (첫 부분이 날짜가 아니었을 경우)
-    if not date_found_in_before:
-        temp_name_parts = []
-        for part in potential_name_parts:
-            parsed_date = parse_date_flexible(part, current_year)
-            if not date_found_in_before and \
-               (parsed_date != TODAY_ISO_DATE or \
-               (parsed_date == TODAY_ISO_DATE and part and part.lower() != "미정")):
-                state["moving_date"] = parsed_date
-                date_found_in_before = True
-            else:
-                temp_name_parts.append(part)
-        potential_name_parts = temp_name_parts
+    date_found = False
+    if parts_before_phone:
+        # 날짜가 여러 단어일 가능성 고려 (예: "06월 30일")
+        # 첫번째 파트, 첫번째+두번째 파트를 날짜로 시도
+        date_candidate_1 = parts_before_phone[0]
+        parsed_date_1 = parse_date_flexible(date_candidate_1, current_year)
 
-
-    if potential_name_parts:
-        state["customer_name"] = " ".join(potential_name_parts)
-    else: # 이름 부분이 없으면 기본값
+        if parsed_date_1 != TODAY_ISO_DATE or (parsed_date_1 == TODAY_ISO_DATE and date_candidate_1 and date_candidate_1.lower()!="미정"):
+            state["moving_date"] = parsed_date_1
+            state["customer_name"] = " ".join(parts_before_phone[1:]) if len(parts_before_phone) > 1 else DEFAULT_CUSTOMER_NAME
+            date_found = True
+        elif len(parts_before_phone) > 1:
+            date_candidate_2 = parts_before_phone[0] + " " + parts_before_phone[1]
+            parsed_date_2 = parse_date_flexible(date_candidate_2, current_year)
+            if parsed_date_2 != TODAY_ISO_DATE or (parsed_date_2 == TODAY_ISO_DATE and date_candidate_2 and date_candidate_2.lower()!="미정"):
+                state["moving_date"] = parsed_date_2
+                state["customer_name"] = " ".join(parts_before_phone[2:]) if len(parts_before_phone) > 2 else DEFAULT_CUSTOMER_NAME
+                date_found = True
+    
+    if not date_found: # 날짜 못찾으면 전체를 이름으로, 날짜는 오늘
+        state["customer_name"] = text_before_phone if text_before_phone else DEFAULT_CUSTOMER_NAME
+        state["moving_date"] = TODAY_ISO_DATE
+    
+    if not state["customer_name"].strip(): # 이름 파싱 후 비었으면 기본값
         state["customer_name"] = DEFAULT_CUSTOMER_NAME
 
-    if not date_found_in_before: # 그래도 날짜 못 찾았으면 오늘 날짜
-        state["moving_date"] = TODAY_ISO_DATE
 
-    if "보관" in state["customer_name"]:
-        state["is_storage_move"] = True
-        state["storage_type"] = DEFAULT_STORAGE_TYPE
-
-    parts_after_phone = [p.strip() for p in re.split(r'\s{2,}|\t+', after_phone) if p.strip()]
-    if not parts_after_phone and after_phone:
-        parts_after_phone = [after_phone]
-
-    part_idx = 0
-    if part_idx < len(parts_after_phone):
-        current_part_lower = parts_after_phone[part_idx].lower()
-        found_move_type_keyword = False
-        for type_key_text, keywords_text in MOVE_TYPE_KEYWORDS_TEXT.items():
-            for kw in keywords_text:
-                if current_part_lower == kw:
-                    if type_key_text == "가정": state["base_move_type"] = next((opt for opt in data.MOVE_TYPE_OPTIONS if "가정" in opt), DEFAULT_MOVE_TYPE)
-                    elif type_key_text == "사무실": state["base_move_type"] = next((opt for opt in data.MOVE_TYPE_OPTIONS if "사무실" in opt), DEFAULT_MOVE_TYPE)
-                    parts_after_phone.pop(part_idx)
-                    found_move_type_keyword = True; break
-                elif current_part_lower.startswith(kw + " ") and len(current_part_lower) > len(kw) + 1:
-                    if type_key_text == "가정": state["base_move_type"] = next((opt for opt in data.MOVE_TYPE_OPTIONS if "가정" in opt), DEFAULT_MOVE_TYPE)
-                    elif type_key_text == "사무실": state["base_move_type"] = next((opt for opt in data.MOVE_TYPE_OPTIONS if "사무실" in opt), DEFAULT_MOVE_TYPE)
-                    parts_after_phone[part_idx] = parts_after_phone[part_idx][len(kw):].strip()
-                    found_move_type_keyword = True; break
-            if found_move_type_keyword: break
+    # 2. 이사 종류, 출발지, 도착지, 버리는 값 파싱 (연락처 뒷부분)
+    # 예시: "가 광진구 광나루로56길 29 6동 1022호 송파구 잠실동 수 9시-12시"
+    # 주요 구분자로 2개 이상의 공백 또는 탭 사용
+    # (주소 내의 일반 공백은 유지 위함)
     
-    # 출발지
-    if part_idx < len(parts_after_phone):
-        from_loc_raw = parts_after_phone[part_idx]
-        state["from_location"], state["from_floor"] = extract_floor_from_address_enhanced(from_loc_raw) #
-        part_idx += 1
-    else:
-        if not state.get("from_location"): return None, None, f"{line_number_display}출발지 주소 없음 (필수)"
+    # 정규표현식으로 주요 블록 나누기 (탭 또는 2개 이상 공백 기준)
+    # 캡처 그룹을 사용하여 구분자 자체는 결과에 포함되지 않도록 함 (None 필터링 필요)
+    raw_parts_after_phone = re.split(r'\s{2,}|\t+', text_after_phone)
+    parts_after_phone = [p.strip() for p in raw_parts_after_phone if p and p.strip()]
+
+    if not parts_after_phone:
+        return None, None, f"{line_number_display}이사 종류 및 주소 정보 없음 (필수)"
+
+    # 2a. 이사 종류 ("가" 또는 "사")
+    if parts_after_phone[0].lower() == "가":
+        state["base_move_type"] = next((opt for opt in data.MOVE_TYPE_OPTIONS if "가정" in opt), DEFAULT_MOVE_TYPE)
+        parts_after_phone.pop(0)
+    elif parts_after_phone[0].lower() == "사":
+        state["base_move_type"] = next((opt for opt in data.MOVE_TYPE_OPTIONS if "사무실" in opt), DEFAULT_MOVE_TYPE)
+        parts_after_phone.pop(0)
+    # else: 이사종류 키워드 없으면 기본값 유지
+
+    if not parts_after_phone:
+        return None, None, f"{line_number_display}출발지 주소 정보 없음 (필수)"
+
+    # 2b. 출발지 주소 및 층수 ("...호"로 끝남)
+    # 여러 파트로 나뉘었을 수 있는 주소를 "호"가 나올 때까지 병합
+    from_loc_str_parts = []
+    from_loc_found = False
+    for i, part in enumerate(parts_after_phone):
+        from_loc_str_parts.append(part)
+        current_from_loc_candidate = " ".join(from_loc_str_parts)
+        ho_match = re.search(r'(\d+)호$', current_from_loc_candidate) # 문자열 끝이 "숫자+호" 인지
+        if ho_match:
+            ho_digits = ho_match.group(1)
+            # 주소: "호" 앞까지 전체
+            state["from_location"] = current_from_loc_candidate[:ho_match.start(0)].strip()
+            # 층수: "호" 앞 숫자에서 뒤 2자리 제외한 앞부분
+            if len(ho_digits) > 2:
+                state["from_floor"] = ho_digits[:-2]
+            else: # 2자리 이하 숫자는 층수 정보로 부적합 (요청사항: "호 앞 두자리를 제외한 앞자리")
+                state["from_floor"] = "" 
+            
+            parts_after_phone = parts_after_phone[i+1:] # 사용된 부분 제거
+            from_loc_found = True
+            break
     
-    # 도착지
-    if part_idx < len(parts_after_phone):
-        to_loc_raw = parts_after_phone[part_idx]
-        skip_keywords_for_to_location = ["에어컨", "장롱", "조립", "이전", "설치", "보관", "폐기"]
-        if not any(keyword in to_loc_raw for keyword in skip_keywords_for_to_location):
-            state["to_location"], state["to_floor"] = extract_floor_from_address_enhanced(to_loc_raw) #
-            part_idx += 1
+    if not from_loc_found:
+        return None, None, f"{line_number_display}출발지 주소에서 '...호' 패턴을 찾을 수 없습니다."
 
-    if part_idx < len(parts_after_phone):
-        state["special_notes"] = " ".join(parts_after_phone[part_idx:])
+    # 2c. 도착지 주소 (남은 부분 중 첫번째 파트) 및 층수
+    # 남은 파트가 "요일 시간" 정보일 수 있으므로 주의
+    if parts_after_phone:
+        # 마지막 파트가 "요일 시간" 패턴인지 확인
+        # 예: "수 9시-12시", "월요일 14:00", "10시"
+        # 매우 간단한 패턴: 요일문자(월화수목금토일)로 시작하거나, 숫자로 시작하고 "시"로 끝나는 경우
+        last_part_candidate = parts_after_phone[-1]
+        is_last_part_time_info = False
+        if re.match(r'^[월화수목금토일]', last_part_candidate) or \
+           (re.search(r'\d', last_part_candidate) and last_part_candidate.endswith('시')):
+            is_last_part_time_info = True
 
+        if is_last_part_time_info:
+            if len(parts_after_phone) > 1: # 시간 정보 외에 다른 내용이 있으면 도착지로
+                to_location_str = " ".join(parts_after_phone[:-1])
+                state["to_location"], state["to_floor"] = extract_floor_from_address_enhanced(to_location_str)
+            # else: 시간 정보만 남았으면 도착지 없음 (기본값 유지)
+        else: # 마지막 파트가 시간 정보가 아니면, 남은 전체를 도착지로
+            to_location_str = " ".join(parts_after_phone)
+            state["to_location"], state["to_floor"] = extract_floor_from_address_enhanced(to_location_str)
+            
+    # 2d. 작업 방법 기본값 설정
+    if hasattr(data, 'METHOD_OPTIONS') and STAIR_METHOD_DEFAULT in data.METHOD_OPTIONS:
+        state["from_method"] = STAIR_METHOD_DEFAULT
+        state["to_method"] = STAIR_METHOD_DEFAULT
+    else: # "계단 🚶" 옵션이 data.py에 없을 경우에 대한 대비 (기존 기본값 사용)
+        state["from_method"] = DEFAULT_FROM_METHOD # 또는 다른 적절한 오류 처리/로깅
+        state["to_method"] = DEFAULT_TO_METHOD
+        if 'special_notes' not in state or not state['special_notes']: state['special_notes'] = ""
+        state['special_notes'] += " (참고: 요청된 '계단' 작업방법을 찾을 수 없어 기본값 사용)"
+
+
+    # 필수 항목 최종 확인
     if not state.get("from_location"):
-        return None, None, f"{line_number_display}출발지 누락 (재확인 필요)"
-
+        return None, None, f"{line_number_display}출발지 주소 최종 파싱 실패."
+        
     return state, filename_phone_part + ".json", None
 
 
 # --- 엑셀 입력 처리 함수 ---
 COLUMN_ALIASES_EXCEL = {
-    'moving_date': ['날짜', '이사날짜', '일자'], # '일자' 추가
-    'customer_name': ['고객명', '이름', '성함', '상호'], # '상호' 추가
-    'customer_phone': ['전화번호', '연락처', '휴대폰번호', '전화', '핸드폰', 'H.P', 'HP'], # H.P, HP 추가
-    'base_move_type': ['이사종류', '구분', '종류'], # '종류' 추가
-    'from_location': ['출발지주소', '출발지', '출발주소', '출발'], # '출발주소' 추가
+    'moving_date': ['날짜', '이사날짜', '일자'],
+    'customer_name': ['고객명', '이름', '성함', '상호'],
+    'customer_phone': ['전화번호', '연락처', '휴대폰번호', '전화', '핸드폰', 'H.P', 'HP'],
+    'base_move_type': ['이사종류', '구분', '종류'],
+    'from_location': ['출발지주소', '출발지', '출발주소', '출발'],
     'from_floor': ['층수', '출발지 층수', '출발층수', '출발 층'],
     'to_location': ['도착지주소', '도착지', '도착주소', '도착'],
     'to_floor': ['도착지 층수', '도착층수', '도착 층'],
-    'special_notes': ['특이사항', '요구사항', '희망사항', '건의', '메모', '비고', '참고사항'], # '참고사항' 추가
+    'special_notes': ['특이사항', '요구사항', '희망사항', '건의', '메모', '비고', '참고사항'],
 }
 def get_column_value(row, field_name, aliases, default=""):
     all_possible_names = [field_name.lower()] + [a.lower() for a in aliases.get(field_name, [])]
-    # 엑셀 컬럼명을 소문자로 변환하여 비교 (대소문자 구분 없애기 위함)
     row_index_lower = {str(idx_item).lower(): idx_item for idx_item in row.index}
-
     for alias_lower in all_possible_names:
         if alias_lower in row_index_lower and pd.notna(row[row_index_lower[alias_lower]]):
             return str(row[row_index_lower[alias_lower]]).strip()
@@ -308,16 +281,15 @@ def parse_excel_row_to_json(row, current_year, row_number_display=""):
 
     moving_date_raw = get_column_value(row, 'moving_date', COLUMN_ALIASES_EXCEL)
     state["moving_date"] = parse_date_flexible(moving_date_raw, current_year)
-    # 날짜 파싱 결과에 대한 추가 로그 (사용자 요청 사항 간접 반영)
+    log_info_for_date = ""
     if moving_date_raw and moving_date_raw.strip().lower() != "미정" and state["moving_date"] == TODAY_ISO_DATE:
-        # st.sidebar.info(f"{row_number_display}제공된 날짜 '{moving_date_raw}'가 오늘 날짜로 처리됨 (형식 확인 필요).") # UI 피드백
-        pass # 로그는 최종 결과에서 출력
+        log_info_for_date = f"제공된 날짜 '{moving_date_raw}'가 오늘 날짜로 처리됨 (형식/내용 확인 필요)."
+
 
     customer_name_raw = get_column_value(row, 'customer_name', COLUMN_ALIASES_EXCEL)
     if customer_name_raw and customer_name_raw.lower() != "미정":
         state["customer_name"] = customer_name_raw
-    else:
-        state["customer_name"] = DEFAULT_CUSTOMER_NAME
+    else: state["customer_name"] = DEFAULT_CUSTOMER_NAME
     if "보관" in state["customer_name"]:
         state["is_storage_move"] = True; state["storage_type"] = DEFAULT_STORAGE_TYPE
 
@@ -338,11 +310,11 @@ def parse_excel_row_to_json(row, current_year, row_number_display=""):
     from_location_raw = get_column_value(row, 'from_location', COLUMN_ALIASES_EXCEL)
     if not from_location_raw: return None, None, f"{row_number_display}출발지 주소 없음 (필수)"
     from_floor_raw_col = get_column_value(row, 'from_floor', COLUMN_ALIASES_EXCEL)
-    if from_floor_raw_col: # 명시적 층수 컬럼값이 있으면 사용
-        state["from_floor"] = "".join(filter(str.isdigit, from_floor_raw_col)) # B, F 등 문자 제거
-        state["from_location"] = from_location_raw # 주소는 그대로 사용
-    else: # 없으면 주소에서 추출
-        state["from_location"], state["from_floor"] = extract_floor_from_address_enhanced(from_location_raw) #
+    if from_floor_raw_col:
+        state["from_floor"] = "".join(filter(str.isdigit, from_floor_raw_col))
+        state["from_location"] = from_location_raw
+    else:
+        state["from_location"], state["from_floor"] = extract_floor_from_address_enhanced(from_location_raw)
 
     to_location_raw = get_column_value(row, 'to_location', COLUMN_ALIASES_EXCEL)
     to_floor_raw_col = get_column_value(row, 'to_floor', COLUMN_ALIASES_EXCEL)
@@ -351,9 +323,12 @@ def parse_excel_row_to_json(row, current_year, row_number_display=""):
             state["to_floor"] = "".join(filter(str.isdigit, to_floor_raw_col))
             if to_location_raw: state["to_location"] = to_location_raw
         elif to_location_raw:
-             state["to_location"], state["to_floor"] = extract_floor_from_address_enhanced(to_location_raw) #
+             state["to_location"], state["to_floor"] = extract_floor_from_address_enhanced(to_location_raw)
 
     state["special_notes"] = get_column_value(row, 'special_notes', COLUMN_ALIASES_EXCEL)
+    if log_info_for_date and state["special_notes"]: state["special_notes"] = log_info_for_date + " " + state["special_notes"]
+    elif log_info_for_date: state["special_notes"] = log_info_for_date
+
 
     if not state.get("from_location"):
         return None, None, f"{row_number_display}출발지 누락 (재확인 필요)"
@@ -372,8 +347,8 @@ uploaded_file = None
 
 if input_method == '텍스트 직접 입력':
     text_input = st.text_area("여기에 이사 정보를 한 줄씩 입력하세요:", height=200,
-                              placeholder="예시: 홍길동 010-1234-5678 5/10 가 서울 강남구 XXX 101동 302호 경기 수원시 YYY 202동 1102호 에어컨 이전 설치\n또는: 010-9876-5432 강남 아파트 102동 1501호 용인 빌라 303호 5/12")
-else: # Excel 파일 업로드
+                              placeholder="예시: 06월 30일 금지원 010-2228-0418 가 광진구 광나루로56길 29 6동 1022호 송파구 잠실동 수 9시-12시")
+else:
     uploaded_file = st.file_uploader("변환할 Excel 파일을 업로드하세요.", type=["xlsx", "xls"])
     st.markdown("""
     **Excel 파일 형식 가이드:**
@@ -401,7 +376,7 @@ if st.button("🔄 JSON 변환 및 Google Drive에 저장하기"):
             try:
                 try: df = pd.read_excel(uploaded_file, engine='openpyxl')
                 except Exception: uploaded_file.seek(0); df = pd.read_excel(uploaded_file, engine='xlrd')
-                df.columns = [str(col).strip() for col in df.columns]
+                df.columns = [str(col).strip().lower() for col in df.columns] # 컬럼명 소문자 변환 및 공백 제거
                 items_to_process = [row for _, row in df.iterrows() if not row.isnull().all()]
                 total_items = len(items_to_process)
             except Exception as e: st.error(f"Excel 파일 읽기 중 오류 발생: {e}"); items_to_process = []
@@ -419,23 +394,10 @@ if st.button("🔄 JSON 변환 및 Google Drive에 저장하기"):
             status_obj, filename, error_msg = (None, None, "알 수 없는 입력 형식 또는 처리 오류")
             row_display_prefix = f"엑셀 {df.index[i]+2}행" if is_excel_input and hasattr(df, 'index') else (f"엑셀 {i+2}행" if is_excel_input else f"텍스트 {i+1}줄")
 
-
             if is_excel_input:
                 status_obj, filename, error_msg = parse_excel_row_to_json(item_data_row_or_line, current_year_for_parsing, row_display_prefix + ": ")
-                # 엑셀에서 날짜 파싱 관련 로그 추가
-                if status_obj and item_data_row_or_line is not None: # item_data_row_or_line이 Series 객체인지 확인
-                    moving_date_raw_excel = get_column_value(item_data_row_or_line, 'moving_date', COLUMN_ALIASES_EXCEL)
-                    if moving_date_raw_excel and moving_date_raw_excel.strip().lower() != "미정" and status_obj.get("moving_date") == TODAY_ISO_DATE:
-                         all_log_messages.append(f"🔔 <span style='color:blue;'>정보</span>: {row_display_prefix} 제공된 날짜 '{moving_date_raw_excel}'가 오늘 날짜로 처리됨 (형식 또는 내용 확인 필요). {filename if filename else ''}")
-
             else: # 텍스트 입력
                 status_obj, filename, error_msg = parse_line_to_json_flexible(item_data_row_or_line, current_year_for_parsing, row_display_prefix + ": ")
-                # 텍스트 첫 부분 날짜 파싱 관련 로그 (필요시 추가)
-                if status_obj and original_line: # original_line 변수는 parse_line_to_json_flexible 내부 변수라 여기서 직접 접근은 어려움.
-                                                 # error_msg에 관련 내용을 포함시키거나, parse_line_to_json_flexible에서 반환값을 수정해야 함.
-                                                 # 여기서는 일단 생략.
-                    pass
-
 
             status_text.text(f"처리 중... {processed_items}/{total_items} ({filename if filename else '데이터 분석 중'})")
             progress_bar.progress(processed_items / total_items if total_items > 0 else 0)
@@ -444,15 +406,24 @@ if st.button("🔄 JSON 변환 및 Google Drive에 저장하기"):
             if status_obj and status_obj.get('customer_phone'): log_identifier_parts.append(status_obj['customer_phone'])
             if status_obj and status_obj.get('customer_name') != DEFAULT_CUSTOMER_NAME : log_identifier_parts.append(status_obj['customer_name'])
             log_identifier = f"({', '.join(log_identifier_parts)})" if log_identifier_parts else ""
+            
+            # 날짜 처리 관련 정보 로그에 추가 (Excel 입력 시)
+            if is_excel_input and status_obj and item_data_row_or_line is not None:
+                moving_date_raw_excel = get_column_value(item_data_row_or_line, 'moving_date', COLUMN_ALIASES_EXCEL) # 컬럼명 소문자로 조회
+                if moving_date_raw_excel and moving_date_raw_excel.strip().lower() != "미정" and status_obj.get("moving_date") == TODAY_ISO_DATE:
+                    all_log_messages.append(f"ℹ️ <span style='color:blue;'>정보</span>: {row_display_prefix} 제공된 날짜 '{moving_date_raw_excel}'가 오늘 날짜로 처리됨 (형식 또는 내용 확인 필요). {filename if filename else ''} {log_identifier}")
+
 
             if status_obj and filename:
                 final_state_to_save = get_default_state()
-                final_state_to_save.update(status_obj)
+                final_state_to_save.update(status_obj) # 파싱된 데이터로 기본 상태 업데이트
+                # 불필요한 키 제거 또는 특정 키만 선택하는 로직은 현재 없음 (모든 키 저장)
+                
                 try:
                     gdrive_folder_id_secret = st.secrets.get("gcp_service_account", {}).get("drive_folder_id")
                     save_result = gdrive.save_json_file(filename, final_state_to_save, folder_id=gdrive_folder_id_secret)
                     if save_result and save_result.get('id'):
-                        log_message = f"✅ <span style='color:green;'>저장 성공</span>: {filename} {log_identifier} (ID: {save_result.get('id')})"
+                        log_message = f"✔️ <span style='color:green;'>저장 성공</span>: {filename} {log_identifier} (ID: {save_result.get('id')})"
                         all_log_messages.append(log_message); success_count += 1
                     else:
                         log_message = f"❌ <span style='color:red;'>저장 실패</span>: {filename} {log_identifier} (응답: {save_result})"
@@ -463,7 +434,7 @@ if st.button("🔄 JSON 변환 및 Google Drive에 저장하기"):
                 except Exception as e_save:
                     log_message = f"❌ <span style='color:red;'>저장 중 예외</span>: {filename if filename else '데이터'} {log_identifier} ({str(e_save)})"
                     all_log_messages.append(log_message); error_count += 1
-            else:
+            else: # 파싱 실패 또는 필수 정보 누락
                 log_message = f"⚠️ <span style='color:orange;'>건너뜀/오류</span>: {error_msg if error_msg else '사유 불명'} {log_identifier}"
                 all_log_messages.append(log_message); error_count +=1
 
@@ -474,7 +445,7 @@ if st.button("🔄 JSON 변환 및 Google Drive에 저장하기"):
         else: st.info(f"실패 또는 건너뜀: {error_count} 건")
 
         if all_log_messages:
-            expanded_log = (error_count > 0 or success_count < total_items or any("정보" in log for log in all_log_messages)) # 정보 로그도 펼침 조건 추가
+            expanded_log = (error_count > 0 or success_count < total_items or any("정보" in log for log in all_log_messages))
             with st.expander("▼ 상세 처리 로그 보기 (클릭)", expanded=expanded_log):
-                log_html = "".join([f"<div style='font-size:small; margin-bottom:3px;'>{log.replace('✅','✔️').replace('🔔','ℹ️')}</div>" for log in all_log_messages])
+                log_html = "".join([f"<div style='font-size:small; margin-bottom:3px;'>{log}</div>" for log in all_log_messages])
                 st.markdown(log_html, unsafe_allow_html=True)
