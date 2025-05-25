@@ -44,7 +44,7 @@ STATE_KEYS_TO_SAVE = [
     "prev_final_selected_vehicle" 
 ]
 
-def get_default_times_for_date(selected_date): # 이 함수는 현재 직접 사용되지 않음
+def get_default_times_for_date(selected_date):
     if not isinstance(selected_date, date):
         selected_date = date.today()
     return selected_date.strftime("%H:%M") 
@@ -184,7 +184,8 @@ def initialize_session_state(update_basket_callback=None):
         for move_type_key, sections in data.item_definitions.items():
             if isinstance(sections, dict):
                 for section_key, item_list in sections.items():
-                    if section_key == data.WASTE_SECTION_NAME if hasattr(data, "WASTE_SECTION_NAME") else False : continue
+                    waste_section_name = getattr(data, "WASTE_SECTION_NAME", "폐기 처리 품목 🗑️")
+                    if section_key == waste_section_name : continue
                     if isinstance(item_list, list):
                         for item_name in item_list:
                             if hasattr(data, "items") and data.items is not None and item_name in data.items:
@@ -245,11 +246,10 @@ def prepare_state_for_save(current_state_dict):
     if "uploaded_image_paths" not in state_to_save or not isinstance(state_to_save.get("uploaded_image_paths"), list):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
     
-    state_to_save["app_version"] = "1.1.1" # 예시 버전 업데이트
+    state_to_save["app_version"] = "1.1.2" # 버전 업데이트
     state_to_save["saved_at_kst"] = datetime.now(pytz.timezone("Asia/Seoul") if "pytz" in globals() else None).isoformat()
 
     return state_to_save
-
 
 def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     if not isinstance(loaded_data_dict, dict):
@@ -265,7 +265,7 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "storage_type": data.STORAGE_TYPES[0] if hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
         "apply_long_distance": False, "long_distance_selector": data.long_distance_options[0] if hasattr(data, "long_distance_options") else "선택 안 함",
         "customer_name": "", "customer_phone": "", "customer_email": "",
-        "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load, # 계약일 추가
+        "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load,
         "storage_duration": 1, "storage_use_electricity": False,
         "from_address_full": "", "from_floor": "", "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
         "to_address_full": "", "to_floor": "", "to_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
@@ -286,13 +286,15 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "move_time_option": "오전", "afternoon_move_details": "",
         "uploaded_image_paths": [], "total_volume": 0.0, "total_weight": 0.0,
         "prev_final_selected_vehicle": None,
-        "manual_ladder_from_check": False, # UI용 체크박스 상태
-        "manual_ladder_to_check": False    # UI용 체크박스 상태
+        "manual_ladder_from_check": False, 
+        "manual_ladder_to_check": False    
     }
     if hasattr(data, 'item_definitions') and data.item_definitions:
         for move_type_key, sections in data.item_definitions.items():
             if isinstance(sections, dict):
                 for section_key, items_in_section in sections.items():
+                    waste_section_name = getattr(data, "WASTE_SECTION_NAME", "폐기 처리 품목 🗑️")
+                    if section_key == waste_section_name: continue
                     if isinstance(items_in_section, list):
                         for item_name_key in items_in_section:
                              if hasattr(data, "items") and item_name_key in data.items:
@@ -306,11 +308,11 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     string_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, str)] 
     allow_negative_keys_load = ["tab3_adjustment_amount", "adjustment_amount"]
 
-    for key_from_save_file in STATE_KEYS_TO_SAVE + [k for k in defaults_for_loading if k.startswith("qty_")]: # 모든 키 확인
+    for key_from_save_file in STATE_KEYS_TO_SAVE + [k for k in defaults_for_loading if k.startswith("qty_")]: 
         default_for_key = defaults_for_loading.get(key_from_save_file) 
         value_from_file = loaded_data_dict.get(key_from_save_file)
         
-        if value_from_file is None: # 파일에 없으면 기본값 사용
+        if value_from_file is None: 
             st.session_state[key_from_save_file] = default_for_key
             continue
 
