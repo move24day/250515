@@ -487,7 +487,7 @@ def render_tab3():
                         # 첫 줄 (경로 및 추가정보)
                         route_leg1_line_parts = [f"{departure_date_str} / {from_addr_full_summary} - {storage_location_name_for_route}({storage_duration_for_route}일) / {vehicle_tonnage_summary}"]
                         leg1_suffix_details = []
-                        if is_tax_invoice_selected and not is_card_payment_selected and email_summary: leg1_suffix_details.append(f"세금계산서 ({email_summary})")
+                        if is_tax_invoice_selected and not is_card_payment_selected and email_summary: leg1_suffix_details.append(f"계산서발행 ({email_summary})")
                         elif is_tax_invoice_selected and not is_card_payment_selected: leg1_suffix_details.append("세금계산서")
                         if st.session_state.get("move_time_option") == "오후":
                             aft_details = st.session_state.get("afternoon_move_details", "").strip()
@@ -609,7 +609,7 @@ def render_tab3():
                         
                         # 추가 정보 (세금계산서 이메일, 오후이사, 장거리)
                         suffix_details_general = []
-                        if is_tax_invoice_selected and not is_card_payment_selected and email_summary: suffix_details_general.append(f"세금계산서 ({email_summary})")
+                        if is_tax_invoice_selected and not is_card_payment_selected and email_summary: suffix_details_general.append(f"계산서발행 ({email_summary})")
                         elif is_tax_invoice_selected and not is_card_payment_selected: suffix_details_general.append("세금계산서")
                         
                         # 오후이사 정보는 최상단 first_line_indicators_list에서 이미 처리, 여기서는 중복 방지
