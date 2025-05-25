@@ -280,7 +280,7 @@ def render_tab3():
             st.number_input("추가 조정 (+/-)", step=10000, key="adjustment_amount", format="%d")
 
         st.markdown("**수동 사다리 추가금**")
-        col_ladder_manual1, col_ladder_manual2 = st.columns(2) # 지방 사다리 추가금 입력란 제거
+        col_ladder_manual1, col_ladder_manual2 = st.columns(2) 
         with col_ladder_manual1:
             st.number_input("출발지 사다리 수동 추가", min_value=0, step=10000, key="departure_ladder_surcharge_manual", format="%d")
         with col_ladder_manual2:
@@ -316,7 +316,7 @@ def render_tab3():
                 else: 
                     st.session_state.storage_duration = 1
                     if isinstance(m_dt, date) and (not isinstance(a_dt, date) or a_dt < m_dt) : 
-                         st.session_state.arrival_date = m_dt + timedelta(days=1) # 도착일이 유효하지 않으면 출발일+1일로
+                         st.session_state.arrival_date = m_dt + timedelta(days=1) 
 
             current_state_dict = st.session_state.to_dict()
             if hasattr(calculations, "calculate_total_moving_cost") and callable(calculations.calculate_total_moving_cost):
@@ -392,7 +392,7 @@ def render_tab3():
                     via_loc_sum = st.session_state.get('via_point_location', '') if has_via_point_summary else ""
                     via_floor_sum = st.session_state.get('via_point_floor', '') if has_via_point_summary else ""
                     
-                    deposit_total_input = int(st.session_state.get("deposit_amount", 0))
+                    deposit_total_input = int(st.session_state.get("deposit_amount", 0)) 
                     
                     is_storage_move_summary = st.session_state.get('is_storage_move', False)
                     storage_details_text_display = "" 
@@ -431,13 +431,13 @@ def render_tab3():
                     is_card_payment_selected = st.session_state.get("card_payment", False)
                     payment_options_summary_str = "" 
                     if is_card_payment_selected:
-                        payment_options_summary_str = "  (카드 결제 예정)"
+                        payment_options_summary_str = "  (카드 결제 예정)" # 예시에서 계약금/잔금 라인과 분리됨
                     elif is_tax_invoice_selected:
                         payment_options_summary_str = "  (세금계산서 발행 예정)"
 
+
                     summary_output_lines = [] 
                     
-                    # --- 첫 줄 표시기 (요청사항 반영) ---
                     first_line_indicators = []
                     move_time_opt_sum = st.session_state.get("move_time_option", "미선택")
                     afternoon_details_sum = st.session_state.get("afternoon_move_details", "").strip()
@@ -454,7 +454,6 @@ def render_tab3():
                     if first_line_indicators:
                         summary_output_lines.append(f"** [{', '.join(first_line_indicators)}] **")
                     
-                    # --- 비용 요소 추출 ---
                     storage_fee_val = 0
                     cost_sum_pre_vat_card = 0 
                     vat_on_total_val = 0 
@@ -470,9 +469,7 @@ def render_tab3():
                     
                     base_moving_cost_pre_vat = cost_sum_pre_vat_card - storage_fee_val
 
-                    # --- 요약 블록 생성 ---
                     if is_storage_move_summary:
-                        # --- 보관 이사: 2개의 요약 블록 ---
                         departure_date_str = st.session_state.moving_date.strftime('%m-%d') if isinstance(st.session_state.moving_date, date) else str(st.session_state.moving_date)
                         arrival_date_str = st.session_state.arrival_date.strftime('%m-%d') if isinstance(st.session_state.arrival_date, date) else str(st.session_state.arrival_date)
 
@@ -496,7 +493,7 @@ def render_tab3():
                         remaining_leg1 = payment_leg1_final - deposit_leg1
                         remaining_leg2 = payment_leg2_final - deposit_leg2
                         
-                        cost_breakdown_line_overall = f"총계 {total_cost_num:,.0f}원 중 (이사서비스 {base_moving_cost_pre_vat:,.0f}원 + 보관료 {storage_fee_val:,.0f}원"
+                        cost_breakdown_overall_line = f"총계 {total_cost_num:,.0f}원 중 (이사서비스 {base_moving_cost_pre_vat:,.0f}원 + 보관료 {storage_fee_val:,.0f}원"
                         if is_tax_invoice_selected and not is_card_payment_selected:
                              cost_breakdown_overall_line += f" + 전체세액 {vat_on_total_val:,.0f}원"
                         elif is_card_payment_selected:
@@ -505,10 +502,8 @@ def render_tab3():
                         cost_breakdown_overall_line += ")"
                         
                         # 출발일 요약 (Leg 1)
-                        summary_output_lines.append(f"\n--- {departure_date_str} (출발일 / {storage_location_name_for_route} 입고) ---")
-                        if not (summary_output_lines[0].startswith("**") and len(first_line_indicators)>0) : summary_output_lines.append("")
-
-
+                        if not (summary_output_lines and summary_output_lines[0].startswith("**")): summary_output_lines.append("") # 첫줄 표시기 없으면 빈줄로 시작
+                        summary_output_lines.append(f"--- {departure_date_str} (출발일 / {storage_location_name_for_route} 입고) ---")
                         summary_output_lines.append(f"{customer_name_summary}")
                         summary_output_lines.append(f"{phone_summary}")
                         if email_summary: summary_output_lines.append(email_summary)
@@ -520,7 +515,9 @@ def render_tab3():
                         summary_output_lines.append(f"계약금: {int(deposit_leg1):,.0f}원 / 잔금: {int(remaining_leg1):,.0f}원")
                         if is_tax_invoice_selected and not is_card_payment_selected:
                              summary_output_lines.append(f"  (출발일 세액: {int(vat_leg1):,.0f}원 포함)")
-                        elif is_card_payment_selected :  summary_output_lines.append(payment_options_summary_str) 
+                        # 카드결제시는 총액에 포함되므로 별도 세액 표기 없음, payment_options_summary_str로 처리
+                        elif is_card_payment_selected and payment_options_summary_str:
+                             summary_output_lines.append(payment_options_summary_str)
                         summary_output_lines.append(cost_breakdown_overall_line) 
                         summary_output_lines.append("")
                         summary_output_lines.append("출발지 주소:")
@@ -537,8 +534,7 @@ def render_tab3():
 
                         # 도착일 요약 (Leg 2)
                         summary_output_lines.append(f"--- {arrival_date_str} (도착일 / {storage_location_name_for_route} 출고) ---")
-                        summary_output_lines.append("")
-                        summary_output_lines.append(f"{customer_name_summary}")
+                        summary_output_lines.append(f"{customer_name_summary}") # 정보 반복
                         summary_output_lines.append(f"{phone_summary}")
                         if email_summary: summary_output_lines.append(email_summary)
                         summary_output_lines.append("")
@@ -549,10 +545,11 @@ def render_tab3():
                         summary_output_lines.append(f"계약금: {int(deposit_leg2):,.0f}원 / 잔금: {int(remaining_leg2):,.0f}원")
                         if is_tax_invoice_selected and not is_card_payment_selected:
                              summary_output_lines.append(f"  (도착일 세액: {int(vat_leg2):,.0f}원 포함)")
-                        elif is_card_payment_selected :  summary_output_lines.append(payment_options_summary_str)
+                        elif is_card_payment_selected and payment_options_summary_str:
+                             summary_output_lines.append(payment_options_summary_str)
                         summary_output_lines.append(cost_breakdown_overall_line)
                         summary_output_lines.append("")
-                        summary_output_lines.append(f"보관 정보: {storage_details_text_display}")
+                        summary_output_lines.append(f"보관 정보: {storage_details_text_display}") # 보관 정보 반복
                         summary_output_lines.append("")
                         summary_output_lines.append("도착지 주소:")
                         summary_output_lines.append(to_addr_full_summary)
@@ -591,11 +588,10 @@ def render_tab3():
                             summary_output_lines.append(payment_options_summary_str)
                         summary_output_lines.append("") 
 
-                        # --- 상세 비용 항목 다시 표시 ---
                         summary_output_lines.append("세부 비용 내역:")
                         cost_item_details_for_summary = []
                         for name, cost, note in cost_items_display:
-                            if name == "오류": continue # 오류 항목은 상세 내역에서 제외
+                            if name == "오류": continue 
                             cost_val = 0
                             try: cost_val = int(float(cost or 0))
                             except: pass
@@ -605,18 +601,17 @@ def render_tab3():
                                 note_display_text = f" ({note})" if note else ""
 
                                 if name == "기본 운임": formatted_name = "이사비"
-                                elif "사다리차" in name and "추가" not in name : formatted_name = name.replace(" 사다리차", "사다리")
-                                elif "스카이 장비" in name: formatted_name = name.replace(" 스카이 장비", "스카이")
+                                elif "사다리차" in name and "추가" not in name : formatted_name = name.replace(" 사다리차", "사다리") # 예: "출발지사다리"
+                                elif "스카이 장비" in name: formatted_name = name.replace(" 스카이 장비", "스카이") # 예: "도착지스카이"
                                 elif name == "보관료":
                                     s_label = "보관료"
                                     if "컨테이너" in note: s_label = "컨테이너보관"
                                     elif "실내" in note: s_label = "실내보관"
                                     if "전기사용" in note: s_label += "(전기)"
                                     formatted_name = s_label
-                                    note_display_text = f" ({note.split(', ')[1]})" if ',' in note else "" # 기간만 표시
+                                    note_display_text = f" ({note.split(', ')[1]})" if note and ',' in note else "" # 기간만 표시 시도
                                 elif name == "출발지 수동 사다리 추가": formatted_name = "출발사다리(수동)"
                                 elif name == "도착지 수동 사다리 추가": formatted_name = "도착사다리(수동)"
-                                elif name == "지방 사다리 추가요금": formatted_name = "지방사다리추가" # 삭제되었으므로 이 조건은 불필요
                                 elif "조정 금액" in name: formatted_name = "수기조정"
                                 elif name == "기본 여성 인원 제외 할인": formatted_name = "여성인원제외"
                                 elif name == "기본 남성 인원 제외 할인": formatted_name = "남성인원제외"
@@ -627,8 +622,8 @@ def render_tab3():
                                 elif name == "경유지 추가요금": formatted_name = "경유지추가"
                                 elif name == "부가세 (10%)": formatted_name = "부가세"
                                 elif name == "카드결제 (VAT 및 수수료 포함)": formatted_name = "카드결제수수료"
-                                else: note_display_text = "" # 일반적인 항목은 비고 생략
-
+                                else: # 기타 항목은 비고 생략 또는 필요한 경우 추가
+                                    note_display_text = "" 
                                 cost_item_details_for_summary.append(f"  - {formatted_name}: {cost_val:,.0f}원{note_display_text}")
                         
                         if cost_item_details_for_summary:
@@ -636,7 +631,6 @@ def render_tab3():
                         else:
                             summary_output_lines.append("  (상세 비용 내역 없음)")
                         summary_output_lines.append("")
-                        # --- 상세 비용 항목 표시 끝 ---
 
                         summary_output_lines.append("출발지 주소:")
                         summary_output_lines.append(from_addr_full_summary)
@@ -666,8 +660,6 @@ def render_tab3():
         except Exception as calc_err_outer_display_final_err:
             st.error(f"최종 견적 표시 중 외부 오류 발생: {calc_err_outer_display_final_err}")
             traceback.print_exc()
-
-    # ... (견적서 생성, 발송 및 다운로드 부분은 기존과 동일) ...
 
     # ... (견적서 생성, 발송 및 다운로드 부분은 기존과 동일) ...
     st.subheader("견적서 생성, 발송 및 다운로드")
