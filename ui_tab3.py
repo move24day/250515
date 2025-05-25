@@ -500,7 +500,7 @@ def render_tab3():
                         suffix_items_list = []
                         if is_tax_flag and not is_card_payment_selected: 
                             email_part = f" ({customer_email_str})" if customer_email_str else ""
-                            suffix_items_list.append(f"세금계산서{email_part}")
+                            suffix_items_list.append(f"계산서발행{email_part}")
                         
                         if move_time_opt_str_val == "오후":
                             time_indicator = "오후이사"
@@ -692,7 +692,7 @@ def render_tab3():
                         summary_output_lines.append("도착지 주소:")
                         summary_output_lines.append(to_addr_full_summary)
                         summary_output_lines.append("")
-                        summary_output_lines.append(f"보관 정보 (반복): {storage_details_text_display}") 
+                        summary_output_lines.append(f"보관 정보 : {storage_details_text_display}") 
                         if bask_summary_str:
                             summary_output_lines.append("")
                             summary_output_lines.append(bask_summary_str)
