@@ -46,21 +46,19 @@ def render_tab1():
     if UPLOAD_DIR is None:
         st.warning("이미지 업로드 디렉토리 설정에 문제가 있어 이미지 관련 기능이 제한될 수 있습니다.")
 
-    if 'image_uploader_key_counter' not in st.session_state:
-        st.session_state.image_uploader_key_counter = 0
-    if 'issue_tax_invoice' not in st.session_state: 
-        st.session_state.issue_tax_invoice = False
-    if 'card_payment' not in st.session_state:
-        st.session_state.card_payment = False
-    if 'move_time_option' not in st.session_state: 
-        st.session_state.move_time_option = "미선택"
-    if 'afternoon_move_details' not in st.session_state:
-        st.session_state.afternoon_move_details = ""
+    # 세션 상태 초기화 (이미 있는 키는 건드리지 않음)
+    st.session_state.setdefault('image_uploader_key_counter', 0)
+    st.session_state.setdefault('issue_tax_invoice', False)
+    st.session_state.setdefault('card_payment', False)
+    st.session_state.setdefault('move_time_option', "미선택")
+    st.session_state.setdefault('afternoon_move_details', "")
+
 
     gdrive_folder_id_from_secrets = st.secrets.get("gcp_service_account", {}).get("drive_folder_id")
 
     with st.container(border=True):
         st.subheader("Google Drive 연동") 
+        # ... (기존 Google Drive 연동 UI 로직은 변경 없음) ...
         if gdrive_folder_id_from_secrets:
             st.caption(f"Google Drive의 지정된 폴더에 견적 파일을 저장하고 불러옵니다.")
         else:
@@ -206,16 +204,13 @@ def render_tab1():
 
     st.header("고객 기본 정보") 
     
-    move_type_options_tab1_display = [opt.split(" ")[0] for opt in MOVE_TYPE_OPTIONS]
-    # 현재 base_move_type 값을 MOVE_TYPE_OPTIONS 리스트에서 찾아 인덱스를 결정
     current_base_move_type_value = st.session_state.get('base_move_type', MOVE_TYPE_OPTIONS[0] if MOVE_TYPE_OPTIONS else "")
     try:
         current_index_tab1 = MOVE_TYPE_OPTIONS.index(current_base_move_type_value)
     except ValueError:
-        current_index_tab1 = 0 # 현재 값이 옵션에 없으면 첫 번째로
-        if MOVE_TYPE_OPTIONS: # 옵션이 존재하면 세션 상태도 첫 번째 옵션으로 동기화
+        current_index_tab1 = 0 
+        if MOVE_TYPE_OPTIONS:
             st.session_state.base_move_type = MOVE_TYPE_OPTIONS[0]
-
 
     sync_move_type_callback_ref = getattr(callbacks, 'sync_move_type', None)
     if MOVE_TYPE_OPTIONS: 
@@ -234,97 +229,90 @@ def render_tab1():
     with col_opts2: st.checkbox("장거리 이사 적용", key="apply_long_distance") 
     with col_opts3: st.checkbox("경유지 이사 여부", key="has_via_point") 
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.text_input("고객명", key="customer_name")
-        
-        # --- 출발지 주소와 층수 함께 배치 ---
-        sub_col_from_addr, sub_col_from_floor = st.columns([3,1])
-        with sub_col_from_addr:
-            st.text_input("출발지 주소", key="from_location", label_visibility="collapsed", placeholder="출발지 주소")
-        with sub_col_from_floor:
-            st.text_input("층수", key="from_floor", label_visibility="collapsed", placeholder="출발층 (예: 3, B1)")
-        # --- ---
-        
-        if st.session_state.get('apply_long_distance'): 
-            ld_options = data.long_distance_options if hasattr(data,'long_distance_options') else []
-            if 'long_distance_selector' not in st.session_state: 
-                st.session_state.long_distance_selector = ld_options[0] if ld_options else None
-            
-            current_ld_val = st.session_state.get('long_distance_selector')
-            current_ld_index = 0 
-            if ld_options and current_ld_val in ld_options:
-                try: current_ld_index = ld_options.index(current_ld_val)
-                except ValueError: st.session_state.long_distance_selector = ld_options[0] 
+    # --- 고객 정보 입력 레이아웃 변경 ---
+    st.text_input("고객명", key="customer_name")
+    
+    col_phone, col_email = st.columns(2)
+    with col_phone:
+        st.text_input("전화번호", key="customer_phone", placeholder="010-1234-5678 또는 01012345678")
+    with col_email:
+        st.text_input("이메일", key="customer_email", placeholder="email@example.com")
 
-            st.selectbox("장거리 구간 선택", ld_options, index=current_ld_index, key="long_distance_selector") 
-                
-        method_options_from = data.METHOD_OPTIONS if hasattr(data,'METHOD_OPTIONS') else []
-        if 'from_method' not in st.session_state: 
-            st.session_state.from_method = method_options_from[0] if method_options_from else None
-        
-        current_from_method_val = st.session_state.get('from_method')
-        current_from_method_index = 0
-        if method_options_from and current_from_method_val in method_options_from:
-            try: current_from_method_index = method_options_from.index(current_from_method_val)
-            except ValueError: st.session_state.from_method = method_options_from[0]
-        
-        st.selectbox("출발지 작업 방법", method_options_from, 
-                      format_func=lambda x: x.split(" ")[0] if x else "선택", 
-                      index=current_from_method_index, key="from_method") 
-        
+    st.markdown("---") # 구분선
+
+    st.subheader("출발지 정보")
+    from_addr_cols = st.columns([3,1]) # 주소 입력칸을 더 넓게
+    with from_addr_cols[0]:
+        st.text_input("출발지 주소", key="from_location", label_visibility="collapsed", placeholder="출발지 전체 주소")
+    with from_addr_cols[1]:
+        st.text_input("층수", key="from_floor", label_visibility="collapsed", placeholder="출발층 (예: 3, B1)")
+    
+    from_method_options = data.METHOD_OPTIONS if hasattr(data,'METHOD_OPTIONS') else []
+    current_from_method_val = st.session_state.get('from_method', from_method_options[0] if from_method_options else None)
+    try: current_from_method_idx = from_method_options.index(current_from_method_val) if current_from_method_val in from_method_options else 0
+    except ValueError: current_from_method_idx = 0
+    st.selectbox("출발지 작업 방법", from_method_options, 
+                    format_func=lambda x: x.split(" ")[0] if x else "선택", 
+                    index=current_from_method_idx, key="from_method")
+
+    st.markdown("---") # 구분선
+    st.subheader("도착지 정보")
+    to_addr_cols = st.columns([3,1])
+    with to_addr_cols[0]:
+        st.text_input("도착지 주소", key="to_location", label_visibility="collapsed", placeholder="도착지 전체 주소")
+    with to_addr_cols[1]:
+        st.text_input("층수", key="to_floor", label_visibility="collapsed", placeholder="도착층 (예: 5, B2)")
+
+    to_method_options = data.METHOD_OPTIONS if hasattr(data,'METHOD_OPTIONS') else []
+    current_to_method_val = st.session_state.get('to_method', to_method_options[0] if to_method_options else None)
+    try: current_to_method_idx = to_method_options.index(current_to_method_val) if current_to_method_val in to_method_options else 0
+    except ValueError: current_to_method_idx = 0
+    st.selectbox("도착지 작업 방법", to_method_options, 
+                    format_func=lambda x: x.split(" ")[0] if x else "선택", 
+                    index=current_to_method_idx, key="to_method")
+    
+    st.markdown("---") # 구분선
+    st.subheader("이사 날짜 및 시간")
+    date_cols = st.columns(2)
+    with date_cols[0]:
         current_moving_date_val = st.session_state.get('moving_date')
         if not isinstance(current_moving_date_val, date):
              try: kst_def = pytz.timezone("Asia/Seoul"); default_date_def = datetime.now(kst_def).date()
              except Exception: default_date_def = datetime.now().date()
              st.session_state.moving_date = default_date_def
-             
         st.date_input("이사 예정일 (출발일)", key="moving_date") 
-
-        # --- 오전/오후 이사 선택 추가 ---
+    
+    with date_cols[1]:
         move_time_options = ["미선택", "오전", "오후"]
         current_move_time_opt_val = st.session_state.get("move_time_option", move_time_options[0])
-        try:
-            move_time_index = move_time_options.index(current_move_time_opt_val)
-        except ValueError:
-            move_time_index = 0 
-            st.session_state.move_time_option = move_time_options[0] # 기본값으로 설정
+        try: move_time_index = move_time_options.index(current_move_time_opt_val)
+        except ValueError: move_time_index = 0; st.session_state.move_time_option = move_time_options[0]
         
-        st.selectbox(
-            "이사 시간대 선택", 
-            options=move_time_options, 
-            index=move_time_index, 
-            key="move_time_option"
-        )
+        st.selectbox("이사 시간대", options=move_time_options, index=move_time_index, key="move_time_option")
         if st.session_state.get("move_time_option") == "오후":
-            st.text_input("오후 이사 상세 (시간 등)", key="afternoon_move_details", placeholder="예: 3시 시작, 13:00~16:00 작업")
-        # --- 오전/오후 이사 선택 끝 ---
+            st.text_input("오후이사 상세(시간 등)", key="afternoon_move_details", placeholder="예: 3시 시작, 13-16시")
     
-    with col2:
-        st.text_input("전화번호", key="customer_phone", placeholder="010-1234-5678 또는 01012345678") 
-        st.text_input("이메일", key="customer_email", placeholder="email@example.com") 
+    if st.session_state.get('is_storage_move'): # 보관이사 시에만 도착(입고) 예정일 표시
+        min_arrival_date = st.session_state.get('moving_date', date.today())
+        if not isinstance(min_arrival_date, date): min_arrival_date = date.today() 
 
-        # --- 도착지 주소와 층수 함께 배치 ---
-        sub_col_to_addr, sub_col_to_floor = st.columns([3,1])
-        with sub_col_to_addr:
-            st.text_input("도착지 주소", key="to_location", label_visibility="collapsed", placeholder="도착지 주소")
-        with sub_col_to_floor:
-            st.text_input("층수", key="to_floor", label_visibility="collapsed", placeholder="도착층 (예: 5, B2)")
-        # --- ---
+        current_arrival_date = st.session_state.get('arrival_date')
+        if not isinstance(current_arrival_date, date) or current_arrival_date < min_arrival_date:
+            st.session_state.arrival_date = min_arrival_date 
+        st.date_input("도착 예정일 (보관 후 입고일)", key="arrival_date", min_value=min_arrival_date)
 
-        method_options_to = data.METHOD_OPTIONS if hasattr(data,'METHOD_OPTIONS') else []
-        if 'to_method' not in st.session_state: 
-            st.session_state.to_method = method_options_to[0] if method_options_to else None
-        
-        current_to_method_val = st.session_state.get('to_method')
-        current_to_method_index = 0
-        if method_options_to and current_to_method_val in method_options_to:
-            try: current_to_method_index = method_options_to.index(current_to_method_val)
-            except ValueError: st.session_state.to_method = method_options_to[0]
 
-        st.selectbox("도착지 작업 방법", method_options_to, 
-                      format_func=lambda x: x.split(" ")[0] if x else "선택", 
-                      index=current_to_method_index, key="to_method") 
+    if st.session_state.get('apply_long_distance'): 
+        ld_options = data.long_distance_options if hasattr(data,'long_distance_options') else []
+        if 'long_distance_selector' not in st.session_state: 
+            st.session_state.long_distance_selector = ld_options[0] if ld_options else None
+        current_ld_val = st.session_state.get('long_distance_selector')
+        current_ld_index = 0 
+        if ld_options and current_ld_val in ld_options:
+            try: current_ld_index = ld_options.index(current_ld_val)
+            except ValueError: st.session_state.long_distance_selector = ld_options[0] 
+        st.selectbox("장거리 구간 선택", ld_options, index=current_ld_index, key="long_distance_selector") 
+
 
     with st.container(border=True):
         st.subheader("결제 관련 옵션") 
@@ -335,6 +323,7 @@ def render_tab1():
             st.checkbox("카드 결제 (VAT 및 수수료 포함하여 총 13% 추가)", key="card_payment") 
     st.divider()
 
+    # ... (이미지 업로드 및 나머지 UI 로직은 기존과 동일하게 유지) ...
     if UPLOAD_DIR: 
         st.subheader("관련 이미지 업로드") 
         uploader_widget_key = f"image_uploader_tab1_instance_{st.session_state.image_uploader_key_counter}"
@@ -429,6 +418,7 @@ def render_tab1():
     else: 
         st.warning("이미지 업로드 디렉토리 설정 오류로 이미지 업로드 기능이 비활성화되었습니다.")
 
+
     kst_time_str = utils.get_current_kst_time_str() if hasattr(utils, 'get_current_kst_time_str') else ''
     st.caption(f"견적 생성/수정 시간: {kst_time_str}") 
     st.divider()
@@ -459,12 +449,11 @@ def render_tab1():
                         ) 
         st.divider()
 
-    if st.session_state.get('is_storage_move'):
+    if st.session_state.get('is_storage_move'): # 보관이사 선택 시에만 이 섹션 표시
         with st.container(border=True):
-            st.subheader("보관이사 추가 정보") 
-            
+            st.subheader("보관이사 추가 정보")
+            # ... (보관이사 관련 UI 로직은 이전과 동일하게 유지) ...
             storage_options_raw = data.STORAGE_TYPE_OPTIONS if hasattr(data,'STORAGE_TYPE_OPTIONS') else []
-            storage_options_display = [opt.split(" ")[0] for opt in storage_options_raw]
             
             if 'storage_type' not in st.session_state: 
                 st.session_state.storage_type = storage_options_raw[0] if storage_options_raw else None
@@ -484,20 +473,27 @@ def render_tab1():
                       key="storage_type", horizontal=True)
             st.checkbox("보관 중 전기사용", key="storage_use_electricity") 
 
-            min_arrival_date = st.session_state.get('moving_date', date.today())
-            if not isinstance(min_arrival_date, date): min_arrival_date = date.today() 
+            min_arrival_date_for_storage = st.session_state.get('moving_date', date.today())
+            if not isinstance(min_arrival_date_for_storage, date): min_arrival_date_for_storage = date.today() 
+            # 도착일은 출발일 이후여야 함
+            min_arrival_date_for_storage = min_arrival_date_for_storage + timedelta(days=1)
 
-            current_arrival_date = st.session_state.get('arrival_date')
-            if not isinstance(current_arrival_date, date) or current_arrival_date < min_arrival_date:
-                st.session_state.arrival_date = min_arrival_date 
 
-            st.date_input("도착 예정일 (보관 후)", key="arrival_date", min_value=min_arrival_date) 
+            current_arrival_date_for_storage = st.session_state.get('arrival_date')
+            if not isinstance(current_arrival_date_for_storage, date) or current_arrival_date_for_storage < min_arrival_date_for_storage:
+                st.session_state.arrival_date = min_arrival_date_for_storage
+            
+            st.date_input("도착 예정일 (보관 후 입고일)", key="arrival_date", min_value=min_arrival_date_for_storage) 
 
-            moving_dt, arrival_dt = st.session_state.get('moving_date'), st.session_state.get('arrival_date')
-            calculated_duration = max(1, (arrival_dt - moving_dt).days + 1) if isinstance(moving_dt,date) and isinstance(arrival_dt,date) and arrival_dt >= moving_dt else 1
-            st.session_state.storage_duration = calculated_duration 
-            st.markdown(f"**계산된 보관 기간:** **`{calculated_duration}`** 일")
+            moving_dt_for_storage, arrival_dt_for_storage = st.session_state.get('moving_date'), st.session_state.get('arrival_date')
+            calculated_duration_for_storage = 1 # 기본 1일
+            if isinstance(moving_dt_for_storage,date) and isinstance(arrival_dt_for_storage,date) and arrival_dt_for_storage >= moving_dt_for_storage:
+                 calculated_duration_for_storage = max(1, (arrival_dt_for_storage - moving_dt_for_storage).days +1) # 일수 계산시 +1
+            
+            st.session_state.storage_duration = calculated_duration_for_storage
+            st.markdown(f"**계산된 보관 기간:** **`{calculated_duration_for_storage}`** 일")
         st.divider()
+
 
     with st.container(border=True):
         st.header("고객 요구사항") 
