@@ -192,7 +192,6 @@ def calculate_total_moving_cost(state_data):
         cost_items.append((f"{'할증' if adj_amount > 0 else '할인'} 조정 금액", adj_amount, "수동입력"))
         cost_before_add_charges += adj_amount
 
-    # --- 신규 수동 사다리 추가금 반영 ---
     dep_ladder_manual = int(state_data.get('departure_ladder_surcharge_manual', 0) or 0)
     if dep_ladder_manual > 0:
         cost_items.append(("출발지 수동 사다리 추가", dep_ladder_manual, "수동입력"))
@@ -202,7 +201,12 @@ def calculate_total_moving_cost(state_data):
     if arr_ladder_manual > 0:
         cost_items.append(("도착지 수동 사다리 추가", arr_ladder_manual, "수동입력"))
         cost_before_add_charges += arr_ladder_manual
-    # --- 신규 수동 사다리 추가금 반영 끝 ---
+    
+    # regional_ladder_surcharge 삭제
+    # reg_ladder_surcharge = int(state_data.get('regional_ladder_surcharge',0) or 0) 
+    # if reg_ladder_surcharge > 0: 
+    #     cost_items.append(("지방 사다리 추가요금", reg_ladder_surcharge, "수동입력"))
+    #     cost_before_add_charges += reg_ladder_surcharge
 
 
     if is_storage:
@@ -219,7 +223,7 @@ def calculate_total_moving_cost(state_data):
                 s_elec_surcharge = s_elec_surcharge_per_day * s_dur
                 s_note += ", 전기사용"
             s_final_cost = s_base_cost + s_elec_surcharge
-            cost_items.append(("보관료", s_final_cost, s_note)) # 이 금액은 VAT 전 금액
+            cost_items.append(("보관료", s_final_cost, s_note)) 
             cost_before_add_charges += s_final_cost
         else: 
             cost_items.append(("오류", 0, f"보관유형({s_type_raw}) 요금정보 없음"))
@@ -251,12 +255,7 @@ def calculate_total_moving_cost(state_data):
     if dt_surcharge > 0: 
         cost_items.append(("날짜 할증", dt_surcharge, ", ".join(dt_notes)))
         cost_before_add_charges += dt_surcharge
-    
-    reg_ladder_surcharge = int(state_data.get('regional_ladder_surcharge',0) or 0) 
-    if reg_ladder_surcharge > 0: 
-        cost_items.append(("지방 사다리 추가요금", reg_ladder_surcharge, "수동입력"))
-        cost_before_add_charges += reg_ladder_surcharge
-    
+        
     if has_via_point:
         via_s = int(state_data.get('via_point_surcharge',0) or 0)
         if via_s > 0: 
