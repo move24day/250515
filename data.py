@@ -1,4 +1,4 @@
-# data.py (수정 후)
+# data.py (전기료 계산 로직 수정 반영)
 
 # --- 차량 제원 ---
 vehicle_specs = {
@@ -154,22 +154,22 @@ storage_prices = {
 }
 STORAGE_TYPES = list(storage_prices.keys())
 DEFAULT_STORAGE_TYPE = STORAGE_TYPES[0] if STORAGE_TYPES else "컨테이너 보관 📦"
-STORAGE_TYPE_OPTIONS = list(STORAGE_TYPES) # 이전 버전 호환용
+STORAGE_TYPE_OPTIONS = list(STORAGE_TYPES)
 
-# 보관 전기료 관련 상수 (실제 운영 값으로 수정 필요)
-STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH = 50000
-STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH = 30000
-STORAGE_ELECTRICITY_SURCHARGE_PER_DAY = 2000
+# 보관 전기료 관련 상수 수정
+# STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH = 50000 # 월간/정액제 대신 일일 요금만 사용
+# STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH = 30000 # 월간/정액제 대신 일일 요금만 사용
+STORAGE_ELECTRICITY_SURCHARGE_PER_DAY = 3000 # 사용자 요청: 일 3000원
 # --- 보관 관련 설정 끝 ---
 
 METHOD_OPTIONS = ["사다리차 🪜", "승강기 🛗", "계단 🚶", "스카이 🏗️"]
 
-# VAT 및 카드결제 수수료율 (실제 운영 값으로 수정 필요)
+# VAT 및 카드결제 수수료율
 VAT_RATE_PERCENT = 10.0
-CARD_PAYMENT_SURCHARGE_PERCENT = 13.0 # 예: VAT 10% + 카드사 수수료 3% (실제 계약된 수수료율 확인)
+CARD_PAYMENT_SURCHARGE_PERCENT = 13.0
 
-# 기본 사다리차 수동 추가금액 (state_manager.py 등에서 참조 가능)
+# 기본 사다리차 수동 추가금액
 MANUAL_LADDER_SURCHARGE_DEFAULT = 0
 
-# 폐기물 처리 품목 섹션 이름 (state_manager.py 등에서 참조 가능)
+# 폐기물 처리 품목 섹션 이름
 WASTE_SECTION_NAME = "폐기 처리 품목 🗑️"
