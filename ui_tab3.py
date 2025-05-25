@@ -546,7 +546,7 @@ def render_tab3():
                         if has_via_flag_param_local : suffix_items_list.append("경유지이사")
 
                         if is_long_dist_flag_param:
-                            ld_text = long_dist_selector_str_val
+                            ld_text = long_dist_selector_str_val_param # 올바른 매개변수 이름 사용
                             if ld_text and ld_text != "선택 안 함":
                                 suffix_items_list.append(f"{ld_text} 장거리이사")
                             else:
