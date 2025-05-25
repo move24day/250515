@@ -32,9 +32,9 @@ STATE_KEYS_TO_SAVE = [
     "date_opt_3_widget", "date_opt_4_widget",
     "tab3_deposit_amount",
     "tab3_adjustment_amount",
-    "tab3_regional_ladder_surcharge", # 기존 '지방 사다리 추가요금'은 이 키로 저장됨
-    "departure_ladder_surcharge_manual", # <--- 신규: 출발지 수동 사다리 추가금
-    "arrival_ladder_surcharge_manual",   # <--- 신규: 도착지 수동 사다리 추가금
+    # "tab3_regional_ladder_surcharge", # <--- 삭제
+    "departure_ladder_surcharge_manual", 
+    "arrival_ladder_surcharge_manual",   
     "tab3_date_opt_0_widget", "tab3_date_opt_1_widget", "tab3_date_opt_2_widget",
     "tab3_date_opt_3_widget", "tab3_date_opt_4_widget",
     "remove_base_housewife",
@@ -65,7 +65,7 @@ def initialize_session_state(update_basket_callback=None):
         "apply_long_distance": False, "customer_name": "", "customer_phone": "",
         "customer_email": "",
         "from_location": "", "to_location": "", "moving_date": default_date,
-        "arrival_date": default_date,
+        "arrival_date": default_date, # 보관이사 시 도착일
         "from_floor": "",
         "from_method": data.METHOD_OPTIONS[0] if hasattr(data, 'METHOD_OPTIONS') and data.METHOD_OPTIONS else "사다리차 🪜",
         "to_floor": "",
@@ -87,15 +87,15 @@ def initialize_session_state(update_basket_callback=None):
         'pdf_data_customer': None, 'final_excel_data': None,
         "deposit_amount": 0,
         "adjustment_amount": 0,
-        "regional_ladder_surcharge": 0, # 기존 지방 사다리 추가금
-        "departure_ladder_surcharge_manual": 0, # <--- 신규 추가
-        "arrival_ladder_surcharge_manual": 0,   # <--- 신규 추가
+        # "regional_ladder_surcharge": 0, # <--- 삭제
+        "departure_ladder_surcharge_manual": 0, 
+        "arrival_ladder_surcharge_manual": 0,   
         "via_point_surcharge": 0,
         "tab3_deposit_amount": 0,
         "tab3_adjustment_amount": 0,
-        "tab3_regional_ladder_surcharge": 0, # 저장/로드용
-        "tab3_departure_ladder_surcharge_manual": 0, # <--- 신규 추가 (저장/로드용)
-        "tab3_arrival_ladder_surcharge_manual": 0,   # <--- 신규 추가 (저장/로드용)
+        # "tab3_regional_ladder_surcharge": 0, # <--- 삭제
+        "tab3_departure_ladder_surcharge_manual": 0, 
+        "tab3_arrival_ladder_surcharge_manual": 0,   
         "remove_base_housewife": False,
         "remove_base_man": False,
         "move_time_option": "미선택",
@@ -121,14 +121,12 @@ def initialize_session_state(update_basket_callback=None):
             st.session_state[key] = value
 
     int_keys = ["storage_duration", "sky_hours_from", "sky_hours_final", "add_men", "add_women",
-                "deposit_amount", "adjustment_amount", "regional_ladder_surcharge",
-                "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual", # <--- 신규 추가
+                "deposit_amount", "adjustment_amount", 
+                "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual", 
                 "via_point_surcharge", "tab3_deposit_amount", "tab3_adjustment_amount",
-                "tab3_regional_ladder_surcharge", 
-                "tab3_departure_ladder_surcharge_manual", "tab3_arrival_ladder_surcharge_manual", # <--- 신규 추가
+                "tab3_departure_ladder_surcharge_manual", "tab3_arrival_ladder_surcharge_manual", 
                 "dispatched_1t", "dispatched_2_5t",
                 "dispatched_3_5t", "dispatched_5t"]
-    # ... (기존 float_keys, allow_negative_keys, bool_keys, list_keys, dict_keys, string_keys 정의는 이전 답변과 동일하게 유지) ...
     float_keys = ["waste_tons_input", "total_volume", "total_weight"]
     allow_negative_keys = ["adjustment_amount", "tab3_adjustment_amount"]
     bool_keys = ["is_storage_move", "apply_long_distance", "has_waste_check",
@@ -148,7 +146,7 @@ def initialize_session_state(update_basket_callback=None):
                    "gdrive_selected_file_id", "via_point_location", "via_point_floor", "storage_type",
                    "from_method", "to_method", "via_point_method", "base_move_type",
                    "base_move_type_widget_tab1", "base_move_type_widget_tab3", "vehicle_select_radio"
-                   ] # string_keys에 새 키 추가 안해도 기본 처리됨
+                   ]
 
     for k in defaults.keys():
         default_val_k = defaults.get(k)
@@ -163,13 +161,13 @@ def initialize_session_state(update_basket_callback=None):
                 if isinstance(current_val_in_state, str): st.session_state[k] = current_val_in_state.lower() in ["true", "yes", "1", "on", "t"]
                 else: st.session_state[k] = bool(current_val_in_state)
             elif k in int_keys:
-                if isinstance(current_val_in_state, str) and current_val_in_state.strip() == "": st.session_state[k] = default_val_k; continue
+                if isinstance(current_val_in_state, str) and current_val_in_state.strip() == "": st.session_state[k] = default_val_k if isinstance(default_val_k, int) else 0; continue
                 converted_val = int(float(current_val_in_state))
                 if k in allow_negative_keys: st.session_state[k] = converted_val
                 else: st.session_state[k] = max(0, converted_val)
                 if k == "storage_duration": st.session_state[k] = max(1, st.session_state[k])
             elif k in float_keys:
-                if isinstance(current_val_in_state, str) and current_val_in_state.strip() == "": st.session_state[k] = default_val_k; continue
+                if isinstance(current_val_in_state, str) and current_val_in_state.strip() == "": st.session_state[k] = default_val_k if isinstance(default_val_k, float) else 0.0; continue
                 st.session_state[k] = float(current_val_in_state)
                 if k not in allow_negative_keys : st.session_state[k] = max(0.0, st.session_state[k])
             elif k in list_keys:
@@ -182,14 +180,14 @@ def initialize_session_state(update_basket_callback=None):
                      except ValueError: st.session_state[k] = default_val_k
                  elif not isinstance(current_val_in_state, date) : st.session_state[k] = default_val_k
             elif k in string_keys: 
-                 st.session_state[k] = str(current_val_in_state) if current_val_in_state is not None else default_val_k
+                 st.session_state[k] = str(current_val_in_state) if current_val_in_state is not None else (default_val_k if default_val_k is not None else "")
             elif isinstance(default_val_k, str) : 
-                 st.session_state[k] = str(current_val_in_state) if current_val_in_state is not None else default_val_k
+                 st.session_state[k] = str(current_val_in_state) if current_val_in_state is not None else (default_val_k if default_val_k is not None else "")
         except (ValueError, TypeError) as e_type:
             print(f"State Manager Init - Type Error for key '{k}', value '{current_val_in_state}': {e_type}. Using default: {default_val_k}")
             st.session_state[k] = default_val_k
 
-    global STATE_KEYS_TO_SAVE # 전역 변수 사용 명시
+    # 품목 수량 키 초기화
     item_keys_to_save_dyn = []
     if hasattr(data, "item_definitions") and data.item_definitions:
         for move_type_key, sections in data.item_definitions.items():
@@ -206,7 +204,8 @@ def initialize_session_state(update_basket_callback=None):
                                 else:
                                     try: st.session_state[dynamic_key] = int(st.session_state[dynamic_key] or 0)
                                     except (ValueError, TypeError): st.session_state[dynamic_key] = 0
-
+    
+    global STATE_KEYS_TO_SAVE # 전역 변수 사용 선언
     for item_key_dyn in item_keys_to_save_dyn:
         if item_key_dyn not in STATE_KEYS_TO_SAVE:
             STATE_KEYS_TO_SAVE.append(item_key_dyn)
@@ -217,6 +216,7 @@ def initialize_session_state(update_basket_callback=None):
     if callable(update_basket_callback):
         update_basket_callback()
 
+
 def prepare_state_for_save():
     state_to_save = {}
     keys_to_exclude = {
@@ -225,17 +225,17 @@ def prepare_state_for_save():
         "gdrive_selected_filename_widget",
         "pdf_data_customer", "final_excel_data",
         "gdrive_search_results", "gdrive_file_options_map",
-        "deposit_amount", "adjustment_amount", "regional_ladder_surcharge", # 이들은 tab3_ 접두사로 저장
-        "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual", # 이들도 tab3_ 접두사로 저장
+        "deposit_amount", "adjustment_amount", 
+        # "regional_ladder_surcharge", # <--- 삭제
+        "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual",
         "date_opt_0_widget", "date_opt_1_widget", "date_opt_2_widget",
         "date_opt_3_widget", "date_opt_4_widget",
     }
-    # UI 입력값을 저장용 키로 매핑 (tab3_ 접두사)
     st.session_state.tab3_deposit_amount = st.session_state.get("deposit_amount", 0)
     st.session_state.tab3_adjustment_amount = st.session_state.get("adjustment_amount", 0)
-    st.session_state.tab3_regional_ladder_surcharge = st.session_state.get("regional_ladder_surcharge", 0)
-    st.session_state.tab3_departure_ladder_surcharge_manual = st.session_state.get("departure_ladder_surcharge_manual", 0) # <--- 신규 추가
-    st.session_state.tab3_arrival_ladder_surcharge_manual = st.session_state.get("arrival_ladder_surcharge_manual", 0)     # <--- 신규 추가
+    # st.session_state.tab3_regional_ladder_surcharge = st.session_state.get("regional_ladder_surcharge", 0) # <--- 삭제
+    st.session_state.tab3_departure_ladder_surcharge_manual = st.session_state.get("departure_ladder_surcharge_manual", 0)
+    st.session_state.tab3_arrival_ladder_surcharge_manual = st.session_state.get("arrival_ladder_surcharge_manual", 0)
 
     for i in range(5):
         st.session_state[f"tab3_date_opt_{i}_widget"] = st.session_state.get(f"date_opt_{i}_widget", False)
@@ -289,10 +289,10 @@ def load_state_from_data(loaded_data, update_basket_callback):
         "has_waste_check": False, "waste_tons_input": 0.5,
         "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False,
         "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
-        "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0, 
-        "tab3_regional_ladder_surcharge": 0,
-        "tab3_departure_ladder_surcharge_manual": 0, # <--- 신규 추가
-        "tab3_arrival_ladder_surcharge_manual": 0,   # <--- 신규 추가
+        "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0,
+        # "tab3_regional_ladder_surcharge": 0, # <--- 삭제
+        "tab3_departure_ladder_surcharge_manual": 0, 
+        "tab3_arrival_ladder_surcharge_manual": 0,   
         "remove_base_housewife": False,
         "remove_base_man": False,
         "move_time_option": "미선택",
@@ -322,9 +322,8 @@ def load_state_from_data(loaded_data, update_basket_callback):
     bool_keys_load = [k for k,v_type in defaults_for_recovery.items() if isinstance(v_type, bool)]
     list_keys_load = ["uploaded_image_paths", "gdrive_search_results"]
     dict_keys_load = ["gdrive_file_options_map", "personnel_info_for_pdf"]
-    string_keys_load = [k for k,v_type in defaults_for_recovery.items() if isinstance(v_type, str)] # 모든 문자열 기본값 키
+    string_keys_load = [k for k,v_type in defaults_for_recovery.items() if isinstance(v_type, str)] 
     allow_negative_keys_load = ["tab3_adjustment_amount", "adjustment_amount"]
-
 
     for key_from_save_file in STATE_KEYS_TO_SAVE:
         default_for_key = defaults_for_recovery.get(key_from_save_file)
@@ -340,12 +339,12 @@ def load_state_from_data(loaded_data, update_basket_callback):
                     elif isinstance(value_from_file, date): target_value = value_from_file
                     else: target_value = default_for_key
                 elif key_from_save_file in int_keys_load:
-                    if isinstance(value_from_file, str) and value_from_file.strip() == "": target_value = default_for_key
+                    if isinstance(value_from_file, str) and value_from_file.strip() == "": target_value = default_for_key if isinstance(default_for_key, int) else 0
                     else: target_value = int(float(value_from_file))
                     if key_from_save_file not in allow_negative_keys_load: target_value = max(0, target_value)
                     if key_from_save_file == "storage_duration": target_value = max(1, target_value)
                 elif key_from_save_file in float_keys_load:
-                    if isinstance(value_from_file, str) and value_from_file.strip() == "": target_value = default_for_key
+                    if isinstance(value_from_file, str) and value_from_file.strip() == "": target_value = default_for_key if isinstance(default_for_key, float) else 0.0
                     else: target_value = float(value_from_file)
                     if key_from_save_file not in allow_negative_keys_load : target_value = max(0.0, target_value)
                 elif key_from_save_file in bool_keys_load:
@@ -356,9 +355,9 @@ def load_state_from_data(loaded_data, update_basket_callback):
                 elif key_from_save_file in dict_keys_load:
                     target_value = value_from_file if isinstance(value_from_file, dict) else (default_for_key if isinstance(default_for_key, dict) else {})
                 elif key_from_save_file in string_keys_load:
-                    target_value = str(value_from_file) if value_from_file is not None else default_for_key
-                elif isinstance(default_for_key, str): # string_keys_load에 누락된 문자열 키가 있을 경우 대비
-                    target_value = str(value_from_file) if value_from_file is not None else default_for_key
+                    target_value = str(value_from_file) if value_from_file is not None else (default_for_key if default_for_key is not None else "")
+                elif isinstance(default_for_key, str):
+                    target_value = str(value_from_file) if value_from_file is not None else (default_for_key if default_for_key is not None else "")
                 else:
                     target_value = value_from_file if value_from_file is not None else default_for_key
                 st.session_state[key_from_save_file] = target_value
@@ -368,12 +367,11 @@ def load_state_from_data(loaded_data, update_basket_callback):
         else:
             st.session_state[key_from_save_file] = default_for_key
 
-    # UI 입력 필드와 tab3_ 저장용 필드 동기화 (로드 시)
     st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", 0)
     st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", 0)
-    st.session_state.regional_ladder_surcharge = st.session_state.get("tab3_regional_ladder_surcharge", 0)
-    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", 0) # <--- 신규 추가
-    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", 0)     # <--- 신규 추가
+    # st.session_state.regional_ladder_surcharge = st.session_state.get("tab3_regional_ladder_surcharge", 0) # <--- 삭제
+    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", 0)
+    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", 0)
 
     for i in range(5):
         st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", False)
