@@ -5,7 +5,7 @@ import os
 from datetime import date, datetime, timedelta 
 import pytz
 import math 
-import io # <--- 추가: Excel 파일 생성을 위해 io 모듈 임포트
+import io 
 
 # 기존 프로젝트 모듈 임포트
 try:
@@ -117,7 +117,7 @@ def get_relevant_costs_from_state(loaded_state_data):
         "is_storage_move": temp_state.get("is_storage_move", False),
         "moving_date": temp_state.get("moving_date"),
         "arrival_date": temp_state.get("arrival_date"),
-        "customer_phone": temp_state.get("customer_phone", "정보없음")
+        "customer_phone": temp_state.get("customer_phone", "정보없음") # 로드된 데이터의 customer_phone 우선 사용
     }
 
 
@@ -203,7 +203,11 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                     try:
                         costs_info = get_relevant_costs_from_state(loaded_state)
                         moving_date_obj = costs_info["moving_date"]
-                        customer_phone_val = costs_info["customer_phone"]
+                        
+                        # 연락처 처리: loaded_state에 customer_phone이 있으면 사용, 없으면 파일명(전체 전화번호) 사용
+                        customer_phone_val = loaded_state.get("customer_phone", "").strip()
+                        if not customer_phone_val or customer_phone_val == "정보없음":
+                            customer_phone_val = full_phone_filename_stem # 파일명에서 가져온 전체 전화번호 사용
 
                         if costs_info["is_storage_move"]:
                             arrival_date_obj = costs_info["arrival_date"]
@@ -236,9 +240,15 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                                 "파일명": f"{full_phone_filename_stem}.json", "상태": "성공"
                             })
                     except Exception as e_proc:
+                        # 오류 발생 시 연락처는 파일명(전체 전화번호)으로 기록 시도
+                        contact_on_error = loaded_state.get("customer_phone", "").strip()
+                        if not contact_on_error or contact_on_error == "정보없음":
+                            contact_on_error = full_phone_filename_stem
+
                         results_data.append({
                             "조회번호(끝4자리)": last_4_digits, "구분": "오류", 
-                            "이삿날": loaded_state.get("moving_date", ""), "연락처": loaded_state.get("customer_phone", full_phone_filename_stem),
+                            "이삿날": loaded_state.get("moving_date", ""), 
+                            "연락처": contact_on_error,
                             "이사비(VAT전)": "", "파일명": f"{full_phone_filename_stem}.json", 
                             "상태": f"데이터 처리 중 오류: {str(e_proc)[:100]}" 
                         })
@@ -250,7 +260,7 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
             df_results["이사비(VAT전)"] = pd.to_numeric(df_results["이사비(VAT전)"], errors='coerce').fillna(0).astype(int)
 
 
-            output_excel = io.BytesIO() # <--- 이 라인에서 io 모듈이 필요합니다.
+            output_excel = io.BytesIO() 
             with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
                 df_results.to_excel(writer, index=False, sheet_name='조회결과')
                 worksheet = writer.sheets['조회결과']
