@@ -43,11 +43,11 @@ STATE_KEYS_TO_SAVE = [
 
 def initialize_session_state(update_basket_callback=None):
     try:
-        KST = pytz.timezone("Asia/Seoul")
+        KST_init = pytz.timezone("Asia/Seoul") # 함수 내 지역 변수로 KST 사용
     except pytz.UnknownTimeZoneError:
-        KST = pytz.utc
+        KST_init = pytz.utc
     
-    today_kst = datetime.now(KST).date()
+    today_kst = datetime.now(KST_init).date()
     
     default_storage_type = data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦"
     default_long_dist_selector = data.long_distance_options[0] if data and hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함"
@@ -271,7 +271,9 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     except Exception: default_date_load = datetime.now().date()
     default_move_type_load = MOVE_TYPE_OPTIONS[0] if MOVE_TYPE_OPTIONS else "가정 이사 🏠"
     
-    defaults_for_loading = {
+    default_manual_ladder_surcharge_load = getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0
+
+    defaults_for_recovery = {
         "base_move_type": default_move_type_load, 
         "is_storage_move": False, 
         "storage_type": data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
@@ -293,21 +295,23 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "sky_hours_from": 1, "sky_hours_final": 1,
         "dispatched_1t":0, "dispatched_2_5t":0, "dispatched_3_5t":0, "dispatched_5t":0,
         "has_waste_check": False, "waste_tons_input": 0.5,
-        "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False, 
-        "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
+        # UI 직접 연결 키들도 기본값 정의에 포함 (KeyError 방지)
         "deposit_amount": 0, 
         "adjustment_amount": 0,
-        "departure_ladder_surcharge_manual": 0,
-        "arrival_ladder_surcharge_manual": 0,
+        "departure_ladder_surcharge_manual": default_manual_ladder_surcharge_load,
+        "arrival_ladder_surcharge_manual": default_manual_ladder_surcharge_load,
+        "manual_ladder_from_check": False, 
+        "manual_ladder_to_check": False,
+        # tab3_ 접두사 키들도 기본값 정의
+        "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False, 
+        "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
         "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0, 
-        "tab3_departure_ladder_surcharge_manual": 0, 
-        "tab3_arrival_ladder_surcharge_manual": 0,   
+        "tab3_departure_ladder_surcharge_manual": default_manual_ladder_surcharge_load, 
+        "tab3_arrival_ladder_surcharge_manual": default_manual_ladder_surcharge_load,   
         "issue_tax_invoice": False, "card_payment": False,
         "move_time_option": "오전", "afternoon_move_details": "",
         "uploaded_image_paths": [], "total_volume": 0.0, "total_weight": 0.0,
-        "prev_final_selected_vehicle": None,
-        "manual_ladder_from_check": False, 
-        "manual_ladder_to_check": False    
+        "prev_final_selected_vehicle": None
     }
     if data and hasattr(data, 'item_definitions') and data.item_definitions:
         for move_type_key, sections in data.item_definitions.items():
@@ -323,7 +327,7 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     int_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, int) and not isinstance(v_type, bool)]
     float_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, float)]
     bool_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, bool)]
-    list_keys_load = ["uploaded_image_paths"]
+    list_keys_load = ["uploaded_image_paths"] # gdrive 관련 키는 이 함수 범위에서 제외
     date_keys_load = ["moving_date", "arrival_date", "contract_date"]
     string_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, str)] 
     allow_negative_keys_load = ["tab3_adjustment_amount", "adjustment_amount"]
@@ -342,8 +346,8 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
             if key_to_process in date_keys_load:
                 if isinstance(final_value, str):
                     try: final_value = date.fromisoformat(final_value)
-                    except ValueError: final_value = default_for_key if default_for_key is not None else today_kst 
-                elif not isinstance(final_value, date): final_value = default_for_key if default_for_key is not None else today_kst
+                    except ValueError: final_value = default_for_key if default_for_key is not None else default_date_load
+                elif not isinstance(final_value, date): final_value = default_for_key if default_for_key is not None else default_date_load
             elif key_to_process in int_keys_load or key_to_process.startswith("qty_"):
                 if isinstance(final_value, str) and not final_value.strip(): final_value = default_for_key if isinstance(default_for_key, int) else 0
                 else: final_value = int(float(final_value or 0))
@@ -358,20 +362,20 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
                 else: final_value = bool(final_value)
             elif key_to_process in list_keys_load:
                 final_value = final_value if isinstance(final_value, list) else (default_for_key if isinstance(default_for_key, list) else [])
-            elif key_to_process in string_keys_load:
+            elif key_to_process in string_keys_load: # string_keys_load 는 defaults_for_loading 기준으로 생성됨
                 final_value = str(final_value) if final_value is not None else (default_for_key if default_for_key is not None else "")
+            # dict_keys_load 는 현재 정의되지 않았으므로, 필요 시 추가
             
             st.session_state[key_to_process] = final_value
         except (ValueError, TypeError) as e_load_val:
             print(f"Error loading key '{key_to_process}' with value '{final_value}'. Type: {type(final_value)}. Error: {e_load_val}. Using default.")
             st.session_state[key_to_process] = default_for_key
     
-    # UI 입력 필드와 tab3_ 저장용 필드 간의 동기화
-    # tab3_ 키가 파일에 있으면 그 값을 UI 키로, 없으면 defaults_for_loading의 UI 키 기본값 사용
-    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading.get("deposit_amount",0))
-    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading.get("adjustment_amount",0))
-    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading.get("departure_ladder_surcharge_manual",0))
-    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading.get("arrival_ladder_surcharge_manual",0))
+    # Tab3의 UI 입력값과 직접 연결된 세션 상태들을 tab3_ 접두사 키 값으로 복원
+    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
+    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
+    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
+    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
     
     for i in range(5):
         st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", defaults_for_loading.get(f"tab3_date_opt_{i}_widget", False))
