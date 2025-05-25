@@ -246,7 +246,7 @@ def prepare_state_for_save(current_state_dict):
     if "uploaded_image_paths" not in state_to_save or not isinstance(state_to_save.get("uploaded_image_paths"), list):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
     
-    state_to_save["app_version"] = "1.1.3" # 버전 업데이트
+    state_to_save["app_version"] = "1.1.3" 
     state_to_save["saved_at_kst"] = datetime.now(pytz.timezone("Asia/Seoul") if "pytz" in globals() else None).isoformat()
 
     return state_to_save
@@ -261,16 +261,19 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     except Exception: default_date_load = datetime.now().date()
     default_move_type_load = MOVE_TYPE_OPTIONS[0] if MOVE_TYPE_OPTIONS else "가정 이사 🏠"
     
-    # 로드 시 사용할 기본값 (initialize_session_state의 defaults와 최대한 일치)
     defaults_for_loading = {
-        "base_move_type": default_move_type_load, "is_storage_move": False, 
+        "base_move_type": default_move_type_load, 
+        "is_storage_move": False, 
         "storage_type": data.STORAGE_TYPES[0] if hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
-        "apply_long_distance": False, "long_distance_selector": data.long_distance_options[0] if hasattr(data, "long_distance_options") else "선택 안 함",
+        "apply_long_distance": False, 
+        "long_distance_selector": data.long_distance_options[0] if hasattr(data, "long_distance_options") else "선택 안 함",
         "customer_name": "", "customer_phone": "", "customer_email": "",
-        "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load, # 계약일 추가
+        "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load,
         "storage_duration": 1, "storage_use_electricity": False,
-        "from_address_full": "", "from_floor": "", "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
-        "to_address_full": "", "to_floor": "", "to_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
+        "from_address_full": "", "from_floor": "", 
+        "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
+        "to_address_full": "", "to_floor": "", 
+        "to_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
         "has_via_point": False, "via_point_address": "", "via_point_floor": "", 
         "via_point_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
         "via_point_surcharge": 0,
@@ -314,55 +317,54 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     string_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, str)] 
     allow_negative_keys_load = ["tab3_adjustment_amount", "adjustment_amount"]
 
-    for key_from_save_file in STATE_KEYS_TO_SAVE + [k for k in defaults_for_loading if k.startswith("qty_")]: 
-        default_for_key = defaults_for_loading.get(key_from_save_file) 
-        value_from_file = loaded_data_dict.get(key_from_save_file)
+    # 저장된 모든 키와 기본값 키를 합쳐서 반복 (누락 방지)
+    all_keys_to_process = set(STATE_KEYS_TO_SAVE) | set(defaults_for_loading.keys()) | set(k for k in defaults_for_loading if k.startswith("qty_"))
+
+
+    for key_to_process in all_keys_to_process: 
+        default_for_key = defaults_for_loading.get(key_to_process) 
+        value_from_file = loaded_data_dict.get(key_to_process)
         
-        if value_from_file is None: 
-            st.session_state[key_from_save_file] = default_for_key
-            continue
+        final_value = default_for_key # 기본적으로는 기본값 사용
+        if value_from_file is not None: # 파일에 값이 있으면 파일 값 우선
+            final_value = value_from_file
 
         try:
-            target_value = value_from_file
-            if key_from_save_file in date_keys_load:
-                if isinstance(value_from_file, str):
-                    try: target_value = date.fromisoformat(value_from_file)
-                    except ValueError: target_value = default_for_key
-                elif not isinstance(value_from_file, date): target_value = default_for_key
-            elif key_from_save_file in int_keys_load or key_from_save_file.startswith("qty_"):
-                if isinstance(value_from_file, str) and not value_from_file.strip(): target_value = default_for_key if isinstance(default_for_key, int) else 0
-                else: target_value = int(float(value_from_file or 0))
-                if key_from_save_file not in allow_negative_keys_load: target_value = max(0, target_value)
-                if key_from_save_file == "storage_duration": target_value = max(1, target_value)
-            elif key_from_save_file in float_keys_load:
-                if isinstance(value_from_file, str) and not value_from_file.strip(): target_value = default_for_key if isinstance(default_for_key, float) else 0.0
-                else: target_value = float(value_from_file or 0.0)
-                if key_from_save_file not in allow_negative_keys_load: target_value = max(0.0, target_value)
-            elif key_from_save_file in bool_keys_load:
-                if isinstance(value_from_file, str): target_value = value_from_file.lower() in ["true", "yes", "1", "on", "t"]
-                else: target_value = bool(value_from_file)
-            elif key_from_save_file in list_keys_load:
-                target_value = value_from_file if isinstance(value_from_file, list) else (default_for_key if isinstance(default_for_key, list) else [])
-            elif key_from_save_file in string_keys_load:
-                target_value = str(value_from_file) if value_from_file is not None else (default_for_key if default_for_key is not None else "")
+            if key_to_process in date_keys_load:
+                if isinstance(final_value, str):
+                    try: final_value = date.fromisoformat(final_value)
+                    except ValueError: final_value = default_for_key if default_for_key is not None else today_kst # 안전 기본값
+                elif not isinstance(final_value, date): final_value = default_for_key if default_for_key is not None else today_kst
+            elif key_to_process in int_keys_load or key_to_process.startswith("qty_"):
+                if isinstance(final_value, str) and not final_value.strip(): final_value = default_for_key if isinstance(default_for_key, int) else 0
+                else: final_value = int(float(final_value or 0))
+                if key_to_process not in allow_negative_keys_load: final_value = max(0, final_value)
+                if key_to_process == "storage_duration": final_value = max(1, final_value)
+            elif key_to_process in float_keys_load:
+                if isinstance(final_value, str) and not final_value.strip(): final_value = default_for_key if isinstance(default_for_key, float) else 0.0
+                else: final_value = float(final_value or 0.0)
+                if key_to_process not in allow_negative_keys_load: final_value = max(0.0, final_value)
+            elif key_to_process in bool_keys_load:
+                if isinstance(final_value, str): final_value = final_value.lower() in ["true", "yes", "1", "on", "t"]
+                else: final_value = bool(final_value)
+            elif key_to_process in list_keys_load:
+                final_value = final_value if isinstance(final_value, list) else (default_for_key if isinstance(default_for_key, list) else [])
+            elif key_to_process in string_keys_load: # 기타 문자열 처리
+                final_value = str(final_value) if final_value is not None else (default_for_key if default_for_key is not None else "")
             
-            st.session_state[key_from_save_file] = target_value
+            st.session_state[key_to_process] = final_value
         except (ValueError, TypeError) as e_load_val:
-            print(f"Error loading key '{key_from_save_file}' with value '{value_from_file}'. Type: {type(value_from_file)}. Error: {e_load_val}. Using default.")
-            st.session_state[key_from_save_file] = default_for_key
+            print(f"Error loading key '{key_to_process}' with value '{final_value}'. Type: {type(final_value)}. Error: {e_load_val}. Using default.")
+            st.session_state[key_to_process] = default_for_key
     
-    # Tab3 UI와 연결된 값들 (deposit_amount 등)은 STATE_KEYS_TO_SAVE에 직접 포함되어 로드됨
-    # 별도로 tab3_ 키에서 가져올 필요 없음
-    # st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
-    # st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
-    # st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
-    # st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
+    # UI 입력 필드와 tab3_ 저장용 필드 간의 동기화 (로드 후 UI 필드에 값 반영)
+    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
+    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
+    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
+    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
     
-    # 날짜 옵션 위젯 상태는 tab3_ 키로 저장되므로, 이것들은 로드 시 일반 키로 매핑해줘야 함 (또는 UI에서 tab3_ 직접 사용)
-    # 현재는 prepare_state_for_save에서 tab3_ 키로 저장하고, load 시에도 tab3_ 키로 읽어서 일반 키로 복사하고 있음.
-    # UI 일관성을 위해, 로드 시 tab3_ 키에서 일반 UI키로 값을 복사
-    for i in range(5):
-        st.session_state[f"date_opt_{i}_widget"] = loaded_data_dict.get(f"tab3_date_opt_{i}_widget", defaults_for_loading[f"tab3_date_opt_{i}_widget"])
+    for i in range(5): # 날짜 옵션 위젯
+        st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", defaults_for_loading.get(f"tab3_date_opt_{i}_widget", False))
 
 
     if "base_move_type" in st.session_state:
