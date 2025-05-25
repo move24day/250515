@@ -551,7 +551,7 @@ def render_tab3():
                         summary_output_lines.append("출발지 주소:")
                         summary_output_lines.append(from_addr_full_summary)
                         summary_output_lines.append("")
-                        summary_output_lines.append(f"보관 정보 (반복): {storage_details_text_display}") # 명시적으로 반복
+                        summary_output_lines.append(f"보관 정보 : {storage_details_text_display}") # 명시적으로 반복
                         if bask_summary_str:
                             summary_output_lines.append("")
                             summary_output_lines.append(bask_summary_str)
@@ -585,7 +585,7 @@ def render_tab3():
                         summary_output_lines.append("도착지 주소:")
                         summary_output_lines.append(to_addr_full_summary)
                         summary_output_lines.append("")
-                        summary_output_lines.append(f"보관 정보 (반복): {storage_details_text_display}")
+                        summary_output_lines.append(f"보관 정보 : {storage_details_text_display}")
                         if bask_summary_str:
                             summary_output_lines.append("")
                             summary_output_lines.append(bask_summary_str)
