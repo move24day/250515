@@ -1,4 +1,4 @@
-# state_manager.py
+# state_manager.py (수정 후)
 
 import streamlit as st
 from datetime import datetime, date
@@ -43,13 +43,14 @@ STATE_KEYS_TO_SAVE = [
 
 def initialize_session_state(update_basket_callback=None):
     try:
-        KST_init = pytz.timezone("Asia/Seoul") # 함수 내 지역 변수로 KST 사용
+        KST_init = pytz.timezone("Asia/Seoul")
     except pytz.UnknownTimeZoneError:
         KST_init = pytz.utc
 
     today_kst = datetime.now(KST_init).date()
 
-    default_storage_type = data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦"
+    # data.py의 DEFAULT_STORAGE_TYPE 변수를 직접 사용하도록 수정
+    default_storage_type = data.DEFAULT_STORAGE_TYPE if data and hasattr(data, "DEFAULT_STORAGE_TYPE") else "컨테이너 보관 📦"
     default_long_dist_selector = data.long_distance_options[0] if data and hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함"
     default_from_method = data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶"
     default_to_method = default_from_method
@@ -59,7 +60,7 @@ def initialize_session_state(update_basket_callback=None):
     defaults = {
         "base_move_type": MOVE_TYPE_OPTIONS[0],
         "is_storage_move": False,
-        "storage_type": default_storage_type,
+        "storage_type": default_storage_type, # 수정된 기본값 사용
         "apply_long_distance": False,
         "long_distance_selector": default_long_dist_selector,
         "customer_name": "", "customer_phone": "", "customer_email": "",
@@ -221,12 +222,6 @@ def prepare_state_for_save(current_state_dict):
         "pdf_data_customer", "final_excel_data", "customer_final_pdf_data",
         "internal_form_image_data", "internal_excel_data_for_download",
         "gdrive_search_results", "gdrive_file_options_map",
-        # The following keys are now directly saved with their 'tab3_' counterparts
-        # so we don't need to exclude the non-tab3 versions if they are not in STATE_KEYS_TO_SAVE
-        # "deposit_amount", "adjustment_amount",
-        # "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual",
-        # "date_opt_0_widget", "date_opt_1_widget", "date_opt_2_widget",
-        # "date_opt_3_widget", "date_opt_4_widget",
         "recommended_vehicle_auto", "recommended_base_price_auto",
     }
 
@@ -247,7 +242,7 @@ def prepare_state_for_save(current_state_dict):
     if "uploaded_image_paths" not in state_to_save or not isinstance(state_to_save.get("uploaded_image_paths"), list):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
 
-    state_to_save["app_version"] = "1.1.5" # 예시 버전
+    state_to_save["app_version"] = "1.1.5"
     saved_at_time = datetime.now(KST_ps)
     state_to_save["saved_at_kst"] = saved_at_time.isoformat()
 
@@ -268,15 +263,16 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     defaults_for_recovery = {
         "base_move_type": default_move_type_load,
         "is_storage_move": False,
-        "storage_type": data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
+        # data.py의 DEFAULT_STORAGE_TYPE 변수를 직접 사용하도록 수정
+        "storage_type": data.DEFAULT_STORAGE_TYPE if data and hasattr(data, "DEFAULT_STORAGE_TYPE") else "컨테이너 보관 📦",
         "apply_long_distance": False,
         "long_distance_selector": data.long_distance_options[0] if data and hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함",
         "customer_name": "", "customer_phone": "", "customer_email": "",
         "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load,
         "storage_duration": 1, "storage_use_electricity": False,
-        "from_address_full": "", "from_floor": "", # 이전 from_location 대신 from_address_full 사용
+        "from_address_full": "", "from_floor": "",
         "from_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
-        "to_address_full": "", "to_floor": "",     # 이전 to_location 대신 to_address_full 사용
+        "to_address_full": "", "to_floor": "",
         "to_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
         "has_via_point": False, "via_point_address": "", "via_point_floor": "",
         "via_point_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
@@ -287,10 +283,10 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "sky_hours_from": 1, "sky_hours_final": 1,
         "dispatched_1t":0, "dispatched_2_5t":0, "dispatched_3_5t":0, "dispatched_5t":0,
         "has_waste_check": False, "waste_tons_input": 0.5,
-        "deposit_amount": 0, # UI 직접 연결 키도 기본값 필요
-        "adjustment_amount": 0, # UI 직접 연결 키도 기본값 필요
-        "departure_ladder_surcharge_manual": default_manual_ladder_surcharge_load, # UI 직접 연결 키
-        "arrival_ladder_surcharge_manual": default_manual_ladder_surcharge_load,   # UI 직접 연결 키
+        "deposit_amount": 0,
+        "adjustment_amount": 0,
+        "departure_ladder_surcharge_manual": default_manual_ladder_surcharge_load,
+        "arrival_ladder_surcharge_manual": default_manual_ladder_surcharge_load,
         "manual_ladder_from_check": False,
         "manual_ladder_to_check": False,
         "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False,
@@ -334,15 +330,14 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         final_value = default_for_key
         if value_from_file is not None:
             final_value = value_from_file
-        
-        # 주소 키 호환성 처리
+
         if key_to_process == "from_address_full" and value_from_file is None:
-            legacy_value = loaded_data_dict.get("from_location") # 이전 키 확인
+            legacy_value = loaded_data_dict.get("from_location")
             if legacy_value is not None:
                 final_value = legacy_value
-        
+
         if key_to_process == "to_address_full" and value_from_file is None:
-            legacy_value = loaded_data_dict.get("to_location") # 이전 키 확인
+            legacy_value = loaded_data_dict.get("to_location")
             if legacy_value is not None:
                 final_value = legacy_value
 
