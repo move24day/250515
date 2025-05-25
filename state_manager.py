@@ -20,7 +20,7 @@ STATE_KEYS_TO_SAVE = [
     "base_move_type", "is_storage_move", "storage_type", "apply_long_distance", "long_distance_selector",
     "customer_name", "customer_phone", "customer_email", 
     "moving_date", "arrival_date", "storage_duration", "storage_use_electricity",
-    "contract_date", # <--- 계약일 키 추가
+    "contract_date", 
     "from_address_full", "from_floor", "from_method", 
     "to_address_full", "to_floor", "to_method",     
     "has_via_point", "via_point_address", "via_point_floor", "via_point_method", "via_point_surcharge", 
@@ -66,7 +66,7 @@ def initialize_session_state(update_basket_callback=None):
         "customer_name": "", "customer_phone": "", "customer_email": "",
         "moving_date": today_kst,
         "arrival_date": today_kst, 
-        "contract_date": today_kst, # 계약일 기본값
+        "contract_date": today_kst, 
         "storage_duration": 1, "storage_use_electricity": False,
         "from_address_full": "", "from_floor": "", 
         "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
@@ -246,10 +246,11 @@ def prepare_state_for_save(current_state_dict):
     if "uploaded_image_paths" not in state_to_save or not isinstance(state_to_save.get("uploaded_image_paths"), list):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
     
-    state_to_save["app_version"] = "1.1.2" # 버전 업데이트
+    state_to_save["app_version"] = "1.1.3" # 버전 업데이트
     state_to_save["saved_at_kst"] = datetime.now(pytz.timezone("Asia/Seoul") if "pytz" in globals() else None).isoformat()
 
     return state_to_save
+
 
 def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     if not isinstance(loaded_data_dict, dict):
@@ -260,12 +261,13 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     except Exception: default_date_load = datetime.now().date()
     default_move_type_load = MOVE_TYPE_OPTIONS[0] if MOVE_TYPE_OPTIONS else "가정 이사 🏠"
     
+    # 로드 시 사용할 기본값 (initialize_session_state의 defaults와 최대한 일치)
     defaults_for_loading = {
         "base_move_type": default_move_type_load, "is_storage_move": False, 
         "storage_type": data.STORAGE_TYPES[0] if hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
         "apply_long_distance": False, "long_distance_selector": data.long_distance_options[0] if hasattr(data, "long_distance_options") else "선택 안 함",
         "customer_name": "", "customer_phone": "", "customer_email": "",
-        "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load,
+        "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load, # 계약일 추가
         "storage_duration": 1, "storage_use_electricity": False,
         "from_address_full": "", "from_floor": "", "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
         "to_address_full": "", "to_floor": "", "to_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
@@ -280,6 +282,10 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "has_waste_check": False, "waste_tons_input": 0.5,
         "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False, 
         "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
+        "deposit_amount": 0, # <--- KeyError 방지 위해 defaults_for_loading 에 UI 직접 연결 키도 추가
+        "adjustment_amount": 0,
+        "departure_ladder_surcharge_manual": 0,
+        "arrival_ladder_surcharge_manual": 0,
         "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0, 
         "tab3_departure_ladder_surcharge_manual": 0, "tab3_arrival_ladder_surcharge_manual": 0,
         "issue_tax_invoice": False, "card_payment": False,
@@ -345,12 +351,19 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
             print(f"Error loading key '{key_from_save_file}' with value '{value_from_file}'. Type: {type(value_from_file)}. Error: {e_load_val}. Using default.")
             st.session_state[key_from_save_file] = default_for_key
     
-    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
-    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
-    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
-    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
+    # Tab3 UI와 연결된 값들 (deposit_amount 등)은 STATE_KEYS_TO_SAVE에 직접 포함되어 로드됨
+    # 별도로 tab3_ 키에서 가져올 필요 없음
+    # st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
+    # st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
+    # st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
+    # st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
+    
+    # 날짜 옵션 위젯 상태는 tab3_ 키로 저장되므로, 이것들은 로드 시 일반 키로 매핑해줘야 함 (또는 UI에서 tab3_ 직접 사용)
+    # 현재는 prepare_state_for_save에서 tab3_ 키로 저장하고, load 시에도 tab3_ 키로 읽어서 일반 키로 복사하고 있음.
+    # UI 일관성을 위해, 로드 시 tab3_ 키에서 일반 UI키로 값을 복사
     for i in range(5):
-        st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", defaults_for_loading[f"date_opt_{i}_widget"])
+        st.session_state[f"date_opt_{i}_widget"] = loaded_data_dict.get(f"tab3_date_opt_{i}_widget", defaults_for_loading[f"tab3_date_opt_{i}_widget"])
+
 
     if "base_move_type" in st.session_state:
         st.session_state.base_move_type_widget_tab1 = st.session_state.base_move_type
