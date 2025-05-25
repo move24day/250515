@@ -17,7 +17,7 @@ STATE_KEYS_TO_SAVE = [
     "base_move_type", "is_storage_move", "storage_type", "apply_long_distance", "long_distance_selector",
     "customer_name", "customer_phone", "customer_email", 
     "moving_date", "arrival_date", "storage_duration", "storage_use_electricity",
-    "contract_date", # 계약일 키 추가
+    "contract_date", 
     "from_address_full", "from_floor", "from_method", 
     "to_address_full", "to_floor", "to_method",     
     "has_via_point", "via_point_address", "via_point_floor", "via_point_method", "via_point_surcharge", 
@@ -34,18 +34,12 @@ STATE_KEYS_TO_SAVE = [
     "issue_tax_invoice", "card_payment", 
     "move_time_option", "afternoon_move_details", 
     "uploaded_image_paths",
-    # Tab3 UI와 직접 연결되는 임시 저장용 키 (저장 시에는 위의 실제 키로 매핑)
     "tab3_deposit_amount", "tab3_adjustment_amount", 
     "tab3_departure_ladder_surcharge_manual", "tab3_arrival_ladder_surcharge_manual",
     "tab3_date_opt_0_widget", "tab3_date_opt_1_widget", "tab3_date_opt_2_widget", 
     "tab3_date_opt_3_widget", "tab3_date_opt_4_widget",
     "prev_final_selected_vehicle" 
 ]
-
-def get_default_times_for_date(selected_date): # 이 함수는 현재 직접 사용되지 않음
-    if not isinstance(selected_date, date):
-        selected_date = date.today()
-    return selected_date.strftime("%H:%M") 
 
 def initialize_session_state(update_basket_callback=None):
     try:
@@ -55,14 +49,12 @@ def initialize_session_state(update_basket_callback=None):
     
     today_kst = datetime.now(KST).date()
     
-    # data 모듈이 성공적으로 로드되었는지 확인 후 사용
     default_storage_type = data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦"
     default_long_dist_selector = data.long_distance_options[0] if data and hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함"
     default_from_method = data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶"
     default_to_method = default_from_method
     default_via_method = default_from_method
     default_manual_ladder_surcharge = getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0
-
 
     defaults = {
         "base_move_type": MOVE_TYPE_OPTIONS[0],
@@ -216,6 +208,13 @@ def initialize_session_state(update_basket_callback=None):
 
 def prepare_state_for_save(current_state_dict): 
     state_to_save = {}
+    # --- KST 정의 추가 ---
+    try:
+        KST_ps = pytz.timezone("Asia/Seoul")
+    except pytz.UnknownTimeZoneError:
+        KST_ps = pytz.utc
+    # --- KST 정의 추가 끝 ---
+
     keys_to_exclude = {
         "_app_initialized",
         "base_move_type_widget_tab1", "base_move_type_widget_tab3", 
@@ -229,12 +228,15 @@ def prepare_state_for_save(current_state_dict):
         "date_opt_3_widget", "date_opt_4_widget",
         "recommended_vehicle_auto", "recommended_base_price_auto",
     }
-    st.session_state.tab3_deposit_amount = current_state_dict.get("deposit_amount", 0)
-    st.session_state.tab3_adjustment_amount = current_state_dict.get("adjustment_amount", 0)
-    st.session_state.tab3_departure_ladder_surcharge_manual = current_state_dict.get("departure_ladder_surcharge_manual", 0)
-    st.session_state.tab3_arrival_ladder_surcharge_manual = current_state_dict.get("arrival_ladder_surcharge_manual", 0)
-    for i in range(5):
-        st.session_state[f"tab3_date_opt_{i}_widget"] = current_state_dict.get(f"date_opt_{i}_widget", False)
+    # UI 입력값을 tab3_ 접두사 키로 매핑 (state_manager.py의 STATE_KEYS_TO_SAVE 와 일치해야 함)
+    # 이 부분은 STATE_KEYS_TO_SAVE에 이미 tab3_ 접두사 키가 포함되어 있으므로, current_state_dict에서 직접 가져옴
+    # st.session_state.tab3_deposit_amount = current_state_dict.get("deposit_amount", 0)
+    # st.session_state.tab3_adjustment_amount = current_state_dict.get("adjustment_amount", 0)
+    # st.session_state.tab3_departure_ladder_surcharge_manual = current_state_dict.get("departure_ladder_surcharge_manual", 0)
+    # st.session_state.tab3_arrival_ladder_surcharge_manual = current_state_dict.get("arrival_ladder_surcharge_manual", 0)
+    # for i in range(5):
+    #     st.session_state[f"tab3_date_opt_{i}_widget"] = current_state_dict.get(f"date_opt_{i}_widget", False)
+
 
     actual_keys_to_save = [key for key in STATE_KEYS_TO_SAVE if key not in keys_to_exclude]
 
@@ -253,8 +255,8 @@ def prepare_state_for_save(current_state_dict):
     if "uploaded_image_paths" not in state_to_save or not isinstance(state_to_save.get("uploaded_image_paths"), list):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
     
-    saved_at_time = datetime.now(pytz.timezone("Asia/Seoul") if "pytz" in globals() and KST != pytz.utc else pytz.utc)
-    state_to_save["app_version"] = "1.1.4" # 버전 업데이트
+    state_to_save["app_version"] = "1.1.4" 
+    saved_at_time = datetime.now(KST_ps) # 정의된 KST_ps 사용
     state_to_save["saved_at_kst"] = saved_at_time.isoformat()
 
     return state_to_save
@@ -295,8 +297,8 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
         "deposit_amount": 0, 
         "adjustment_amount": 0,
-        "departure_ladder_surcharge_manual": 0, # getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0, <--- 기본값은 0으로
-        "arrival_ladder_surcharge_manual": 0, # getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0, <--- 기본값은 0으로
+        "departure_ladder_surcharge_manual": 0,
+        "arrival_ladder_surcharge_manual": 0,
         "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0, 
         "tab3_departure_ladder_surcharge_manual": 0, 
         "tab3_arrival_ladder_surcharge_manual": 0,   
@@ -364,10 +366,12 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
             print(f"Error loading key '{key_to_process}' with value '{final_value}'. Type: {type(final_value)}. Error: {e_load_val}. Using default.")
             st.session_state[key_to_process] = default_for_key
     
-    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
-    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
-    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
-    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
+    # UI 입력 필드와 tab3_ 저장용 필드 간의 동기화
+    # tab3_ 키가 파일에 있으면 그 값을 UI 키로, 없으면 defaults_for_loading의 UI 키 기본값 사용
+    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading.get("deposit_amount",0))
+    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading.get("adjustment_amount",0))
+    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading.get("departure_ladder_surcharge_manual",0))
+    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading.get("arrival_ladder_surcharge_manual",0))
     
     for i in range(5):
         st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", defaults_for_loading.get(f"tab3_date_opt_{i}_widget", False))
