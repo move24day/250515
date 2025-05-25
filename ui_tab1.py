@@ -2,7 +2,7 @@
 import streamlit as st
 from datetime import datetime, date, timedelta 
 import pytz
-import json
+import json # 사용 안 함, 제거 가능
 import os
 import traceback
 import re
@@ -16,7 +16,7 @@ try:
         prepare_state_for_save,
         load_state_from_data
     )
-    import callbacks # callbacks 모듈 임포트
+    import callbacks 
 except ImportError as ie:
     st.error(f"UI Tab 1: 필수 모듈 로딩 실패 - {ie}")
     if hasattr(ie, 'name') and ie.name:
@@ -50,13 +50,13 @@ def render_tab1():
     st.session_state.setdefault('afternoon_move_details', "")
     st.session_state.setdefault('contract_date', date.today()) 
 
-    # 콜백 함수 로드 확인
+    # 콜백 함수 로드 (존재 여부 확인)
     update_basket_quantities_callback = getattr(callbacks, "update_basket_quantities", None)
     sync_move_type_callback = getattr(callbacks, 'sync_move_type', None)
-    handle_item_update_callback = getattr(callbacks, 'handle_item_update', None) # state_manager와 일치
-    set_default_times_callback = getattr(callbacks, "set_default_times", None) # 시간 콜백
+    handle_item_update_callback = getattr(callbacks, 'handle_item_update', None) 
+    set_default_times_callback = getattr(callbacks, "set_default_times", None) 
 
-    # 콜백 함수 누락 시 경고 (선택적)
+    # 콜백 함수 로드 실패 메시지는 이제 initialize_session_state에서 처리하거나, app.py에서 확인 가능
     # if not all(callable(cb) for cb in [update_basket_quantities_callback, sync_move_type_callback, handle_item_update_callback, set_default_times_callback]):
     #     st.sidebar.warning("UI Tab 1: 일부 콜백 함수가 로드되지 않았습니다. 기능이 제한될 수 있습니다.")
 
@@ -246,28 +246,24 @@ def render_tab1():
 
     st.markdown("---") 
 
-    # --- 출발지 / 도착지 정보 가로 배치 수정 ---
     col_from_header, col_to_header = st.columns(2)
     with col_from_header:
         st.subheader("출발지 정보")
     with col_to_header:
         st.subheader("도착지 정보")
 
-    # 주소 입력
     from_addr_col, to_addr_col = st.columns(2)
     with from_addr_col:
         st.text_input("출발지 주소", key="from_address_full", label_visibility="visible", placeholder="출발지 전체 주소")
     with to_addr_col:
         st.text_input("도착지 주소", key="to_address_full", label_visibility="visible", placeholder="도착지 전체 주소")
 
-    # 층수 입력
     from_floor_col, to_floor_col = st.columns(2)
     with from_floor_col:
         st.text_input("출발지 층수", key="from_floor", label_visibility="visible", placeholder="예: 3, B1")
     with to_floor_col:
         st.text_input("도착지 층수", key="to_floor", label_visibility="visible", placeholder="예: 5, B2")
     
-    # 작업 방법 입력
     from_method_col, to_method_col = st.columns(2)
     with from_method_col:
         from_method_options = data.METHOD_OPTIONS if hasattr(data,'METHOD_OPTIONS') else []
@@ -289,19 +285,19 @@ def render_tab1():
     st.markdown("---") 
     st.subheader("이사 날짜 및 시간")
     
-    date_cols1, date_cols2 = st.columns(2) # 계약일과 이사예정일, 시간선택과 도착예정일(보관시)
+    date_cols1, date_cols2 = st.columns(2) 
     with date_cols1:
-        current_contract_date_val = st.session_state.get('contract_date')
+        current_contract_date_val = st.session_state.get('contract_date') # 계약일 먼저 표시
         if not isinstance(current_contract_date_val, date):
             st.session_state.contract_date = date.today()
-        st.date_input("계약일", key="contract_date") # 계약일 추가
+        st.date_input("계약일", key="contract_date") 
 
         current_moving_date_val = st.session_state.get('moving_date')
         if not isinstance(current_moving_date_val, date):
              try: kst_def = pytz.timezone("Asia/Seoul"); default_date_def = datetime.now(kst_def).date()
              except Exception: default_date_def = datetime.now().date()
              st.session_state.moving_date = default_date_def
-        set_default_times_cb_ref = getattr(callbacks, "set_default_times", None) # 콜백 참조
+        set_default_times_cb_ref = getattr(callbacks, "set_default_times", None) 
         st.date_input("이사 예정일 (출발일)", key="moving_date", on_change=set_default_times_cb_ref if callable(set_default_times_cb_ref) else None)
     
     with date_cols2:
@@ -352,7 +348,6 @@ def render_tab1():
 
     if UPLOAD_DIR: 
         st.subheader("관련 이미지 업로드") 
-        # ... (이미지 업로드 UI 로직은 이전 답변과 동일) ...
         uploader_widget_key = f"image_uploader_tab1_instance_{st.session_state.image_uploader_key_counter}"
         uploaded_files = st.file_uploader(
             "이미지 파일을 선택해주세요 (여러 파일 가능)", type=["png", "jpg", "jpeg"],
