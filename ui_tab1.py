@@ -16,7 +16,7 @@ try:
         prepare_state_for_save,
         load_state_from_data
     )
-    import callbacks
+    import callbacks # callbacks 모듈 임포트
 except ImportError as ie:
     st.error(f"UI Tab 1: 필수 모듈 로딩 실패 - {ie}")
     if hasattr(ie, 'name') and ie.name:
@@ -46,9 +46,19 @@ def render_tab1():
     st.session_state.setdefault('image_uploader_key_counter', 0)
     st.session_state.setdefault('issue_tax_invoice', False)
     st.session_state.setdefault('card_payment', False)
-    st.session_state.setdefault('move_time_option', "오전") # 기본 '오전'
+    st.session_state.setdefault('move_time_option', "오전") 
     st.session_state.setdefault('afternoon_move_details', "")
-    st.session_state.setdefault('contract_date', date.today()) # 계약일 기본값
+    st.session_state.setdefault('contract_date', date.today()) 
+
+    # 콜백 함수 로드 확인
+    update_basket_quantities_callback = getattr(callbacks, "update_basket_quantities", None)
+    sync_move_type_callback = getattr(callbacks, 'sync_move_type', None)
+    handle_item_update_callback = getattr(callbacks, 'handle_item_update', None) # state_manager와 일치
+    set_default_times_callback = getattr(callbacks, "set_default_times", None) # 시간 콜백
+
+    # 콜백 함수 누락 시 경고 (선택적)
+    # if not all(callable(cb) for cb in [update_basket_quantities_callback, sync_move_type_callback, handle_item_update_callback, set_default_times_callback]):
+    #     st.sidebar.warning("UI Tab 1: 일부 콜백 함수가 로드되지 않았습니다. 기능이 제한될 수 있습니다.")
 
 
     gdrive_folder_id_from_secrets = st.secrets.get("gcp_service_account", {}).get("drive_folder_id")
@@ -179,7 +189,6 @@ def render_tab1():
                         st.error("저장 실패: 유효한 고객 전화번호를 입력해주세요 (예: 01012345678 또는 021234567).") 
                     else:
                         json_filename = f"{sanitized_customer_phone}.json"
-                        # prepare_state_for_save 호출 시 st.session_state.to_dict() 전달
                         state_data_to_save = prepare_state_for_save(st.session_state.to_dict()) 
                         if 'uploaded_image_paths' not in state_data_to_save or \
                            not isinstance(state_data_to_save.get('uploaded_image_paths'), list):
@@ -247,16 +256,16 @@ def render_tab1():
     # 주소 입력
     from_addr_col, to_addr_col = st.columns(2)
     with from_addr_col:
-        st.text_input(" ", key="from_address_full", label_visibility="collapsed", placeholder="출발지 전체 주소") # label_visibility로 레이블 숨김
+        st.text_input("출발지 주소", key="from_address_full", label_visibility="visible", placeholder="출발지 전체 주소")
     with to_addr_col:
-        st.text_input(" ", key="to_address_full", label_visibility="collapsed", placeholder="도착지 전체 주소")
+        st.text_input("도착지 주소", key="to_address_full", label_visibility="visible", placeholder="도착지 전체 주소")
 
     # 층수 입력
     from_floor_col, to_floor_col = st.columns(2)
     with from_floor_col:
-        st.text_input(" ", key="from_floor", label_visibility="collapsed", placeholder="출발층 (예: 3, B1)")
+        st.text_input("출발지 층수", key="from_floor", label_visibility="visible", placeholder="예: 3, B1")
     with to_floor_col:
-        st.text_input(" ", key="to_floor", label_visibility="collapsed", placeholder="도착층 (예: 5, B2)")
+        st.text_input("도착지 층수", key="to_floor", label_visibility="visible", placeholder="예: 5, B2")
     
     # 작업 방법 입력
     from_method_col, to_method_col = st.columns(2)
@@ -280,21 +289,21 @@ def render_tab1():
     st.markdown("---") 
     st.subheader("이사 날짜 및 시간")
     
-    date_cols1, date_cols2 = st.columns(2)
+    date_cols1, date_cols2 = st.columns(2) # 계약일과 이사예정일, 시간선택과 도착예정일(보관시)
     with date_cols1:
+        current_contract_date_val = st.session_state.get('contract_date')
+        if not isinstance(current_contract_date_val, date):
+            st.session_state.contract_date = date.today()
+        st.date_input("계약일", key="contract_date") # 계약일 추가
+
         current_moving_date_val = st.session_state.get('moving_date')
         if not isinstance(current_moving_date_val, date):
              try: kst_def = pytz.timezone("Asia/Seoul"); default_date_def = datetime.now(kst_def).date()
              except Exception: default_date_def = datetime.now().date()
              st.session_state.moving_date = default_date_def
-        st.date_input("이사 예정일 (출발일)", key="moving_date", on_change=getattr(callbacks, "set_default_times", None))
-        
-        # 계약일 추가
-        current_contract_date_val = st.session_state.get('contract_date')
-        if not isinstance(current_contract_date_val, date):
-            st.session_state.contract_date = date.today()
-        st.date_input("계약일", key="contract_date")
-
+        set_default_times_cb_ref = getattr(callbacks, "set_default_times", None) # 콜백 참조
+        st.date_input("이사 예정일 (출발일)", key="moving_date", on_change=set_default_times_cb_ref if callable(set_default_times_cb_ref) else None)
+    
     with date_cols2:
         move_time_options = ["미선택", "오전", "오후"]
         current_move_time_opt_val = st.session_state.get("move_time_option", move_time_options[0])
@@ -305,8 +314,8 @@ def render_tab1():
         if st.session_state.get("move_time_option") == "오후":
             st.text_input("오후이사 상세(시간 등)", key="afternoon_move_details", placeholder="예: 3시 시작, 13-16시")
 
-        if st.session_state.get('is_storage_move'):
-            st.markdown("보관 후 입고 정보")
+        if st.session_state.get('is_storage_move'): 
+            st.markdown("보관 후 입고 정보") 
             min_arrival_date_for_storage = st.session_state.get('moving_date', date.today())
             if not isinstance(min_arrival_date_for_storage, date): min_arrival_date_for_storage = date.today()
             min_arrival_date_for_storage = min_arrival_date_for_storage + timedelta(days=1)
@@ -327,27 +336,23 @@ def render_tab1():
     
     if st.session_state.get('apply_long_distance'): 
         ld_options = data.long_distance_options if hasattr(data,'long_distance_options') else []
-        if 'long_distance_selector' not in st.session_state: 
-            st.session_state.long_distance_selector = ld_options[0] if ld_options else None
-        current_ld_val = st.session_state.get('long_distance_selector')
-        current_ld_index = 0 
-        if ld_options and current_ld_val in ld_options:
-            try: current_ld_index = ld_options.index(current_ld_val)
-            except ValueError: st.session_state.long_distance_selector = ld_options[0] 
+        current_ld_val = st.session_state.get('long_distance_selector', ld_options[0] if ld_options else None)
+        try: current_ld_index = ld_options.index(current_ld_val) if current_ld_val in ld_options else 0
+        except ValueError: current_ld_index = 0 
         st.selectbox("장거리 구간 선택", ld_options, index=current_ld_index, key="long_distance_selector") 
 
     with st.container(border=True):
         st.subheader("결제 관련 옵션") 
         col_pay_opt_tab1_1, col_pay_opt_tab1_2 = st.columns(2)
         with col_pay_opt_tab1_1:
-            st.checkbox("계산서 발행 (견적가에 VAT 10% 추가)", key="issue_tax_invoice") # "세금계산서" -> "계산서"
+            st.checkbox("계산서 발행 (견적가에 VAT 10% 추가)", key="issue_tax_invoice") 
         with col_pay_opt_tab1_2:
             st.checkbox("카드 결제 (VAT 및 수수료 포함하여 총 13% 추가)", key="card_payment") 
     st.divider()
 
     if UPLOAD_DIR: 
         st.subheader("관련 이미지 업로드") 
-        # ... (이미지 업로드 UI 로직은 기존과 동일) ...
+        # ... (이미지 업로드 UI 로직은 이전 답변과 동일) ...
         uploader_widget_key = f"image_uploader_tab1_instance_{st.session_state.image_uploader_key_counter}"
         uploaded_files = st.file_uploader(
             "이미지 파일을 선택해주세요 (여러 파일 가능)", type=["png", "jpg", "jpeg"],
@@ -449,7 +454,7 @@ def render_tab1():
             st.subheader("경유지 정보") 
             via_addr_cols = st.columns([3,1])
             with via_addr_cols[0]:
-                 st.text_input("경유지 주소", key="via_point_address", label_visibility="collapsed", placeholder="경유지 전체 주소") # 키 이름 변경: via_point_location -> via_point_address
+                 st.text_input("경유지 주소", key="via_point_address", label_visibility="collapsed", placeholder="경유지 전체 주소") 
             with via_addr_cols[1]:
                 st.text_input("층수", key="via_point_floor", label_visibility="collapsed", placeholder="경유층 (예: 1)")
             
@@ -463,7 +468,7 @@ def render_tab1():
     if st.session_state.get('is_storage_move'):
         with st.container(border=True):
             st.subheader("보관이사 추가 정보") 
-            storage_options_raw = data.STORAGE_TYPES if hasattr(data,'STORAGE_TYPES') else [] # STORAGE_TYPE_OPTIONS -> STORAGE_TYPES
+            storage_options_raw = data.STORAGE_TYPES if hasattr(data,'STORAGE_TYPES') else [] 
             
             if 'storage_type' not in st.session_state: 
                 st.session_state.storage_type = storage_options_raw[0] if storage_options_raw else None
