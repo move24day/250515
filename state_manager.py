@@ -5,16 +5,13 @@ from datetime import datetime, date
 import pytz
 
 try:
-    import data
-except ImportError as e:
-    st.error(f"State Manager: 필수 모듈 data.py 로딩 실패 - {e}")
-    st.stop()
-
-try:
+    import data # data.py 모듈 임포트
+    # MOVE_TYPE_OPTIONS를 data 모듈 로드 후 정의
     MOVE_TYPE_OPTIONS = list(data.item_definitions.keys()) if hasattr(data, 'item_definitions') and data.item_definitions else ["가정 이사 🏠", "사무실 이사 🏢"]
-except Exception as e:
-    MOVE_TYPE_OPTIONS = ["가정 이사 🏠", "사무실 이사 🏢"] 
-    st.warning(f"data.py에서 이사 유형 로딩 중 오류 발생: {e}. 기본값을 사용합니다.")
+except ImportError:
+    st.error("State Manager: 필수 모듈 data.py 로딩 실패. 앱이 정상적으로 작동하지 않을 수 있습니다.")
+    MOVE_TYPE_OPTIONS = ["가정 이사 🏠", "사무실 이사 🏢"] # 비상용 기본값
+    data = None # data 모듈 없음을 명시
 
 STATE_KEYS_TO_SAVE = [
     "base_move_type", "is_storage_move", "storage_type", "apply_long_distance", "long_distance_selector",
@@ -37,17 +34,13 @@ STATE_KEYS_TO_SAVE = [
     "issue_tax_invoice", "card_payment", 
     "move_time_option", "afternoon_move_details", 
     "uploaded_image_paths",
+    # Tab3 UI와 직접 연결되는 임시 저장용 키 (저장 시에는 위의 실제 키로 매핑)
     "tab3_deposit_amount", "tab3_adjustment_amount", 
     "tab3_departure_ladder_surcharge_manual", "tab3_arrival_ladder_surcharge_manual",
     "tab3_date_opt_0_widget", "tab3_date_opt_1_widget", "tab3_date_opt_2_widget", 
     "tab3_date_opt_3_widget", "tab3_date_opt_4_widget",
     "prev_final_selected_vehicle" 
 ]
-
-def get_default_times_for_date(selected_date):
-    if not isinstance(selected_date, date):
-        selected_date = date.today()
-    return selected_date.strftime("%H:%M") 
 
 def initialize_session_state(update_basket_callback=None):
     try:
@@ -57,23 +50,32 @@ def initialize_session_state(update_basket_callback=None):
     
     today_kst = datetime.now(KST).date()
     
+    # data 모듈이 성공적으로 로드되었는지 확인 후 사용
+    default_storage_type = data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦"
+    default_long_dist_selector = data.long_distance_options[0] if data and hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함"
+    default_from_method = data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶"
+    default_to_method = default_from_method
+    default_via_method = default_from_method
+    default_manual_ladder_surcharge = getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0
+
+
     defaults = {
         "base_move_type": MOVE_TYPE_OPTIONS[0],
         "is_storage_move": False,
-        "storage_type": data.STORAGE_TYPES[0] if hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
+        "storage_type": default_storage_type,
         "apply_long_distance": False,
-        "long_distance_selector": data.long_distance_options[0] if hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함",
+        "long_distance_selector": default_long_dist_selector,
         "customer_name": "", "customer_phone": "", "customer_email": "",
         "moving_date": today_kst,
         "arrival_date": today_kst, 
         "contract_date": today_kst, 
         "storage_duration": 1, "storage_use_electricity": False,
         "from_address_full": "", "from_floor": "", 
-        "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
+        "from_method": default_from_method,
         "to_address_full": "", "to_floor": "", 
-        "to_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
+        "to_method": default_to_method,
         "has_via_point": False, "via_point_address": "", "via_point_floor": "", 
-        "via_point_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
+        "via_point_method": default_via_method,
         "via_point_surcharge": 0,
         "special_notes": "",
         "vehicle_select_radio": "자동 추천 차량 사용",
@@ -88,8 +90,8 @@ def initialize_session_state(update_basket_callback=None):
         "has_waste_check": False, "waste_tons_input": 0.5,
         "date_opt_0_widget": False, "date_opt_1_widget": False, "date_opt_2_widget": False,
         "date_opt_3_widget": False, "date_opt_4_widget": False,
-        "manual_ladder_from_check": False, "departure_ladder_surcharge_manual": getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0),
-        "manual_ladder_to_check": False, "arrival_ladder_surcharge_manual": getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0),
+        "manual_ladder_from_check": False, "departure_ladder_surcharge_manual": default_manual_ladder_surcharge,
+        "manual_ladder_to_check": False, "arrival_ladder_surcharge_manual": default_manual_ladder_surcharge,
         "deposit_amount": 0, "adjustment_amount": 0, 
         "issue_tax_invoice": False, "card_payment": False,
         "pdf_ready": False, "pdf_bytes": None,
@@ -180,7 +182,7 @@ def initialize_session_state(update_basket_callback=None):
 
     global STATE_KEYS_TO_SAVE 
     item_keys_to_save_dyn = []
-    if hasattr(data, "item_definitions") and data.item_definitions:
+    if data and hasattr(data, "item_definitions") and data.item_definitions:
         for move_type_key, sections in data.item_definitions.items():
             if isinstance(sections, dict):
                 for section_key, item_list in sections.items():
@@ -247,7 +249,9 @@ def prepare_state_for_save(current_state_dict):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
     
     state_to_save["app_version"] = "1.1.3" 
-    state_to_save["saved_at_kst"] = datetime.now(pytz.timezone("Asia/Seoul") if "pytz" in globals() else None).isoformat()
+    saved_at_time = datetime.now(pytz.timezone("Asia/Seoul") if "pytz" in globals() and KST != pytz.utc else pytz.utc)
+    state_to_save["saved_at_kst"] = saved_at_time.isoformat()
+
 
     return state_to_save
 
@@ -264,18 +268,18 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     defaults_for_loading = {
         "base_move_type": default_move_type_load, 
         "is_storage_move": False, 
-        "storage_type": data.STORAGE_TYPES[0] if hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
+        "storage_type": data.STORAGE_TYPES[0] if data and hasattr(data, "STORAGE_TYPES") and data.STORAGE_TYPES else "컨테이너 보관 📦",
         "apply_long_distance": False, 
-        "long_distance_selector": data.long_distance_options[0] if hasattr(data, "long_distance_options") else "선택 안 함",
+        "long_distance_selector": data.long_distance_options[0] if data and hasattr(data, "long_distance_options") and data.long_distance_options else "선택 안 함",
         "customer_name": "", "customer_phone": "", "customer_email": "",
         "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load,
         "storage_duration": 1, "storage_use_electricity": False,
         "from_address_full": "", "from_floor": "", 
-        "from_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
+        "from_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
         "to_address_full": "", "to_floor": "", 
-        "to_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
+        "to_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
         "has_via_point": False, "via_point_address": "", "via_point_floor": "", 
-        "via_point_method": data.METHOD_OPTIONS[0] if hasattr(data, "METHOD_OPTIONS") else "계단 🚶",
+        "via_point_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
         "via_point_surcharge": 0,
         "special_notes": "",
         "vehicle_select_radio": "자동 추천 차량 사용", "manual_vehicle_select_value": None, "final_selected_vehicle": None,
@@ -285,12 +289,13 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "has_waste_check": False, "waste_tons_input": 0.5,
         "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False, 
         "tab3_date_opt_3_widget": False, "tab3_date_opt_4_widget": False,
-        "deposit_amount": 0, # <--- KeyError 방지 위해 defaults_for_loading 에 UI 직접 연결 키도 추가
+        "deposit_amount": 0, # <--- KeyError 방지: UI 연결 키와 그 기본값 추가
         "adjustment_amount": 0,
-        "departure_ladder_surcharge_manual": 0,
-        "arrival_ladder_surcharge_manual": 0,
+        "departure_ladder_surcharge_manual": getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0,
+        "arrival_ladder_surcharge_manual": getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0,
         "tab3_deposit_amount": 0, "tab3_adjustment_amount": 0, 
-        "tab3_departure_ladder_surcharge_manual": 0, "tab3_arrival_ladder_surcharge_manual": 0,
+        "tab3_departure_ladder_surcharge_manual": getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0, 
+        "tab3_arrival_ladder_surcharge_manual": getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0,
         "issue_tax_invoice": False, "card_payment": False,
         "move_time_option": "오전", "afternoon_move_details": "",
         "uploaded_image_paths": [], "total_volume": 0.0, "total_weight": 0.0,
@@ -298,7 +303,7 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "manual_ladder_from_check": False, 
         "manual_ladder_to_check": False    
     }
-    if hasattr(data, 'item_definitions') and data.item_definitions:
+    if data and hasattr(data, 'item_definitions') and data.item_definitions:
         for move_type_key, sections in data.item_definitions.items():
             if isinstance(sections, dict):
                 for section_key, items_in_section in sections.items():
@@ -317,23 +322,21 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
     string_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, str)] 
     allow_negative_keys_load = ["tab3_adjustment_amount", "adjustment_amount"]
 
-    # 저장된 모든 키와 기본값 키를 합쳐서 반복 (누락 방지)
     all_keys_to_process = set(STATE_KEYS_TO_SAVE) | set(defaults_for_loading.keys()) | set(k for k in defaults_for_loading if k.startswith("qty_"))
-
 
     for key_to_process in all_keys_to_process: 
         default_for_key = defaults_for_loading.get(key_to_process) 
         value_from_file = loaded_data_dict.get(key_to_process)
         
-        final_value = default_for_key # 기본적으로는 기본값 사용
-        if value_from_file is not None: # 파일에 값이 있으면 파일 값 우선
+        final_value = default_for_key 
+        if value_from_file is not None: 
             final_value = value_from_file
 
         try:
             if key_to_process in date_keys_load:
                 if isinstance(final_value, str):
                     try: final_value = date.fromisoformat(final_value)
-                    except ValueError: final_value = default_for_key if default_for_key is not None else today_kst # 안전 기본값
+                    except ValueError: final_value = default_for_key if default_for_key is not None else today_kst 
                 elif not isinstance(final_value, date): final_value = default_for_key if default_for_key is not None else today_kst
             elif key_to_process in int_keys_load or key_to_process.startswith("qty_"):
                 if isinstance(final_value, str) and not final_value.strip(): final_value = default_for_key if isinstance(default_for_key, int) else 0
@@ -349,7 +352,7 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
                 else: final_value = bool(final_value)
             elif key_to_process in list_keys_load:
                 final_value = final_value if isinstance(final_value, list) else (default_for_key if isinstance(default_for_key, list) else [])
-            elif key_to_process in string_keys_load: # 기타 문자열 처리
+            elif key_to_process in string_keys_load:
                 final_value = str(final_value) if final_value is not None else (default_for_key if default_for_key is not None else "")
             
             st.session_state[key_to_process] = final_value
@@ -357,15 +360,14 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
             print(f"Error loading key '{key_to_process}' with value '{final_value}'. Type: {type(final_value)}. Error: {e_load_val}. Using default.")
             st.session_state[key_to_process] = default_for_key
     
-    # UI 입력 필드와 tab3_ 저장용 필드 간의 동기화 (로드 후 UI 필드에 값 반영)
+    # Tab3의 UI 입력값과 직접 연결된 세션 상태들을 tab3_ 접두사 키 값으로 복원
     st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
     st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
     st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
     st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
     
-    for i in range(5): # 날짜 옵션 위젯
+    for i in range(5):
         st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", defaults_for_loading.get(f"tab3_date_opt_{i}_widget", False))
-
 
     if "base_move_type" in st.session_state:
         st.session_state.base_move_type_widget_tab1 = st.session_state.base_move_type
