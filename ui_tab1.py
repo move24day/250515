@@ -2,7 +2,7 @@
 import streamlit as st
 from datetime import datetime, date, timedelta 
 import pytz
-import json # 사용 안 함, 제거 가능
+# import json # 사용 안 함
 import os
 import traceback
 import re
@@ -21,6 +21,7 @@ except ImportError as ie:
     st.error(f"UI Tab 1: 필수 모듈 로딩 실패 - {ie}")
     if hasattr(ie, 'name') and ie.name:
         st.error(f"실패한 모듈: {ie.name}")
+    # 필수 모듈 없으면 앱 실행이 어려우므로 중단 또는 더 강력한 오류 처리 필요
     st.stop() 
 except Exception as e:
     st.error(f"UI Tab 1: 모듈 로딩 중 오류 - {e}")
@@ -50,16 +51,10 @@ def render_tab1():
     st.session_state.setdefault('afternoon_move_details', "")
     st.session_state.setdefault('contract_date', date.today()) 
 
-    # 콜백 함수 로드 (존재 여부 확인)
     update_basket_quantities_callback = getattr(callbacks, "update_basket_quantities", None)
     sync_move_type_callback = getattr(callbacks, 'sync_move_type', None)
-    handle_item_update_callback = getattr(callbacks, 'handle_item_update', None) 
+    # handle_item_update_callback = getattr(callbacks, 'handle_item_update', None) # Tab2에서 주로 사용
     set_default_times_callback = getattr(callbacks, "set_default_times", None) 
-
-    # 콜백 함수 로드 실패 메시지는 이제 initialize_session_state에서 처리하거나, app.py에서 확인 가능
-    # if not all(callable(cb) for cb in [update_basket_quantities_callback, sync_move_type_callback, handle_item_update_callback, set_default_times_callback]):
-    #     st.sidebar.warning("UI Tab 1: 일부 콜백 함수가 로드되지 않았습니다. 기능이 제한될 수 있습니다.")
-
 
     gdrive_folder_id_from_secrets = st.secrets.get("gcp_service_account", {}).get("drive_folder_id")
 
@@ -236,6 +231,12 @@ def render_tab1():
     with col_opts2: st.checkbox("장거리 이사 적용", key="apply_long_distance") 
     with col_opts3: st.checkbox("경유지 이사 여부", key="has_via_point") 
 
+    # --- 불필요한 옵션 제거 ---
+    # st.checkbox("🅿️ 주차 지원 가능 (양쪽 모두)", key="parking_available") 
+    # st.checkbox("🧊 냉장고 문 분리 필요", key="fridge_disassembly")
+    # st.checkbox("💨 에어컨 이전 설치 필요", key="ac_transfer_install")
+    st.write("") # 간격 유지
+
     st.text_input("고객명", key="customer_name")
     
     col_phone, col_email = st.columns(2)
@@ -287,8 +288,9 @@ def render_tab1():
     
     date_cols1, date_cols2 = st.columns(2) 
     with date_cols1:
-        current_contract_date_val = st.session_state.get('contract_date') # 계약일 먼저 표시
-        if not isinstance(current_contract_date_val, date):
+        # --- 계약일 추가 ---
+        current_contract_date_val = st.session_state.get('contract_date')
+        if not isinstance(current_contract_date_val, date): # 타입 체크 및 초기화
             st.session_state.contract_date = date.today()
         st.date_input("계약일", key="contract_date") 
 
