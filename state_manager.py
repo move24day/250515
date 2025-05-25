@@ -208,24 +208,25 @@ def initialize_session_state(update_basket_callback=None):
 
 def prepare_state_for_save(current_state_dict):
     state_to_save = {}
-    # --- KST 정의 추가 ---
     try:
         KST_ps = pytz.timezone("Asia/Seoul")
     except pytz.UnknownTimeZoneError:
         KST_ps = pytz.utc
-    # --- KST 정의 추가 끝 ---
 
     keys_to_exclude = {
         "_app_initialized",
-        "base_move_type_widget_tab1", "base_move_type_widget_tab3",
+        "base_move_type_widget_tab1",
+        "base_move_type_widget_tab3",
         "gdrive_selected_filename_widget_tab1",
         "pdf_data_customer", "final_excel_data", "customer_final_pdf_data",
         "internal_form_image_data", "internal_excel_data_for_download",
         "gdrive_search_results", "gdrive_file_options_map",
-        "deposit_amount", "adjustment_amount",
-        "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual",
-        "date_opt_0_widget", "date_opt_1_widget", "date_opt_2_widget",
-        "date_opt_3_widget", "date_opt_4_widget",
+        # The following keys are now directly saved with their 'tab3_' counterparts
+        # so we don't need to exclude the non-tab3 versions if they are not in STATE_KEYS_TO_SAVE
+        # "deposit_amount", "adjustment_amount",
+        # "departure_ladder_surcharge_manual", "arrival_ladder_surcharge_manual",
+        # "date_opt_0_widget", "date_opt_1_widget", "date_opt_2_widget",
+        # "date_opt_3_widget", "date_opt_4_widget",
         "recommended_vehicle_auto", "recommended_base_price_auto",
     }
 
@@ -246,8 +247,8 @@ def prepare_state_for_save(current_state_dict):
     if "uploaded_image_paths" not in state_to_save or not isinstance(state_to_save.get("uploaded_image_paths"), list):
         state_to_save["uploaded_image_paths"] = current_state_dict.get("uploaded_image_paths", [])
 
-    state_to_save["app_version"] = "1.1.4"
-    saved_at_time = datetime.now(KST_ps) # 정의된 KST_ps 사용
+    state_to_save["app_version"] = "1.1.5" # 예시 버전
+    saved_at_time = datetime.now(KST_ps)
     state_to_save["saved_at_kst"] = saved_at_time.isoformat()
 
     return state_to_save
@@ -264,7 +265,6 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
 
     default_manual_ladder_surcharge_load = getattr(data, 'MANUAL_LADDER_SURCHARGE_DEFAULT', 0) if data else 0
 
-    # *** FIX STARTS HERE ***
     defaults_for_recovery = {
         "base_move_type": default_move_type_load,
         "is_storage_move": False,
@@ -274,9 +274,9 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "customer_name": "", "customer_phone": "", "customer_email": "",
         "moving_date": default_date_load, "arrival_date": default_date_load, "contract_date": default_date_load,
         "storage_duration": 1, "storage_use_electricity": False,
-        "from_address_full": "", "from_floor": "",
+        "from_address_full": "", "from_floor": "", # 이전 from_location 대신 from_address_full 사용
         "from_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
-        "to_address_full": "", "to_floor": "",
+        "to_address_full": "", "to_floor": "",     # 이전 to_location 대신 to_address_full 사용
         "to_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
         "has_via_point": False, "via_point_address": "", "via_point_floor": "",
         "via_point_method": data.METHOD_OPTIONS[0] if data and hasattr(data, "METHOD_OPTIONS") and data.METHOD_OPTIONS else "계단 🚶",
@@ -287,10 +287,10 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "sky_hours_from": 1, "sky_hours_final": 1,
         "dispatched_1t":0, "dispatched_2_5t":0, "dispatched_3_5t":0, "dispatched_5t":0,
         "has_waste_check": False, "waste_tons_input": 0.5,
-        "deposit_amount": 0,
-        "adjustment_amount": 0,
-        "departure_ladder_surcharge_manual": default_manual_ladder_surcharge_load,
-        "arrival_ladder_surcharge_manual": default_manual_ladder_surcharge_load,
+        "deposit_amount": 0, # UI 직접 연결 키도 기본값 필요
+        "adjustment_amount": 0, # UI 직접 연결 키도 기본값 필요
+        "departure_ladder_surcharge_manual": default_manual_ladder_surcharge_load, # UI 직접 연결 키
+        "arrival_ladder_surcharge_manual": default_manual_ladder_surcharge_load,   # UI 직접 연결 키
         "manual_ladder_from_check": False,
         "manual_ladder_to_check": False,
         "tab3_date_opt_0_widget": False, "tab3_date_opt_1_widget": False, "tab3_date_opt_2_widget": False,
@@ -304,7 +304,7 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         "prev_final_selected_vehicle": None
     }
 
-    defaults_for_loading = defaults_for_recovery.copy() # defaults_for_loading 초기화
+    defaults_for_loading = defaults_for_recovery.copy()
 
     if data and hasattr(data, 'item_definitions') and data.item_definitions:
         for move_type_key, sections in data.item_definitions.items():
@@ -316,7 +316,6 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
                         for item_name_key in items_in_section:
                              if hasattr(data, "items") and data.items is not None and item_name_key in data.items:
                                 defaults_for_loading[f"qty_{move_type_key}_{section_key}_{item_name_key}"] = 0
-    # *** FIX ENDS HERE ***
 
     int_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, int) and not isinstance(v_type, bool)]
     float_keys_load = [k for k,v_type in defaults_for_loading.items() if isinstance(v_type, float)]
@@ -335,6 +334,17 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
         final_value = default_for_key
         if value_from_file is not None:
             final_value = value_from_file
+        
+        # 주소 키 호환성 처리
+        if key_to_process == "from_address_full" and value_from_file is None:
+            legacy_value = loaded_data_dict.get("from_location") # 이전 키 확인
+            if legacy_value is not None:
+                final_value = legacy_value
+        
+        if key_to_process == "to_address_full" and value_from_file is None:
+            legacy_value = loaded_data_dict.get("to_location") # 이전 키 확인
+            if legacy_value is not None:
+                final_value = legacy_value
 
         try:
             if key_to_process in date_keys_load:
@@ -364,10 +374,10 @@ def load_state_from_data(loaded_data_dict, update_basket_callback=None):
             print(f"Error loading key '{key_to_process}' with value '{final_value}'. Type: {type(final_value)}. Error: {e_load_val}. Using default.")
             st.session_state[key_to_process] = default_for_key
 
-    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading["deposit_amount"])
-    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading["adjustment_amount"])
-    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading["departure_ladder_surcharge_manual"])
-    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading["arrival_ladder_surcharge_manual"])
+    st.session_state.deposit_amount = st.session_state.get("tab3_deposit_amount", defaults_for_loading.get("deposit_amount",0))
+    st.session_state.adjustment_amount = st.session_state.get("tab3_adjustment_amount", defaults_for_loading.get("adjustment_amount",0))
+    st.session_state.departure_ladder_surcharge_manual = st.session_state.get("tab3_departure_ladder_surcharge_manual", defaults_for_loading.get("departure_ladder_surcharge_manual",0))
+    st.session_state.arrival_ladder_surcharge_manual = st.session_state.get("tab3_arrival_ladder_surcharge_manual", defaults_for_loading.get("arrival_ladder_surcharge_manual",0))
 
     for i in range(5):
         st.session_state[f"date_opt_{i}_widget"] = st.session_state.get(f"tab3_date_opt_{i}_widget", defaults_for_loading.get(f"tab3_date_opt_{i}_widget", False))
