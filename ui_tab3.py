@@ -176,7 +176,7 @@ def render_tab3():
 
     with st.container(border=True):
         st.subheader("작업 조건 및 추가 옵션")
-        # ... (기존 작업 조건 UI 로직은 변경 없음) ...
+        # ... (기존 작업 조건 UI 로직: 스카이, 추가인원, 차량대수, 인원제외 옵션 등) ...
         from_method_no_emoji_tab3_sky = get_method_full_name("from_method")
         to_method_no_emoji_tab3_sky = get_method_full_name("to_method")
         sky_from_tab3_cond = (from_method_no_emoji_tab3_sky == "스카이")
@@ -338,25 +338,6 @@ def render_tab3():
             st.subheader(f"총 견적 비용: {total_cost_num:,.0f} 원")
             st.write("")
 
-            # 비용 상세 내역(표)는 항상 표시
-            # st.subheader("비용 상세 내역 (표)") # 표 제목은 요약 밑으로 이동 가능
-            if has_cost_error:
-                err_item = next((item for item in cost_items_display if isinstance(item, (list, tuple)) and len(item)>0 and str(item[0]) == "오류"), None)
-                st.error(f"비용 계산 오류: {err_item[2] if err_item and len(err_item) > 2 else '알 수 없는 오류'}")
-            # elif cost_items_display: # 표 표시는 요약 밑으로 이동 또는 여기서 유지
-            #     valid_costs = [item for item in cost_items_display if not (isinstance(item, (list, tuple)) and len(item) > 0 and str(item[0]) == "오류")]
-            #     if valid_costs:
-            #         df_display_costs = pd.DataFrame(valid_costs, columns=["항목", "금액", "비고"])
-            #         df_display_costs["금액"] = pd.to_numeric(df_display_costs["금액"], errors='coerce').fillna(0).astype(int)
-            #         st.dataframe(
-            #             df_display_costs.style.format({"금액": "{:,.0f}"}).set_properties(**{'text-align':'right'}, subset=['금액']).set_properties(**{'text-align':'left'}, subset=['항목','비고']),
-            #             use_container_width=True,
-            #             hide_index=True
-            #         )
-            #     else: st.info("유효한 비용 항목 없음.")
-            # else: st.info("계산된 비용 항목 없음.")
-            # st.write("")
-
             # --- 이사 정보 요약 (텍스트) ---
             st.subheader("이사 정보 요약 (텍스트)")
             summary_display_possible = bool(final_selected_vehicle_for_calc_val) and not has_cost_error
@@ -397,7 +378,7 @@ def render_tab3():
                     
                     is_storage_move_summary = st.session_state.get('is_storage_move', False)
                     storage_details_text_display = "" 
-                    storage_location_name_for_route = "보관장소" 
+                    storage_location_name_for_route = "보관창고" 
                     storage_duration_for_route = st.session_state.get('storage_duration', 1)
 
                     if is_storage_move_summary:
@@ -438,21 +419,80 @@ def render_tab3():
                         payment_options_summary_str = "  (세금계산서 발행 예정)"
 
                     summary_output_lines = [] 
-                    
+                                        
+                    # --- 비용 요소 추출 ---
                     storage_fee_val = 0 
                     cost_sum_pre_vat_card = 0 
                     vat_on_total_val = 0 
+                    card_surcharge_val = 0
 
-                    for name, cost, _ in cost_items_display:
+                    departure_specific_costs_pre_vat = 0
+                    arrival_specific_costs_pre_vat = 0
+                    common_moving_costs_pre_vat = 0 # 기본운임, 추가인력, 할인, 장거리, 폐기물, 날짜할증 등
+
+                    for name, cost, note_from_calc in cost_items_display:
                         cost_int = 0
                         try: cost_int = int(float(cost or 0))
                         except: pass
-                        if name == "보관료": storage_fee_val = cost_int 
-                        if name not in ["부가세 (10%)", "카드결제 (VAT 및 수수료 포함)"]:
-                            cost_sum_pre_vat_card += cost_int
-                        if name == "부가세 (10%)": vat_on_total_val = cost_int
+
+                        if name == "보관료": 
+                            storage_fee_val = cost_int
+                        elif name == "부가세 (10%)": 
+                            vat_on_total_val = cost_int
+                        elif name == "카드결제 (VAT 및 수수료 포함)":
+                            card_surcharge_val = cost_int # 이 금액은 이미 (이전 총액 * 0.13) 이므로, 그 자체가 수수료+VAT임
+                        elif name in ["출발지 사다리차", "출발지 스카이 장비", "출발지 수동 사다리 추가"]:
+                            departure_specific_costs_pre_vat += cost_int
+                        elif name in ["도착지 사다리차", "도착지 스카이 장비", "도착지 수동 사다리 추가"]:
+                            arrival_specific_costs_pre_vat += cost_int
+                        else: # 나머지 공통 비용들
+                            common_moving_costs_pre_vat += cost_int
                     
-                    base_moving_cost_pre_vat = cost_sum_pre_vat_card - storage_fee_val
+                    # "이사비" (순수 이사 서비스 비용, VAT/카드/보관료 제외)
+                    # calculations.py에서 cost_before_add_charges가 VAT/카드 전 총액.
+                    # 이 total_cost_display는 최종액.
+                    # 순수 이사비 = (기본운임 + 추가인력 +/- 할인 +/- 수기조정 + 장거리 + 폐기물 + 날짜할증 + 경유지)
+                    # base_moving_cost_pre_vat는 공통비용만을 의미.
+                    base_moving_cost_pre_vat = common_moving_costs_pre_vat
+
+
+                    # --- 요약 첫 줄 생성 함수 ---
+                    def build_route_summary_line(current_date_str, from_route_display, to_route_display, 
+                                                 vehicle_tonnage, customer_email_val, 
+                                                 is_tax_val, has_via_val, via_loc_val, via_floor_val, is_long_dist_val, long_dist_selector_val,
+                                                 move_time_opt_val, afternoon_details_val):
+                        line_parts = [f"{current_date_str} / {from_route_display}"]
+                        if has_via_val and is_storage_move_summary and "보관" in from_route_display : # 보관출고 -> 경유 -> 도착
+                             pass # 경유지는 보통 출발지에서 보관창고 가기 전 또는 일반이사 시에만 의미가 큼
+                        elif has_via_val :
+                            via_display_text = via_loc_val
+                            if via_floor_val: via_display_text += f" ({via_floor_val}층)"
+                            line_parts.append(f"- {via_display_text} (경유) -")
+                        
+                        line_parts.append(f"{to_route_display} / {vehicle_tonnage}")
+
+                        suffix_items = []
+                        if is_tax_val and not is_card_payment_selected: # 카드결제가 아닐 때만 세금계산서 표시
+                            email_part = f" ({customer_email_val})" if customer_email_val else ""
+                            suffix_items.append(f"세금계산서{email_part}")
+                        
+                        if move_time_opt_val == "오후":
+                            time_indicator = "오후이사"
+                            if afternoon_details_val: time_indicator += f" ({afternoon_details_val})"
+                            suffix_items.append(time_indicator)
+                        
+                        if has_via_val : suffix_items.append("경유지이사") # 명시적 요청으로 추가
+
+                        if is_long_dist_val:
+                            ld_text = long_dist_selector_val
+                            if ld_text and ld_text != "선택 안 함":
+                                suffix_items.append(f"{ld_text} 장거리이사")
+                            else:
+                                suffix_items.append("장거리이사")
+                        
+                        if suffix_items:
+                            line_parts.append(" ".join(suffix_items))
+                        return " ".join(line_parts)
 
                     # --- 요약 블록 생성 ---
                     if is_storage_move_summary:
@@ -460,60 +500,57 @@ def render_tab3():
                         moving_date_obj = st.session_state.moving_date
                         arrival_date_obj = st.session_state.arrival_date
                         
-                        departure_date_str = moving_date_obj.strftime('%m-%d') if isinstance(moving_date_obj, date) else str(moving_date_obj)
-                        arrival_date_str = arrival_date_obj.strftime('%m-%d') if isinstance(arrival_date_obj, date) else str(arrival_date_obj)
+                        departure_date_str_display = moving_date_obj.strftime('%m-%d') if isinstance(moving_date_obj, date) else str(moving_date_obj)
+                        arrival_date_str_display = arrival_date_obj.strftime('%m-%d') if isinstance(arrival_date_obj, date) else str(arrival_date_obj)
 
                         deposit_leg1 = math.floor(deposit_total_input / 2)
                         deposit_leg2 = deposit_total_input - deposit_leg1
 
-                        moving_cost_leg1_pre_vat_part = round(base_moving_cost_pre_vat / 2)
-                        moving_cost_leg2_pre_vat_part = base_moving_cost_pre_vat - moving_cost_leg1_pre_vat_part
-                        
-                        payment_leg1_pre_vat = moving_cost_leg1_pre_vat_part
-                        payment_leg2_pre_vat = moving_cost_leg2_pre_vat_part + storage_fee_val
+                        # 각 레그의 순수 비용 (VAT 전)
+                        cost_leg1_pre_vat = round(common_moving_costs_pre_vat / 2) + departure_specific_costs_pre_vat
+                        cost_leg2_pre_vat_base = round(common_moving_costs_pre_vat / 2) + arrival_specific_costs_pre_vat
+                        cost_leg2_pre_vat = cost_leg2_pre_vat_base + storage_fee_val # 보관료는 도착일 정산에 포함
 
                         vat_leg1 = 0; vat_leg2 = 0
                         if is_tax_invoice_selected and not is_card_payment_selected:
-                            vat_leg1 = math.ceil(payment_leg1_pre_vat * 0.1)
-                            vat_leg2 = math.ceil(payment_leg2_pre_vat * 0.1)
-
-                        payment_leg1_final = payment_leg1_pre_vat + vat_leg1
-                        payment_leg2_final = payment_leg2_pre_vat + vat_leg2
+                            # 전체 VAT를 각 레그의 비용 비율로 분배 (더 정확한 방법)
+                            total_pre_vat_for_vat_calc = cost_leg1_pre_vat + cost_leg2_pre_vat
+                            if total_pre_vat_for_vat_calc > 0 :
+                                vat_leg1 = round(vat_on_total_val * (cost_leg1_pre_vat / total_pre_vat_for_vat_calc))
+                                vat_leg2 = vat_on_total_val - vat_leg1 # 오차 최소화
+                            else: # 분모가 0이면 VAT도 0
+                                vat_leg1 = 0; vat_leg2 = 0
+                        
+                        payment_leg1_final = cost_leg1_pre_vat + vat_leg1
+                        payment_leg2_final = cost_leg2_pre_vat + vat_leg2
                         
                         remaining_leg1 = payment_leg1_final - deposit_leg1
                         remaining_leg2 = payment_leg2_final - deposit_leg2
                         
-                        # --- 출발일 요약 (Leg 1) ---
-                        # 첫 줄 (경로 및 추가정보)
-                        route_leg1_line_parts = [f"{departure_date_str} / {from_addr_full_summary} - {storage_location_name_for_route}({storage_duration_for_route}일) / {vehicle_tonnage_summary}"]
-                        leg1_suffix_details = []
-                        if is_tax_invoice_selected and not is_card_payment_selected and email_summary: leg1_suffix_details.append(f"계산서발행 ({email_summary})")
-                        elif is_tax_invoice_selected and not is_card_payment_selected: leg1_suffix_details.append("세금계산서")
-                        if st.session_state.get("move_time_option") == "오후":
-                            aft_details = st.session_state.get("afternoon_move_details", "").strip()
-                            leg1_suffix_details.append(f"오후이사{(' (' + aft_details + ')') if aft_details else ''}")
-                        if has_via_point_summary : leg1_suffix_details.append("경유지이사")
-                        if st.session_state.get('apply_long_distance', False):
-                            ld_text = st.session_state.get('long_distance_selector', '')
-                            leg1_suffix_details.append(f"{ld_text} 장거리이사" if ld_text and ld_text != "선택 안 함" else "장거리이사")
-                        if leg1_suffix_details: route_leg1_line_parts.append(" ".join(leg1_suffix_details))
-                        summary_output_lines.append(" ".join(route_leg1_line_parts))
+                        # 출발일 요약 (Leg 1)
+                        summary_output_lines.append(build_route_summary_line(
+                            departure_date_str_display, 
+                            from_addr_full_summary, 
+                            f"{storage_location_name_for_route}({storage_duration_for_route}일)",
+                            vehicle_tonnage_summary, email_summary,
+                            is_tax_invoice_selected, has_via_point_summary, via_loc_sum, via_floor_sum, 
+                            st.session_state.get('apply_long_distance', False), st.session_state.get('long_distance_selector', ''),
+                            st.session_state.get("move_time_option"), st.session_state.get("afternoon_move_details", "").strip()
+                        ))
                         summary_output_lines.append("")
 
-                        summary_output_lines.append(f"{customer_name_summary}")
-                        summary_output_lines.append(f"{phone_summary}")
-                        # 이메일은 첫줄에 포함되었으므로 여기서는 생략 또는 조건부로 표시
-                        summary_output_lines.append("")
-                        summary_output_lines.append(vehicle_personnel_summary)
-                        summary_output_lines.append("")
+                        summary_output_lines.append(f"{customer_name_summary}"); summary_output_lines.append(f"{phone_summary}")
+                        if email_summary and not (is_tax_invoice_selected and not is_card_payment_selected): summary_output_lines.append(email_summary) # 첫줄에 없으면 여기에
+                        summary_output_lines.append(""); summary_output_lines.append(vehicle_personnel_summary); summary_output_lines.append("")
                         summary_output_lines.append(f"출발 작업: {from_method_full}")
+                        if has_via_point_summary: summary_output_lines.append(f"경유지 작업: {via_method_full}")
                         summary_output_lines.append("")
                         summary_output_lines.append(f"계약금: {int(deposit_leg1):,.0f}원 / 잔금: {int(remaining_leg1):,.0f}원")
                         if is_tax_invoice_selected and not is_card_payment_selected:
                              summary_output_lines.append(f"  (출발일 세액: {int(vat_leg1):,.0f}원 포함)")
-                        elif is_card_payment_selected and payment_options_summary_str: # 카드결제시
+                        elif is_card_payment_selected and payment_options_summary_str:
                              summary_output_lines.append(payment_options_summary_str)
-                        summary_output_lines.append("") # 계약금/잔금 후 빈 줄
+                        summary_output_lines.append("") 
 
                         # 상세 비용 내역 (전체 이동 기준)
                         summary_output_lines.append("세부 비용 내역 (전체 이동 기준):")
@@ -528,7 +565,7 @@ def render_tab3():
                                 elif "사다리차" in name and "추가" not in name : formatted_name_detail = name 
                                 elif "스카이 장비" in name: formatted_name_detail = name 
                                 elif name == "보관료":
-                                    formatted_name_detail = storage_details_text_display 
+                                    formatted_name_detail = f"보관료({storage_details_text_display})" # 보관료 형식 변경
                                     note_display_detail = "" 
                                 elif name == "출발지 수동 사다리 추가": formatted_name_detail = "출발사다리(수동)"
                                 elif name == "도착지 수동 사다리 추가": formatted_name_detail = "도착사다리(수동)"
@@ -551,7 +588,7 @@ def render_tab3():
                         summary_output_lines.append("출발지 주소:")
                         summary_output_lines.append(from_addr_full_summary)
                         summary_output_lines.append("")
-                        summary_output_lines.append(f"보관 정보 : {storage_details_text_display}") # 명시적으로 반복
+                        summary_output_lines.append(f"보관 정보: {storage_details_text_display}")
                         if bask_summary_str:
                             summary_output_lines.append("")
                             summary_output_lines.append(bask_summary_str)
@@ -561,9 +598,15 @@ def render_tab3():
                         summary_output_lines.append("\n" + "="*30 + "\n")
 
                         # 도착일 요약 (Leg 2)
-                        route_leg2_line_parts = [f"{arrival_date_str} / {storage_location_name_for_route}({storage_duration_for_route}일) - {to_addr_full_summary} / {vehicle_tonnage_summary}"]
-                        # 도착일 레그에는 주요 상태 반복 안함 (선택적)
-                        summary_output_lines.append(" ".join(route_leg2_line_parts))
+                        summary_output_lines.append(build_route_summary_line(
+                            arrival_date_str_display,
+                            f"{storage_location_name_for_route}({storage_duration_for_route}일)",
+                            to_addr_full_summary,
+                            vehicle_tonnage_summary, email_summary,
+                            is_tax_invoice_selected, False, "", "", # 경유지는 leg1에만 표시 가정
+                            False, "", # 장거리도 leg1에만 표시 가정
+                            "미선택", "" # 오후이사 여부도 leg1에만 표시 가정
+                        ))
                         summary_output_lines.append("")
 
                         summary_output_lines.append(f"{customer_name_summary}")
@@ -576,16 +619,16 @@ def render_tab3():
                         summary_output_lines.append(f"계약금: {int(deposit_leg2):,.0f}원 / 잔금: {int(remaining_leg2):,.0f}원")
                         if is_tax_invoice_selected and not is_card_payment_selected:
                              summary_output_lines.append(f"  (도착일 세액: {int(vat_leg2):,.0f}원 포함)")
-                        elif is_card_payment_selected and payment_options_summary_str: # 카드결제는 전체에 대한 것이므로, 마지막 레그에만 표시
+                        elif is_card_payment_selected and payment_options_summary_str:
                              summary_output_lines.append(payment_options_summary_str)
                         summary_output_lines.append("")
                         
-                        # 상세 비용 내역은 Leg1에 한 번만 표시 (요청에 따라 반복 가능)
+                        # 상세 비용 내역은 위에서 한 번만 표시했으므로 여기서는 생략
                         
                         summary_output_lines.append("도착지 주소:")
                         summary_output_lines.append(to_addr_full_summary)
                         summary_output_lines.append("")
-                        summary_output_lines.append(f"보관 정보 : {storage_details_text_display}")
+                        summary_output_lines.append(f"보관 정보 (반복): {storage_details_text_display}") 
                         if bask_summary_str:
                             summary_output_lines.append("")
                             summary_output_lines.append(bask_summary_str)
@@ -594,41 +637,21 @@ def render_tab3():
                             summary_output_lines.extend([f"  - {note_line.strip()}" for note_line in note_summary.strip().replace('\r\n', '\n').split('\n') if note_line.strip()])
                     else:
                         # --- 일반 이사: 1개의 요약 블록 ---
-                        if summary_output_lines and not summary_output_lines[0].startswith("**"): summary_output_lines.append("") # 첫줄 표시기 없으면 빈줄로 시작
+                        if summary_output_lines and not summary_output_lines[0].startswith("**"): summary_output_lines.append("")
 
                         moving_date_val = st.session_state.get('moving_date')
                         formatted_date = moving_date_val.strftime('%m-%d') if isinstance(moving_date_val, date) else str(moving_date_val)
                         
-                        # 경로 요약 (일반 이사)
-                        route_general_line_parts = [f"{formatted_date} / {from_addr_full_summary}"]
-                        if has_via_point_summary :
-                            via_display_text = via_loc_sum
-                            if via_floor_sum: via_display_text += f" ({via_floor_sum}층)"
-                            route_general_line_parts.append(f"- {via_display_text} (경유) -")
-                        route_general_line_parts.append(f"{to_addr_full_summary} / {vehicle_tonnage_summary}")
-                        
-                        # 추가 정보 (세금계산서 이메일, 오후이사, 장거리)
-                        suffix_details_general = []
-                        if is_tax_invoice_selected and not is_card_payment_selected and email_summary: suffix_details_general.append(f"계산서발행 ({email_summary})")
-                        elif is_tax_invoice_selected and not is_card_payment_selected: suffix_details_general.append("세금계산서")
-                        
-                        # 오후이사 정보는 최상단 first_line_indicators_list에서 이미 처리, 여기서는 중복 방지
-                        # if st.session_state.get("move_time_option") == "오후":
-                        #     aft_details = st.session_state.get("afternoon_move_details", "").strip()
-                        #     suffix_details_general.append(f"오후이사{(' (' + aft_details + ')') if aft_details else ''}")
-                        
-                        # 경유지이사 표시는 경로에 이미 포함, 장거리이사는 첫줄표시기에 이미 있음.
-                        # if has_via_point_summary : suffix_details_general.append("경유지이사")
-                        # if st.session_state.get('apply_long_distance', False):
-                        #     ld_selector_text = st.session_state.get('long_distance_selector', '')
-                        #     suffix_details_general.append(f"{ld_selector_text} 장거리이사" if ld_selector_text and ld_selector_text != "선택 안 함" else "장거리이사")
-
-                        if suffix_details_general:
-                            route_general_line_parts.append(" ".join(suffix_details_general))
-                        
-                        summary_output_lines.append(" ".join(route_general_line_parts))
+                        summary_output_lines.append(build_route_summary_line(
+                            formatted_date,
+                            from_addr_full_summary,
+                            to_addr_full_summary,
+                            vehicle_tonnage_summary, email_summary,
+                            is_tax_invoice_selected, has_via_point_summary, via_loc_sum, via_floor_sum,
+                            st.session_state.get('apply_long_distance', False), st.session_state.get('long_distance_selector', ''),
+                            st.session_state.get("move_time_option"), st.session_state.get("afternoon_move_details", "").strip()
+                        ))
                         summary_output_lines.append("") 
-
 
                         if customer_name_summary: summary_output_lines.append(customer_name_summary)
                         if phone_summary: summary_output_lines.append(phone_summary)
@@ -663,8 +686,8 @@ def render_tab3():
                                 if name == "기본 운임": formatted_name_detail = "이사비"; note_display_text = f" ({note})" if note else ""
                                 elif "사다리차" in name and "추가" not in name : formatted_name_detail = name 
                                 elif "스카이 장비" in name: formatted_name_detail = name 
-                                elif name == "보관료": # 일반 이사에서는 나올 일 없으나, 일관성 위해
-                                    formatted_name_detail = storage_details_text_display 
+                                elif name == "보관료": 
+                                    formatted_name_detail = f"보관료({storage_details_text_display})"
                                     note_display_text = "" 
                                 elif name == "출발지 수동 사다리 추가": formatted_name_detail = "출발사다리(수동)"
                                 elif name == "도착지 수동 사다리 추가": formatted_name_detail = "도착사다리(수동)"
