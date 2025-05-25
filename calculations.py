@@ -1,6 +1,13 @@
 # calculations.py
 import data
 import math
+import re # 정규표현식 사용을 위해 추가 (get_floor_num 등)
+
+# --- MOVE_TYPE_OPTIONS 정의 (state_manager와 동일하게) ---
+try:
+    MOVE_TYPE_OPTIONS = list(data.item_definitions.keys()) if hasattr(data, 'item_definitions') and data.item_definitions else ["가정 이사 🏠", "사무실 이사 🏢"]
+except Exception:
+    MOVE_TYPE_OPTIONS = ["가정 이사 🏠", "사무실 이사 🏢"]
 
 # --- 이사짐 부피/무게 계산 ---
 def calculate_total_volume_weight(state_data, move_type):
@@ -13,14 +20,15 @@ def calculate_total_volume_weight(state_data, move_type):
     processed_items = set() 
     if isinstance(item_defs, dict):
         for section, item_list in item_defs.items():
-            if section == data.WASTE_SECTION_NAME if hasattr(data, "WASTE_SECTION_NAME") else False: continue 
+            waste_section_name = getattr(data, "WASTE_SECTION_NAME", "폐기 처리 품목 🗑️") # data.py에 정의된 이름 사용
+            if section == waste_section_name : continue 
             if isinstance(item_list, list):
                 for item_name in item_list:
                     if item_name in processed_items or not hasattr(data, 'items') or not data.items or item_name not in data.items:
                         continue
                     
                     item_key = f"qty_{move_type}_{section}_{item_name}"
-                    quantity = int(state_data.get(item_key, 0) or 0) # None일 경우 0으로 처리
+                    quantity = int(state_data.get(item_key, 0) or 0) 
                     
                     if quantity > 0:
                         item_spec = data.items.get(item_name, {})
@@ -35,64 +43,146 @@ def recommend_vehicle(total_volume, total_weight, move_type):
     if not hasattr(data, 'vehicle_specs') or not data.vehicle_specs or \
        not hasattr(data, 'vehicle_prices') or not data.vehicle_prices or \
        move_type not in data.vehicle_prices:
-        return "차량 정보 부족", 0.0
+        return "차량 정보 부족", 0.0, 0 # 차량명, 가격, 기본 인원(남) 반환하도록 수정
 
     available_trucks = sorted(
         [truck for truck in data.vehicle_prices.get(move_type, {}) if truck in data.vehicle_specs],
         key=lambda x: data.vehicle_specs[x].get("capacity", 0)
     )
 
-    if not available_trucks: return "해당 이사 유형에 사용 가능한 차량 없음", 0.0
+    if not available_trucks: return "해당 이사 유형에 사용 가능한 차량 없음", 0.0, 0
 
     recommended_truck = None
     base_price = 0.0
+    # 기본 인원 정보도 함께 가져오기 위해 수정
+    base_men_rec = 0
+    base_women_rec = 0
 
-    for truck in available_trucks:
-        spec = data.vehicle_specs[truck]
-        if total_volume <= spec["capacity"] and total_weight <= spec["weight_capacity"]:
-            recommended_truck = truck
-            base_price = data.vehicle_prices[move_type][truck].get("price", 0)
-            break
+
+    if total_volume <= 0 and total_weight <= 0: # 물량이 없으면 추천 불가 또는 가장 작은 차량
+        # 가장 작은 차량을 추천할 수도 있으나, 현재는 None으로 처리
+        return None, 0.0, 0 
     
-    if not recommended_truck: # 모든 차량 초과 시 가장 큰 차량으로 표시하고 초과 메시지
-        largest_truck = available_trucks[-1] if available_trucks else None
-        if largest_truck:
-             spec = data.vehicle_specs[largest_truck]
-             vol_over = total_volume > spec["capacity"]
-             wt_over = total_weight > spec["weight_capacity"]
-             over_msg = []
-             if vol_over: over_msg.append(f"부피({total_volume:.2f}m³ > {spec['capacity']}m³)")
-             if wt_over: over_msg.append(f"무게({total_weight:.0f}kg > {spec['weight_capacity']}kg)")
-             return f"{largest_truck} 용량 초과 ({', '.join(over_msg)})", data.vehicle_prices[move_type][largest_truck].get("price", 0)
-        return "모든 차량 용량 초과", 0.0
+    loading_efficiency = getattr(data, 'LOADING_EFFICIENCY', 1.0) 
+    
+    for truck_name, specs in [(truck, data.vehicle_specs[truck]) for truck in available_trucks]:
+        usable_capacity = specs.get('capacity', 0) * loading_efficiency
+        usable_weight = specs.get('weight_capacity', 0) 
         
-    return recommended_truck, base_price
+        if usable_capacity > 0 and total_volume <= usable_capacity and total_weight <= usable_weight:
+            recommended_truck = truck_name
+            price_info = data.vehicle_prices[move_type].get(truck_name, {})
+            base_price = price_info.get("price", 0)
+            base_men_rec = price_info.get("men", 0)
+            base_women_rec = price_info.get("housewife", 0) if move_type == "가정 이사 🏠" else 0
+            break 
+            
+    if recommended_truck: 
+        return recommended_truck, base_price, base_men_rec, base_women_rec # 추천 차량의 기본 인원 정보도 반환
+    elif (total_volume > 0 or total_weight > 0) and available_trucks: 
+        largest_truck = available_trucks[-1]
+        spec = data.vehicle_specs[largest_truck]
+        vol_over = total_volume > spec["capacity"] * loading_efficiency
+        wt_over = total_weight > spec["weight_capacity"]
+        over_msg = []
+        if vol_over: over_msg.append(f"부피({total_volume:.2f}m³ > {spec['capacity']*loading_efficiency:.2f}m³)")
+        if wt_over: over_msg.append(f"무게({total_weight:.0f}kg > {spec['weight_capacity']}kg)")
+        
+        price_info_largest = data.vehicle_prices[move_type].get(largest_truck, {})
+        base_price_largest = price_info_largest.get("price",0)
+        base_men_largest = price_info_largest.get("men",0)
+        base_women_largest = price_info_largest.get("housewife",0) if move_type == "가정 이사 🏠" else 0
+        
+        return f"{largest_truck} 용량 초과 ({', '.join(over_msg)})", base_price_largest, base_men_largest, base_women_largest
+    else: 
+        return None, 0.0, 0, 0
 
 
-# --- 최종 비용 계산 ---
+# --- 층수 숫자 추출 ---
+def get_floor_num(floor_str):
+    try:
+        if floor_str is None: return 0
+        cleaned = str(floor_str).strip().upper() 
+        if not cleaned: return 0 
+        
+        if cleaned.startswith('B') and cleaned[1:].isdigit():
+            return -int(cleaned[1:])
+        
+        num_part = ''.join(filter(lambda x: x.isdigit() or x == '-', cleaned)) 
+        if num_part:
+            if num_part.count('-') > 1 or (num_part.count('-') == 1 and not num_part.startswith('-')):
+                num_part_digits_only = ''.join(filter(str.isdigit, num_part))
+                return int(num_part_digits_only) if num_part_digits_only else 0
+            return int(num_part)
+        return 0
+    except: return 0 
+
+# --- 사다리차 비용 계산 ---
+def get_ladder_cost(floor_num, vehicle_name): # 기존 함수 유지
+    cost, note = 0, ""
+    if floor_num < 2: return 0, "1층 이하" 
+    
+    ladder_price_floor_ranges = getattr(data, 'ladder_price_floor_ranges', {})
+    ladder_tonnage_map = getattr(data, 'ladder_tonnage_map', {})
+    default_ladder_size_val = getattr(data, 'default_ladder_size', None)
+    ladder_prices_val = getattr(data, 'ladder_prices', {})
+
+    floor_range_key = next((rng_str for (min_f, max_f), rng_str in ladder_price_floor_ranges.items() if min_f <= floor_num <= max_f), None)
+    if not floor_range_key: return 0, f"{floor_num}층 해당 가격 없음"
+        
+    vehicle_spec = getattr(data, 'vehicle_specs', {}).get(vehicle_name)
+    if not vehicle_spec or 'weight_capacity' not in vehicle_spec: return 0, "선택 차량 정보 없음"
+    
+    vehicle_ton_num = vehicle_spec['weight_capacity'] / 1000.0 
+    
+    tonnage_key = next((ladder_tonnage_map[ton_n] for ton_n in sorted(ladder_tonnage_map.keys(), reverse=True) if vehicle_ton_num >= ton_n), default_ladder_size_val)
+    if not tonnage_key: return 0, "사다리차 톤수 기준 없음"
+    
+    try:
+        floor_prices_for_range = ladder_prices_val.get(floor_range_key, {})
+        cost = floor_prices_for_range.get(tonnage_key, 0)
+        
+        if cost > 0: 
+            note = f"{floor_range_key}, {tonnage_key} 기준"
+        else: 
+            if default_ladder_size_val and default_ladder_size_val != tonnage_key: 
+                 cost = floor_prices_for_range.get(default_ladder_size_val, 0)
+                 note = f"{floor_range_key}, 기본({default_ladder_size_val}) 적용" if cost > 0 else f"{floor_range_key}, {tonnage_key}(기본 {default_ladder_size_val}) 가격 없음"
+            else: 
+                 note = f"{floor_range_key}, {tonnage_key} 가격 정보 없음"
+    except Exception as e: 
+        note, cost = f"가격 조회 오류: {e}", 0
+    return cost, note
+
+# --- 총 이사 비용 계산 ---
 def calculate_total_moving_cost(state_data):
-    cost_items = []
-    personnel_info = {}
-    cost_before_add_charges = 0  # VAT 또는 카드 수수료 전 총액
+    cost_before_add_charges = 0 
+    cost_items = [] 
+    personnel_info = {} 
 
-    move_type = state_data.get('base_move_type', MOVE_TYPE_OPTIONS[0] if 'MOVE_TYPE_OPTIONS' in globals() and MOVE_TYPE_OPTIONS else "가정 이사 🏠")
-    selected_vehicle = state_data.get('final_selected_vehicle')
+    move_type = state_data.get('base_move_type', MOVE_TYPE_OPTIONS[0])
+    selected_vehicle = state_data.get('final_selected_vehicle') 
+    is_storage, has_via_point = state_data.get('is_storage_move', False), state_data.get('has_via_point', False)
 
-    if not selected_vehicle or not hasattr(data, 'vehicle_prices') or \
-       move_type not in data.vehicle_prices or \
-       selected_vehicle not in data.vehicle_prices[move_type]:
-        cost_items.append(("오류", 0, "선택된 차량 또는 이사 유형에 대한 가격 정보가 없습니다."))
+    if not selected_vehicle:
+        return 0, [("오류", 0, "차량 선택 필요")], {"final_men": 0, "final_women": 0}
+
+    vehicle_data = {}
+    if hasattr(data, 'vehicle_prices') and move_type in data.vehicle_prices and \
+       selected_vehicle in data.vehicle_prices[move_type]:
+        vehicle_data = data.vehicle_prices[move_type][selected_vehicle]
+    else:
+        cost_items.append(("오류", 0, f"차량({selected_vehicle}) 또는 이사유형({move_type}) 가격 정보 없음"))
         return 0, cost_items, {"final_men": 0, "final_women": 0}
 
-    vehicle_data = data.vehicle_prices[move_type][selected_vehicle]
     base_price = vehicle_data.get("price", 0)
     base_men_from_vehicle = vehicle_data.get("men", 0)
-    base_housewife_from_vehicle = vehicle_data.get("housewife", 0)
+    base_housewife_from_vehicle = vehicle_data.get("housewife", 0) if move_type == "가정 이사 🏠" else 0
     
     actual_base_price = base_price
     base_price_note = f"{selected_vehicle} 기준"
 
-    if state_data.get('is_storage_move', False):
+    if is_storage: # 보관이사는 기본 운임 2배
         actual_base_price *= 2
         base_price_note += ", 보관이사 왕복 적용"
     
@@ -100,92 +190,66 @@ def calculate_total_moving_cost(state_data):
     cost_before_add_charges += actual_base_price
 
     # 작업비 (사다리차, 스카이)
-    ladder_cost_from, sky_cost_from = 0,0
-    ladder_cost_to, sky_cost_to = 0,0
+    for loc_prefix, floor_key, method_key, sky_hours_key in [
+        ("출발지", 'from_floor', 'from_method', 'sky_hours_from'),
+        ("도착지", 'to_floor', 'to_method', 'sky_hours_final')
+    ]:
+        method_val = state_data.get(method_key, '')
+        floor_val_str = str(state_data.get(floor_key, '1'))
+        floor_num_val = get_floor_num(floor_val_str)
+
+        if "사다리차" in method_val:
+            ladder_cost, ladder_note = get_ladder_cost(floor_num_val, selected_vehicle)
+            if ladder_cost > 0:
+                cost_items.append((f"{loc_prefix} 사다리차", ladder_cost, ladder_note))
+                cost_before_add_charges += ladder_cost
+        elif "스카이" in method_val:
+            hours = int(state_data.get(sky_hours_key, 1) or 1)
+            sky_base, sky_add_hr = getattr(data, 'SKY_BASE_PRICE',0), getattr(data, 'SKY_EXTRA_HOUR_PRICE',0) # data.py 에서 가져오도록 수정
+            sky_total_cost = sky_base + (sky_add_hr * (hours - 1)) if hours > 0 else 0
+            if sky_total_cost > 0:
+                sky_note = f"{loc_prefix}({hours}h): 기본 {sky_base:,} + 추가 {sky_add_hr * (hours - 1):,}" if hours > 1 else f"{loc_prefix}({hours}h): 기본 {sky_base:,}"
+                cost_items.append((f"{loc_prefix} 스카이 장비", sky_total_cost, sky_note))
+                cost_before_add_charges += sky_total_cost
     
-    from_method = state_data.get('from_method', '')
-    to_method = state_data.get('to_method', '')
-
-    if "사다리차" in from_method and hasattr(data, 'ladder_surcharges'):
-        from_floor_str = str(state_data.get('from_floor', '1'))
-        floor_num_from = int(re.sub(r'[^0-9]', '', from_floor_str.split('-')[0].split('~')[0])) if re.sub(r'[^0-9]', '', from_floor_str.split('-')[0].split('~')[0]) else 1
-        
-        ladder_surcharge_key_from = next((val for key_range, val in data.ladder_surcharges.items() if key_range[0] <= floor_num_from <= key_range[1]), 0)
-        ladder_cost_from = ladder_surcharge_key_from
-        if ladder_cost_from > 0: cost_items.append(("출발지 사다리차", ladder_cost_from, f"{from_floor_str} 작업"))
-
-    if "사다리차" in to_method and hasattr(data, 'ladder_surcharges'):
-        to_floor_str = str(state_data.get('to_floor', '1'))
-        floor_num_to = int(re.sub(r'[^0-9]', '', to_floor_str.split('-')[0].split('~')[0])) if re.sub(r'[^0-9]', '', to_floor_str.split('-')[0].split('~')[0]) else 1
-        
-        ladder_surcharge_key_to = next((val for key_range, val in data.ladder_surcharges.items() if key_range[0] <= floor_num_to <= key_range[1]), 0)
-        ladder_cost_to = ladder_surcharge_key_to
-        if ladder_cost_to > 0: cost_items.append(("도착지 사다리차", ladder_cost_to, f"{to_floor_str} 작업"))
-    
-    cost_before_add_charges += ladder_cost_from + ladder_cost_to
-
-    if "스카이" in from_method and hasattr(data, 'sky_work_prices'):
-        hours_from = int(state_data.get('sky_hours_from', 1) or 1)
-        sky_base_cost, sky_add_cost = data.sky_work_prices.get(selected_vehicle, (0,0))
-        sky_cost_from = sky_base_cost + (sky_add_cost * (hours_from - 1)) if hours_from > 0 else 0
-        if sky_cost_from > 0: cost_items.append(("출발지 스카이 장비", sky_cost_from, f"출발({hours_from}h): 기본 {sky_base_cost:,} + 추가 {sky_add_cost * (hours_from - 1):,}"))
-
-    if "스카이" in to_method and hasattr(data, 'sky_work_prices'):
-        hours_to = int(state_data.get('sky_hours_final', 1) or 1) # sky_hours_to -> sky_hours_final
-        sky_base_cost_to, sky_add_cost_to = data.sky_work_prices.get(selected_vehicle, (0,0))
-        sky_cost_to = sky_base_cost_to + (sky_add_cost_to * (hours_to - 1)) if hours_to > 0 else 0
-        if sky_cost_to > 0: cost_items.append(("도착지 스카이 장비", sky_cost_to, f"도착({hours_to}h): 기본 {sky_base_cost_to:,} + 추가 {sky_add_cost_to * (hours_to - 1):,}"))
-        
-    cost_before_add_charges += sky_cost_from + sky_cost_to
-
     # 인원 비용
     additional_person_cost = getattr(data, "ADDITIONAL_PERSON_COST", 0)
-    base_personnel_discount_housewife = 0
-    base_personnel_discount_man = 0
-
+    
     # --- 기본 인원 제외 로직 수정: 1명만 제외 ---
+    num_housewives_removed = 0
     if state_data.get('remove_base_housewife', False) and base_housewife_from_vehicle > 0:
-        base_personnel_discount_housewife = -additional_person_cost # 1명 비용만 할인
-        cost_items.append(("기본 여성 인원 중 1명 제외 할인", base_personnel_discount_housewife, f"기본 {base_housewife_from_vehicle}명 중 1명 제외"))
+        cost_items.append(("기본 여성 인원 중 1명 제외 할인", -additional_person_cost, f"기본 {base_housewife_from_vehicle}명 중 1명 제외"))
+        cost_before_add_charges -= additional_person_cost
+        num_housewives_removed = 1
     
-    if state_data.get('remove_base_man', False) and base_man_from_vehicle > 0:
-        base_personnel_discount_man = -additional_person_cost # 1명 비용만 할인
-        cost_items.append(("기본 남성 인원 중 1명 제외 할인", base_personnel_discount_man, f"기본 {base_man_from_vehicle}명 중 1명 제외"))
+    num_men_removed = 0
+    if state_data.get('remove_base_man', False) and base_men_from_vehicle > 0:
+        cost_items.append(("기본 남성 인원 중 1명 제외 할인", -additional_person_cost, f"기본 {base_man_from_vehicle}명 중 1명 제외"))
+        cost_before_add_charges -= additional_person_cost
+        num_men_removed = 1
 
-    cost_before_add_charges += base_personnel_discount_housewife
-    cost_before_add_charges += base_personnel_discount_man
-    
-    # 최종 인원 계산 수정
-    final_men = base_men_from_vehicle
-    if state_data.get('remove_base_man', False) and base_man_from_vehicle > 0:
-        final_men -= 1
-    final_men += int(state_data.get('add_men', 0) or 0)
-    final_men = max(0, final_men) # 음수 방지
-
-    final_housewives = base_housewife_from_vehicle
-    if state_data.get('remove_base_housewife', False) and base_housewife_from_vehicle > 0:
-        final_housewives -= 1
-    final_housewives += int(state_data.get('add_women', 0) or 0)
-    final_housewives = max(0, final_housewives) # 음수 방지
+    # 최종 인원 계산
+    final_men = base_men_from_vehicle - num_men_removed + int(state_data.get('add_men', 0) or 0)
+    final_housewives = base_housewife_from_vehicle - num_housewives_removed + int(state_data.get('add_women', 0) or 0)
+    final_men = max(0, final_men)
+    final_housewives = max(0, final_housewives)
 
     personnel_info['base_men'] = base_men_from_vehicle
     personnel_info['base_women'] = base_housewife_from_vehicle
-    personnel_info['additional_men'] = int(state_data.get('add_men', 0) or 0)
-    personnel_info['additional_women'] = int(state_data.get('add_women', 0) or 0)
+    personnel_info['additional_men'] = int(state_data.get('add_men', 0) or 0) # UI에서 직접 추가한 인원
+    personnel_info['additional_women'] = int(state_data.get('add_women', 0) or 0) # UI에서 직접 추가한 인원
+    personnel_info['removed_base_housewife_count'] = num_housewives_removed
+    personnel_info['removed_base_men_count'] = num_men_removed
     personnel_info['final_men'] = final_men
     personnel_info['final_women'] = final_housewives
     
-    # 추가 인원 비용 (기본 인원에서 가감된 후 순수하게 추가된 인원만 계산)
-    manual_added_men_cost = (final_men - (base_men_from_vehicle - (1 if state_data.get('remove_base_man', False) and base_man_from_vehicle > 0 else 0))) * additional_person_cost \
-        if final_men > (base_men_from_vehicle - (1 if state_data.get('remove_base_man', False) and base_man_from_vehicle > 0 else 0)) else 0
-    
-    manual_added_women_cost = (final_housewives - (base_housewife_from_vehicle - (1 if state_data.get('remove_base_housewife', False) and base_housewife_from_vehicle > 0 else 0))) * additional_person_cost \
-        if final_housewives > (base_housewife_from_vehicle - (1 if state_data.get('remove_base_housewife', False) and base_housewife_from_vehicle > 0 else 0)) else 0
-    
-    manual_added_total_cost = manual_added_men_cost + manual_added_women_cost
+    # 순수 추가 인력에 대한 비용 (기본 인원에서 가감된 후, 순수하게 UI에서 '추가'한 인원)
+    added_men_for_cost = int(state_data.get('add_men', 0) or 0)
+    added_women_for_cost = int(state_data.get('add_women', 0) or 0)
+    manual_added_total_cost = (added_men_for_cost + added_women_for_cost) * additional_person_cost
 
     if manual_added_total_cost > 0:
-        cost_items.append(("추가 인력", manual_added_total_cost, f"남성 {int(state_data.get('add_men',0) or 0)}명, 여성 {int(state_data.get('add_women',0) or 0)}명 추가분 반영"))
+        cost_items.append(("추가 인력", manual_added_total_cost, f"남성 {added_men_for_cost}명, 여성 {added_women_for_cost}명 추가분"))
         cost_before_add_charges += manual_added_total_cost
         
     # 수기 조정 금액
@@ -196,6 +260,7 @@ def calculate_total_moving_cost(state_data):
         cost_before_add_charges += adjustment
 
     # 수동 사다리 추가금 (Tab1에서 입력, Tab3에 표시/계산)
+    # manual_ladder_from_check 와 manual_ladder_to_check 키를 사용하도록 수정
     dep_manual_ladder_surcharge = int(state_data.get('departure_ladder_surcharge_manual',0) or 0) if state_data.get('manual_ladder_from_check', False) else 0
     arr_manual_ladder_surcharge = int(state_data.get('arrival_ladder_surcharge_manual',0) or 0) if state_data.get('manual_ladder_to_check', False) else 0
 
@@ -209,28 +274,33 @@ def calculate_total_moving_cost(state_data):
     # 보관료
     if state_data.get('is_storage_move', False):
         duration = int(state_data.get('storage_duration', 1) or 1)
-        storage_type = state_data.get('storage_type', data.DEFAULT_STORAGE_TYPE if hasattr(data, "DEFAULT_STORAGE_TYPE") else "컨테이너 보관 📦") # 이모티콘 포함된 키 사용
+        storage_type_key = state_data.get('storage_type', getattr(data,"DEFAULT_STORAGE_TYPE","")) # 이모티콘 포함된 키
         use_electricity = state_data.get('storage_use_electricity', False)
         
         daily_rate = 0
-        if hasattr(data, "storage_prices") and storage_type in data.storage_prices:
-             daily_rate = data.storage_prices[storage_type].get('rate_per_day', 0)
+        # storage_prices의 키는 이모티콘 포함된 전체 문자열 (예: "컨테이너 보관 📦")
+        if hasattr(data, "storage_prices") and storage_type_key in data.storage_prices:
+             daily_rate = data.storage_prices[storage_type_key].get('rate_per_day', 0)
         
         storage_cost = daily_rate * duration
-        if use_electricity and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH"): # 월 단위 추가금, 일할 계산 필요시 복잡해짐. 여기선 단순 추가.
-            # 간단하게, 한달 미만도 월 요금 부과 또는 일할 계산 (여기서는 기간 관계없이 1회성 추가금으로 가정)
-            # 실제로는 (duration / 30) * 월요금 등이 될 수 있음. data.py에 명확한 정책 필요.
-            # 여기서는 한달 이상 보관 시 월 요금 부과로 가정.
-            if duration >=30 and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH"):
-                 storage_cost += data.STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH * math.ceil(duration / 30) # 개월 수 올림
-            elif duration < 30 and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH"): # 한달 미만 고정금액 (data.py 에 정의 필요)
-                 storage_cost += data.STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH
-
-        storage_type_display = storage_type.split(" ")[0] # 이모티콘 제거
+        storage_type_display = storage_type_key.split(" ")[0] # "컨테이너" 또는 "실내"
         storage_note = f"{storage_type_display} {duration}일"
-        if use_electricity: storage_note += " (전기사용)"
         
-        if storage_cost > 0 : cost_items.append(("보관료", storage_cost, storage_note))
+        if use_electricity:
+            elec_surcharge = 0
+            if duration >=30 and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH"):
+                 elec_surcharge = data.STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH * math.ceil(duration / 30)
+            elif duration < 30 and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH"):
+                 elec_surcharge = data.STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH
+            elif hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_DAY"): # 일일 전기료 옵션 (선택적)
+                 elec_surcharge = data.STORAGE_ELECTRICITY_SURCHARGE_PER_DAY * duration
+            
+            if elec_surcharge > 0:
+                storage_cost += elec_surcharge
+                storage_note += " (전기사용)"
+        
+        if storage_cost > 0 or duration > 0 : # 기간만 있어도 보관료 항목은 표시될 수 있도록
+            cost_items.append(("보관료", storage_cost, storage_note))
         cost_before_add_charges += storage_cost
 
     # 장거리 운송료
@@ -249,31 +319,15 @@ def calculate_total_moving_cost(state_data):
             cost_items.append(("폐기물 처리", math.ceil(waste_cost), f"{waste_tons}톤"))
             cost_before_add_charges += math.ceil(waste_cost)
 
-    # 날짜 할증 (중복 적용 가능)
+    # 날짜 할증
     if hasattr(data, 'special_day_prices'):
-        date_options_keys_data_py = list(data.special_day_prices.keys()) # data.py의 원본 키 (이모티콘 포함)
-        # ui_tab3의 위젯 키는 date_opt_0_widget, date_opt_1_widget ...
-        # 이 위젯 키와 data.py의 할증 키를 매핑하는 정보가 필요함.
-        # 현재 ui_tab3.py는 matched_date_options 리스트를 만들지만, calculations.py는 이 정보를 직접 받지 않음.
-        # 임시로, data.py의 special_day_prices 순서와 ui_tab3의 위젯 순서가 일치한다고 가정. (위험)
-        # 더 나은 방법: state_data에 "selected_special_days": ["이사많은날 🏠", "손없는날 ✋"] 처럼 저장하는 것.
-        # 현재 구현은 state_data.get(f"date_opt_{i}_widget") 를 사용.
-        
-        # matched_date_options_calc는 data.py의 special_day_prices 키 순서대로 가정
-        # date_options_text_tab3 = ["이사많은날", "손없는날", "월말", "공휴일", "금요일"] # ui_tab3.py 참고
-        
-        # 가정: data.py의 special_day_prices 딕셔너리 키 순서가 위젯의 순서와 일치
-        # 이는 data.py가 OrderedDict가 아니면 보장되지 않음.
-        # data.py 의 키 순서를 명시적으로 가져옴
         special_day_keys_ordered = list(data.special_day_prices.keys())
-
-        for i in range(len(special_day_keys_ordered)): # data.py 키 기준 순회
-            widget_key = f"date_opt_{i}_widget" # 해당 순번의 위젯 키
+        for i, data_py_actual_key in enumerate(special_day_keys_ordered):
+            widget_key = f"date_opt_{i}_widget"
             if state_data.get(widget_key, False):
-                data_py_actual_key = special_day_keys_ordered[i] # 이 순번의 data.py 키
                 surcharge_val = data.special_day_prices.get(data_py_actual_key, 0)
                 if surcharge_val > 0:
-                    surcharge_label = data_py_actual_key.split(" ")[0] # "이사많은날"
+                    surcharge_label = data_py_actual_key.split(" ")[0]
                     cost_items.append(("날짜 할증", surcharge_val, surcharge_label))
                     cost_before_add_charges += surcharge_val
     
@@ -293,9 +347,9 @@ def calculate_total_moving_cost(state_data):
         cost_after_vat_or_card_setup += card_total_surcharge_on_base
     elif state_data.get('issue_tax_invoice', False) and hasattr(data, "VAT_RATE_PERCENT"):
         vat = math.ceil(cost_before_add_charges * (data.VAT_RATE_PERCENT / 100.0))
-        cost_items.append(("부가세 (10%)", vat, f"{data.VAT_RATE_PERCENT}% 세금계산서 발행 요청"))
+        cost_items.append(("부가세 (10%)", vat, f"{data.VAT_RATE_PERCENT}% 계산서 발행 요청")) # "세금계산서" -> "계산서"
         cost_after_vat_or_card_setup += vat
     
-    current_total_cost = math.ceil(cost_after_vat_or_card_setup / 100) * 100 # 100원 단위 올림
+    current_total_cost = math.ceil(cost_after_vat_or_card_setup / 100) * 100 
 
     return current_total_cost, cost_items, personnel_info
