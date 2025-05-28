@@ -250,16 +250,22 @@ def calculate_total_moving_cost(state_data):
         cost_items.append((adj_label, adjustment, "수기 입력"))
         cost_before_add_charges += adjustment
 
+# calculations.py (calculate_total_moving_cost 함수 내)
+# ... 기존 코드 ...
     dep_manual_ladder_surcharge = int(state_data.get('departure_ladder_surcharge_manual',0) or 0) if state_data.get('manual_ladder_from_check', False) else 0
     arr_manual_ladder_surcharge = int(state_data.get('arrival_ladder_surcharge_manual',0) or 0) if state_data.get('manual_ladder_to_check', False) else 0
 
-    if dep_manual_ladder_surcharge > 0:
-        cost_items.append(("출발지 수동 사다리 추가", dep_manual_ladder_surcharge, "수동 작업"))
+    # 음수 값(할인)도 처리하도록 조건 변경 및 레이블 동적 변경
+    if dep_manual_ladder_surcharge != 0:
+        dep_label = "출발지 수동 사다리 할인" if dep_manual_ladder_surcharge < 0 else "출발지 수동 사다리 추가"
+        cost_items.append((dep_label, dep_manual_ladder_surcharge, "수동 입력"))
         cost_before_add_charges += dep_manual_ladder_surcharge
-    if arr_manual_ladder_surcharge > 0:
-        cost_items.append(("도착지 수동 사다리 추가", arr_manual_ladder_surcharge, "수동 작업"))
+    
+    if arr_manual_ladder_surcharge != 0:
+        arr_label = "도착지 수동 사다리 할인" if arr_manual_ladder_surcharge < 0 else "도착지 수동 사다리 추가"
+        cost_items.append((arr_label, arr_manual_ladder_surcharge, "수동 입력"))
         cost_before_add_charges += arr_manual_ladder_surcharge
-
+# ... 이후 코드 ...
     # --- 보관료 계산 수정 시작 ---
     if state_data.get('is_storage_move', False):
         duration = int(state_data.get('storage_duration', 1) or 1)
