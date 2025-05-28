@@ -1,4 +1,4 @@
-# data.py (전기료 계산 로직 수정 반영)
+# data.py (보관료 계산 로직 수정 반영)
 
 # --- 차량 제원 ---
 vehicle_specs = {
@@ -148,18 +148,37 @@ default_basket_quantities = {
 }
 
 # --- 보관 관련 설정 ---
-storage_prices = {
-    "컨테이너 보관 📦": {"rate_per_day": 7000},
-    "실내 보관 🏢": {"rate_per_day": 10000},
+# 보관 유형별 "5톤 단위" 일일 기본료
+BASE_STORAGE_UNIT_RATES = {
+    "컨테이너 보관 📦": 7000,  # 5톤 단위당 일일 요금
+    "실내 보관 🏢": 10000,   # 5톤 단위당 일일 요금
 }
-STORAGE_TYPES = list(storage_prices.keys())
-DEFAULT_STORAGE_TYPE = STORAGE_TYPES[0] if STORAGE_TYPES else "컨테이너 보관 📦"
-STORAGE_TYPE_OPTIONS = list(STORAGE_TYPES)
 
-# 보관 전기료 관련 상수 수정
-# STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH = 50000 # 월간/정액제 대신 일일 요금만 사용
-# STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH = 30000 # 월간/정액제 대신 일일 요금만 사용
-STORAGE_ELECTRICITY_SURCHARGE_PER_DAY = 3000 # 사용자 요청: 일 3000원
+STORAGE_TYPES = list(BASE_STORAGE_UNIT_RATES.keys()) # UI 옵션용
+DEFAULT_STORAGE_TYPE = STORAGE_TYPES[0] if STORAGE_TYPES else "컨테이너 보관 📦"
+STORAGE_TYPE_OPTIONS = list(STORAGE_TYPES) # 이전 버전 호환용
+
+# 차량 크기별 보관료 계산을 위한 "5톤 단위" 환산 맵
+# 중요: 이 맵은 모든 차량 종류에 대해 정확한 사업장 정책을 반영해야 합니다.
+VEHICLE_TO_STORAGE_UNITS_MAP = {
+    "1톤": 1,
+    "2.5톤": 1, # 사용자 요청: 5톤으로 간주
+    "3.5톤": 1, # 사용자 요청: 5톤으로 간주
+    "5톤": 1,
+    "6톤": 1,   # 예시: 6톤도 1단위로. 실제 정책에 따라 1 또는 2로 조정 필요
+    "7.5톤": 2, # 사용자 요청: "5톤 2개 10톤으로" -> 2 단위
+    "10톤": 2,  # 10톤/5톤 = 2 단위
+    "15톤": 3,  # 15톤/5톤 = 3 단위
+    "20톤": 4,  # 20톤/5톤 = 4 단위
+    # vehicle_specs에 정의된 다른 차량들도 필요시 추가
+}
+# VEHICLE_TO_STORAGE_UNITS_MAP에 없는 차량의 경우 기본 단위 수
+DEFAULT_STORAGE_UNITS = 1
+
+# 보관 전기료 관련 상수 (사용자 요청: 일 3000원)
+# STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH = 50000 # 주석 처리 (일일 요금 우선)
+# STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH = 30000 # 주석 처리 (일일 요금 우선)
+STORAGE_ELECTRICITY_SURCHARGE_PER_DAY = 3000
 # --- 보관 관련 설정 끝 ---
 
 METHOD_OPTIONS = ["사다리차 🪜", "승강기 🛗", "계단 🚶", "스카이 🏗️"]
