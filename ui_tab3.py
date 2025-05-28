@@ -301,6 +301,7 @@ def render_tab3():
             cols_date_tab3[i].checkbox(option_text_display_tab3, key=widget_key_date_opt, help=f"{surcharge:,}원 할증" if surcharge > 0 else "")
     st.divider()
 
+# ... 기존 코드 ...
     with st.container(border=True):
         st.subheader("수기 조정 및 계약금")
         col_adj_dep, col_adj_amount = st.columns(2)
@@ -309,15 +310,18 @@ def render_tab3():
         with col_adj_amount:
             st.number_input("추가 조정 (+/-)", step=10000, key="adjustment_amount", format="%d")
 
-        st.markdown("**수동 사다리 추가금**")
+        st.markdown("**수동 사다리 추가금/할인**") # 레이블 약간 변경
         col_ladder_manual1, col_ladder_manual2 = st.columns(2)
         with col_ladder_manual1:
-            st.number_input("출발지 사다리 수동 추가", min_value=0, step=10000, key="departure_ladder_surcharge_manual", format="%d")
+            # min_value=0 제거하여 음수 입력 허용
+            st.number_input("출발지 사다리 수동 (+/-)", step=10000, key="departure_ladder_surcharge_manual", format="%d")
         with col_ladder_manual2:
-            st.number_input("도착지 사다리 수동 추가", min_value=0, step=10000, key="arrival_ladder_surcharge_manual", format="%d")
-
+            # min_value=0 제거하여 음수 입력 허용
+            st.number_input("도착지 사다리 수동 (+/-)", step=10000, key="arrival_ladder_surcharge_manual", format="%d")
+        
         if st.session_state.get("has_via_point", False):
             st.number_input("경유지 추가요금", min_value=0, step=10000, key="via_point_surcharge", format="%d")
+# ... 이후 코드 ...
 
     st.divider()
 
