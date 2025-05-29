@@ -1,4 +1,4 @@
-# calculations.py (보관료 계산 로직 수정 반영)
+# calculations.py (수정 후 전체 코드)
 import data
 import math
 import re
@@ -43,7 +43,7 @@ def recommend_vehicle(total_volume, total_weight, move_type):
     if not hasattr(data, 'vehicle_specs') or not data.vehicle_specs or \
        not hasattr(data, 'vehicle_prices') or not data.vehicle_prices or \
        move_type not in data.vehicle_prices:
-        return "차량 정보 부족", 0.0, 0, 0 # 차량명, 가격, 기본 남, 기본 여 반환
+        return "차량 정보 부족", 0.0, 0, 0
 
     available_trucks = sorted(
         [truck for truck in data.vehicle_prices.get(move_type, {}) if truck in data.vehicle_specs],
@@ -73,9 +73,8 @@ def recommend_vehicle(total_volume, total_weight, move_type):
             base_price = price_info.get("price", 0)
             base_men_rec = price_info.get("men", 0)
             base_women_rec = price_info.get("housewife", 0) if move_type == "가정 이사 🏠" else 0
-            return recommended_truck, base_price, base_men_rec, base_women_rec # 찾으면 바로 반환
+            return recommended_truck, base_price, base_men_rec, base_women_rec
 
-    # 루프를 다 돌았는데 적합한 차량을 못 찾았지만, 물품은 있는 경우 (가장 큰 차량 기준 초과 메시지)
     if (total_volume > 0 or total_weight > 0) and available_trucks:
         largest_truck = available_trucks[-1]
         spec = data.vehicle_specs[largest_truck]
@@ -91,7 +90,7 @@ def recommend_vehicle(total_volume, total_weight, move_type):
         base_women_largest = price_info_largest.get("housewife",0) if move_type == "가정 이사 🏠" else 0
 
         return f"{largest_truck} 용량 초과 ({', '.join(over_msg)})", base_price_largest, base_men_largest, base_women_largest
-    else: # 물품이 없거나, 사용 가능한 차량이 아예 없는 경우 (이 경우는 위에서 처리됨)
+    else:
         return None, 0.0, 0, 0
 
 
@@ -250,12 +249,9 @@ def calculate_total_moving_cost(state_data):
         cost_items.append((adj_label, adjustment, "수기 입력"))
         cost_before_add_charges += adjustment
 
-# calculations.py (calculate_total_moving_cost 함수 내)
-# ... 기존 코드 ...
     dep_manual_ladder_surcharge = int(state_data.get('departure_ladder_surcharge_manual',0) or 0) if state_data.get('manual_ladder_from_check', False) else 0
     arr_manual_ladder_surcharge = int(state_data.get('arrival_ladder_surcharge_manual',0) or 0) if state_data.get('manual_ladder_to_check', False) else 0
 
-    # 음수 값(할인)도 처리하도록 조건 변경 및 레이블 동적 변경
     if dep_manual_ladder_surcharge != 0:
         dep_label = "출발지 수동 사다리 할인" if dep_manual_ladder_surcharge < 0 else "출발지 수동 사다리 추가"
         cost_items.append((dep_label, dep_manual_ladder_surcharge, "수동 입력"))
@@ -265,45 +261,44 @@ def calculate_total_moving_cost(state_data):
         arr_label = "도착지 수동 사다리 할인" if arr_manual_ladder_surcharge < 0 else "도착지 수동 사다리 추가"
         cost_items.append((arr_label, arr_manual_ladder_surcharge, "수동 입력"))
         cost_before_add_charges += arr_manual_ladder_surcharge
-# ... 이후 코드 ...
-    # --- 보관료 계산 수정 시작 ---
+
     if state_data.get('is_storage_move', False):
         duration = int(state_data.get('storage_duration', 1) or 1)
         storage_type_key = state_data.get('storage_type', getattr(data, "DEFAULT_STORAGE_TYPE", ""))
         use_electricity = state_data.get('storage_use_electricity', False)
-        current_selected_vehicle = state_data.get('final_selected_vehicle') # 현재 선택된 차량
+        current_selected_vehicle = state_data.get('final_selected_vehicle')
 
-        # 1. 차량 크기에 따른 보관 단위 수 결정
-        num_storage_units = getattr(data, 'DEFAULT_STORAGE_UNITS', 1) # 기본 1단위
+        num_storage_units = getattr(data, 'DEFAULT_STORAGE_UNITS', 1)
         if current_selected_vehicle and hasattr(data, 'VEHICLE_TO_STORAGE_UNITS_MAP'):
             num_storage_units = data.VEHICLE_TO_STORAGE_UNITS_MAP.get(current_selected_vehicle, getattr(data, 'DEFAULT_STORAGE_UNITS', 1))
 
-        # 2. 보관 유형 및 단위 수에 따른 일일 기본 보관료 계산
         base_unit_daily_rate = 0
         if hasattr(data, 'BASE_STORAGE_UNIT_RATES') and storage_type_key in data.BASE_STORAGE_UNIT_RATES:
             base_unit_daily_rate = data.BASE_STORAGE_UNIT_RATES[storage_type_key]
 
         total_daily_base_storage_rate = base_unit_daily_rate * num_storage_units
-        storage_cost = total_daily_base_storage_rate * duration # 기간 적용
+        storage_cost = total_daily_base_storage_rate * duration
 
         storage_type_display_note = storage_type_key.split(" ")[0] if storage_type_key else "알수없음"
         storage_note = f"{storage_type_display_note} ({current_selected_vehicle} -> {num_storage_units}단위) {duration}일"
 
-        # 3. 전기료 계산 (보관 건당, 일일 3000원 기준)
         elec_surcharge = 0
         if use_electricity:
-            if hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_DAY"):
+            if hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_DAY"): # data.py 수정으로 이 경로만 사용됨
                  elec_surcharge = data.STORAGE_ELECTRICITY_SURCHARGE_PER_DAY * duration
-            # 월간/정액제 로직은 data.py에서 해당 상수를 주석/삭제하여 비활성화했다고 가정
-
+            # 주석 처리된 월간/정액 로직은 data.py에서 해당 상수가 없으므로 실행되지 않음
+            # elif duration >=30 and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH"):
+            #      elec_surcharge = data.STORAGE_ELECTRICITY_SURCHARGE_PER_MONTH * math.ceil(duration / 30)
+            # elif duration < 30 and hasattr(data, "STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH"):
+            #      elec_surcharge = data.STORAGE_ELECTRICITY_SURCHARGE_FLAT_LESS_MONTH
+            
             if elec_surcharge > 0:
                 storage_cost += elec_surcharge
                 storage_note += " (전기사용)"
 
-        if storage_cost > 0 or duration > 0 : # duration은 항상 1 이상이므로 이 조건은 거의 항상 참
+        if storage_cost > 0 or duration > 0 :
             cost_items.append(("보관료", storage_cost, storage_note))
         cost_before_add_charges += storage_cost
-    # --- 보관료 계산 수정 끝 ---
 
     if state_data.get('apply_long_distance', False) and hasattr(data, 'long_distance_prices'):
         ld_option = state_data.get('long_distance_selector', '선택 안 함')
@@ -322,11 +317,9 @@ def calculate_total_moving_cost(state_data):
     if hasattr(data, 'special_day_prices'):
         special_day_keys_ordered = list(data.special_day_prices.keys())
         for i, data_py_actual_key in enumerate(special_day_keys_ordered):
-            widget_key = f"date_opt_{i}_widget" # Tab3의 위젯 키와 일치해야 함 (예: tab3_date_opt_i_widget)
-                                                # state_manager.py에서 tab3_ 키 값을 일반 date_opt_ 키로 동기화하거나,
-                                                # 여기서 state_data.get(f"tab3_{widget_key}") 를 사용해야 함.
-                                                # 현재는 state_manager에서 동기화한다고 가정하고 date_opt_ 키 사용.
-            if state_data.get(widget_key, False): # 또는 state_data.get(f"tab3_{widget_key}", False)
+            # Tab3의 날짜 위젯 키와 동기화된 값을 사용 (state_manager에서 처리 가정)
+            widget_key = f"date_opt_{i}_widget" 
+            if state_data.get(widget_key, False) or state_data.get(f"tab3_{widget_key}", False) : # tab3_ 키도 확인
                 surcharge_val = data.special_day_prices.get(data_py_actual_key, 0)
                 if surcharge_val > 0:
                     surcharge_label = data_py_actual_key.split(" ")[0]
@@ -339,17 +332,32 @@ def calculate_total_moving_cost(state_data):
             cost_items.append(("경유지 추가요금", via_surcharge, "경유지 작업"))
             cost_before_add_charges += via_surcharge
 
-    cost_after_vat_or_card_setup = cost_before_add_charges
+    # --- 카드결제/세금계산서 처리 수정 ---
+    cost_with_surcharges_or_vat = cost_before_add_charges # 최종 금액 계산을 위한 기준값
 
     if state_data.get('card_payment', False) and hasattr(data, "CARD_PAYMENT_SURCHARGE_PERCENT"):
-        card_total_surcharge_on_base = math.ceil(cost_before_add_charges * (data.CARD_PAYMENT_SURCHARGE_PERCENT / 100.0))
-        cost_items.append(("카드결제 (VAT 및 수수료 포함)", card_total_surcharge_on_base, f"{data.CARD_PAYMENT_SURCHARGE_PERCENT}% 적용"))
-        cost_after_vat_or_card_setup += card_total_surcharge_on_base
+        # 계약금은 현금으로 받고, 나머지 금액에 대해 카드 수수료 적용
+        deposit_amount = int(state_data.get('deposit_amount', 0) or 0) # UI에서 입력된 계약금
+        
+        balance_for_card_payment = cost_before_add_charges - deposit_amount # 수수료 부과 대상 잔액
+        
+        card_surcharge_amount = 0
+        if balance_for_card_payment > 0:
+            card_surcharge_amount = math.ceil(balance_for_card_payment * (data.CARD_PAYMENT_SURCHARGE_PERCENT / 100.0))
+            cost_items.append((
+                "카드결제 수수료", 
+                card_surcharge_amount, 
+                f"잔액 {balance_for_card_payment:,.0f}원에 {data.CARD_PAYMENT_SURCHARGE_PERCENT}% 적용"
+            ))
+            cost_with_surcharges_or_vat += card_surcharge_amount # 전체 비용에 수수료만 추가
+        # else: 잔액이 0 이하이면 카드 수수료 없음
+            
     elif state_data.get('issue_tax_invoice', False) and hasattr(data, "VAT_RATE_PERCENT"):
+        # 세금계산서 발행 시 VAT는 전체 금액(cost_before_add_charges)에 대해 계산
         vat = math.ceil(cost_before_add_charges * (data.VAT_RATE_PERCENT / 100.0))
-        cost_items.append(("부가세 (10%)", vat, f"{data.VAT_RATE_PERCENT}% 계산서 발행 요청"))
-        cost_after_vat_or_card_setup += vat
-
-    current_total_cost = math.ceil(cost_after_vat_or_card_setup / 100) * 100
+        cost_items.append(("부가세 (VAT)", vat, f"{data.VAT_RATE_PERCENT}% 계산서 발행 요청"))
+        cost_with_surcharges_or_vat += vat
+    
+    current_total_cost = math.ceil(cost_with_surcharges_or_vat / 100) * 100
 
     return current_total_cost, cost_items, personnel_info
