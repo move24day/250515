@@ -633,3 +633,4 @@ def generate_excel(state_data, calculated_cost_items, total_cost, personnel_info
         print(f"Error during Excel generation: {e}")
         traceback.print_exc()
         return None
+
