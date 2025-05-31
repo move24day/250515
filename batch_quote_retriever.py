@@ -37,7 +37,9 @@ def get_minimal_default_state_for_calc():
     return {
         "base_move_type": MOVE_TYPE_OPTIONS_BR[0],
         "is_storage_move": False, "apply_long_distance": False, "has_via_point": False,
-        "moving_date": TODAY_DATE_OBJECT, "arrival_date": TODAY_DATE_OBJECT,
+        "moving_date": TODAY_DATE_OBJECT, 
+        "arrival_date": TODAY_DATE_OBJECT,
+        "contract_date": TODAY_DATE_OBJECT, # 계약일 기본값 추가
         "from_floor": "1", "to_floor": "1",
         "from_method": DEFAULT_METHOD_BR, "to_method": DEFAULT_METHOD_BR,
         "via_point_method": DEFAULT_METHOD_BR,
@@ -61,13 +63,13 @@ def get_minimal_default_state_for_calc():
 def get_relevant_costs_from_state(loaded_state_data):
     """
     로드된 견적 상태를 기반으로, VAT/카드 수수료 전의 총 이사비용과
-    보관이사시 각 레그별 비용요소를 계산합니다.
+    보관이사시 각 레그별 비용요소, 주요 날짜 및 연락처를 계산합니다.
     """
     temp_state = get_minimal_default_state_for_calc() 
     
     if loaded_state_data and isinstance(loaded_state_data, dict):
         for key, value in loaded_state_data.items():
-            if key in ["moving_date", "arrival_date"] and isinstance(value, str):
+            if key in ["moving_date", "arrival_date", "contract_date"] and isinstance(value, str): # contract_date 추가
                 try: temp_state[key] = date.fromisoformat(value)
                 except ValueError: temp_state[key] = TODAY_DATE_OBJECT
             elif key in temp_state and isinstance(temp_state[key], (int, float)) and not isinstance(value, (int, float)):
@@ -89,10 +91,11 @@ def get_relevant_costs_from_state(loaded_state_data):
     storage_fee_sum = 0
     common_splitable_sum = 0
 
-    DEPARTURE_COST_LABELS = ["출발지 사다리차", "출발지 스카이 장비", "출발지 수동 사다리 추가"]
-    ARRIVAL_COST_LABELS = ["도착지 사다리차", "도착지 스카이 장비", "도착지 수동 사다리 추가"]
+    DEPARTURE_COST_LABELS = ["출발지 사다리차", "출발지 스카이 장비", "출발지 수동 사다리 추가", "출발지 수동 사다리 할인"] # 할인 항목도 고려
+    ARRIVAL_COST_LABELS = ["도착지 사다리차", "도착지 스카이 장비", "도착지 수동 사다리 추가", "도착지 수동 사다리 할인"] # 할인 항목도 고려
     STORAGE_COST_LABEL = "보관료"
-    EXCLUDE_LABELS_FOR_COMMON = DEPARTURE_COST_LABELS + ARRIVAL_COST_LABELS + [STORAGE_COST_LABEL, "오류"]
+    EXCLUDE_LABELS_FOR_COMMON = DEPARTURE_COST_LABELS + ARRIVAL_COST_LABELS + [STORAGE_COST_LABEL, "오류", "부가세 (10%)", "카드결제 (VAT 및 수수료 포함)"]
+
 
     for name, cost, _note in cost_items_pre_vat:
         cost_int = 0
@@ -117,7 +120,8 @@ def get_relevant_costs_from_state(loaded_state_data):
         "is_storage_move": temp_state.get("is_storage_move", False),
         "moving_date": temp_state.get("moving_date"),
         "arrival_date": temp_state.get("arrival_date"),
-        "customer_phone": temp_state.get("customer_phone", "정보없음") # 로드된 데이터의 customer_phone 우선 사용
+        "contract_date": temp_state.get("contract_date"), # 계약일 반환 추가
+        "customer_phone": temp_state.get("customer_phone", "정보없음") 
     }
 
 
@@ -184,7 +188,7 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                 if not matched_phone_files:
                     results_data.append({
                         "조회번호(끝4자리)": last_4_digits, "구분": "오류", 
-                        "이삿날": "", "연락처": "", "이사비(VAT전)": "", 
+                        "계약일": "", "이삿날": "", "연락처": "", "이사비(VAT전)": "", 
                         "파일명": "", "상태": "해당 번호의 견적 파일 없음"
                     })
                     continue
@@ -194,7 +198,7 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                     if not loaded_state:
                         results_data.append({
                             "조회번호(끝4자리)": last_4_digits, "구분": "오류", 
-                            "이삿날": "", "연락처": full_phone_filename_stem, 
+                            "계약일": "", "이삿날": "", "연락처": full_phone_filename_stem, 
                             "이사비(VAT전)": "", "파일명": f"{full_phone_filename_stem}.json", 
                             "상태": "파일 로드 또는 JSON 파싱 실패"
                         })
@@ -203,11 +207,11 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                     try:
                         costs_info = get_relevant_costs_from_state(loaded_state)
                         moving_date_obj = costs_info["moving_date"]
+                        contract_date_obj = costs_info["contract_date"] # 계약일 객체 가져오기
                         
-                        # 연락처 처리: loaded_state에 customer_phone이 있으면 사용, 없으면 파일명(전체 전화번호) 사용
                         customer_phone_val = loaded_state.get("customer_phone", "").strip()
                         if not customer_phone_val or customer_phone_val == "정보없음":
-                            customer_phone_val = full_phone_filename_stem # 파일명에서 가져온 전체 전화번호 사용
+                            customer_phone_val = full_phone_filename_stem 
 
                         if costs_info["is_storage_move"]:
                             arrival_date_obj = costs_info["arrival_date"]
@@ -219,6 +223,7 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
 
                             results_data.append({
                                 "조회번호(끝4자리)": last_4_digits, "구분": "출발일(보관)",
+                                "계약일": contract_date_obj.strftime('%Y-%m-%d') if isinstance(contract_date_obj, date) else str(contract_date_obj),
                                 "이삿날": moving_date_obj.strftime('%Y-%m-%d') if isinstance(moving_date_obj, date) else str(moving_date_obj),
                                 "연락처": customer_phone_val,
                                 "이사비(VAT전)": cost_leg1,
@@ -226,6 +231,7 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                             })
                             results_data.append({
                                 "조회번호(끝4자리)": last_4_digits, "구분": "도착일(보관)",
+                                "계약일": contract_date_obj.strftime('%Y-%m-%d') if isinstance(contract_date_obj, date) else str(contract_date_obj), # 계약일은 동일하게 표시
                                 "이삿날": arrival_date_obj.strftime('%Y-%m-%d') if isinstance(arrival_date_obj, date) else str(arrival_date_obj),
                                 "연락처": customer_phone_val,
                                 "이사비(VAT전)": cost_leg2,
@@ -234,19 +240,20 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
                         else: 
                             results_data.append({
                                 "조회번호(끝4자리)": last_4_digits, "구분": "일반",
+                                "계약일": contract_date_obj.strftime('%Y-%m-%d') if isinstance(contract_date_obj, date) else str(contract_date_obj),
                                 "이삿날": moving_date_obj.strftime('%Y-%m-%d') if isinstance(moving_date_obj, date) else str(moving_date_obj),
                                 "연락처": customer_phone_val,
                                 "이사비(VAT전)": costs_info["overall_pre_vat_total"],
                                 "파일명": f"{full_phone_filename_stem}.json", "상태": "성공"
                             })
                     except Exception as e_proc:
-                        # 오류 발생 시 연락처는 파일명(전체 전화번호)으로 기록 시도
                         contact_on_error = loaded_state.get("customer_phone", "").strip()
                         if not contact_on_error or contact_on_error == "정보없음":
                             contact_on_error = full_phone_filename_stem
 
                         results_data.append({
                             "조회번호(끝4자리)": last_4_digits, "구분": "오류", 
+                            "계약일": loaded_state.get("contract_date", ""), # 오류 시에도 계약일 시도
                             "이삿날": loaded_state.get("moving_date", ""), 
                             "연락처": contact_on_error,
                             "이사비(VAT전)": "", "파일명": f"{full_phone_filename_stem}.json", 
@@ -255,7 +262,8 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
         
         if results_data:
             df_results = pd.DataFrame(results_data)
-            excel_columns = ["조회번호(끝4자리)", "구분", "이삿날", "연락처", "이사비(VAT전)", "파일명", "상태"]
+            # 요청된 컬럼 순서로 변경
+            excel_columns = ["조회번호(끝4자리)", "구분", "계약일", "이삿날", "이사비(VAT전)", "연락처", "파일명", "상태"]
             df_results = df_results.reindex(columns=excel_columns) 
             df_results["이사비(VAT전)"] = pd.to_numeric(df_results["이사비(VAT전)"], errors='coerce').fillna(0).astype(int)
 
@@ -264,17 +272,20 @@ if st.button("📊 일괄 조회 및 Excel 생성"):
             with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
                 df_results.to_excel(writer, index=False, sheet_name='조회결과')
                 worksheet = writer.sheets['조회결과']
-                for idx, col_name in enumerate(df_results):  
+                for idx, col_name in enumerate(df_results.columns):  # df_results.columns 사용
                     series = df_results[col_name]
-                    header_len = len(str(series.name))
-                    data_max_len = series.astype(str).map(len).max()
-                    if pd.isna(data_max_len): data_max_len = 0 
+                    header_len = len(str(series.name)) # 컬럼명 자체의 길이
                     
-                    if series.name == "이사비(VAT전)":
+                    # 데이터 값의 최대 길이 계산 (문자열로 변환 후)
+                    # NaN 값을 빈 문자열로 처리하여 에러 방지
+                    data_max_len_val = series.astype(str).map(len).max()
+                    data_max_len = 0 if pd.isna(data_max_len_val) else int(data_max_len_val)
+                    
+                    if series.name == "이사비(VAT전)": # 숫자 형식화된 길이 고려
                          data_max_len = series.map(lambda x: len(f"{x:,.0f}") if pd.notna(x) and isinstance(x, (int,float)) else (len(str(x)) if pd.notna(x) else 0) ).max()
+                         data_max_len = 0 if pd.isna(data_max_len) else int(data_max_len)
 
-
-                    max_len = max(header_len, int(data_max_len)) + 2   
+                    max_len = max(header_len, data_max_len) + 2   
                     worksheet.set_column(idx, idx, max_len)  
             
             excel_bytes = output_excel.getvalue()
