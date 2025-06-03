@@ -1,4 +1,4 @@
-# pdf_generator.py (계약금 표시 및 카드결제 시 총액 레이블 수정 + 비용항목 표시 조정)
+# pdf_generator.py (일부 비용 항목 병합 및 숨김 처리)
 
 import pandas as pd
 import io
@@ -72,7 +72,7 @@ def generate_pdf(state_data, calculated_cost_items, total_cost, personnel_info):
                 if os.path.exists(bold_font_path_candidate) and font_name_bold not in pdfmetrics.getRegisteredFontNames():
                      pdfmetrics.registerFont(TTFont(font_name_bold, bold_font_path_candidate))
                 elif font_name_bold not in pdfmetrics.getRegisteredFontNames(): 
-                     pdfmetrics.registerFont(TTFont(font_name_bold, font_path)) # Fallback to regular if bold not found
+                     pdfmetrics.registerFont(TTFont(font_name_bold, font_path)) 
 
             except Exception as font_e:
                 st.error(f"PDF 생성 오류: 폰트 로딩/등록 실패 ('{os.path.basename(font_path)}'). 상세: {font_e}")
@@ -211,65 +211,108 @@ def generate_pdf(state_data, calculated_cost_items, total_cost, personnel_info):
         current_y -= line_height * 0.8
 
         # --- 비용 항목 가공 시작 (PDF 표시용) ---
-        cost_items_processed_for_pdf = []
-        temp_items_for_pdf = [] # 원본 수정 방지를 위해 복사본 사용 준비
-
+        working_items = []
         if calculated_cost_items and isinstance(calculated_cost_items, list):
-            # 오류 항목 제외하고, 각 아이템을 리스트로 변환 (수정 가능하도록)
-            temp_items_for_pdf = [list(item) for item in calculated_cost_items if isinstance(item, (list, tuple)) and len(item) >= 2 and "오류" not in str(item[0])]
+            working_items = [list(item) for item in calculated_cost_items if isinstance(item, (list, tuple)) and len(item) >= 2 and "오류" not in str(item[0])]
 
-        date_surcharge_amount_total = 0
-        date_surcharge_applied_flag = False
-        
-        # 1. 날짜 할증 처리 (기존 로직 유지 및 강화)
-        indices_to_remove = []
-        base_fare_item_for_pdf = None
-        base_fare_item_index_for_pdf = -1
+        # 1. 날짜 할증 처리
+        date_surcharge_total = 0
+        date_surcharge_applied = False
+        date_surcharge_indices_to_remove = []
+        base_fare_item_ref = None
 
-        for i, item_list_mutable in enumerate(temp_items_for_pdf):
-            item_name_str = str(item_list_mutable[0])
-            if item_name_str == "날짜 할증":
+        for i, item_list in enumerate(working_items):
+            item_name = str(item_list[0])
+            if item_name == "날짜 할증":
                 try:
-                    date_surcharge_amount_total += int(item_list_mutable[1] or 0)
-                    date_surcharge_applied_flag = True
-                    indices_to_remove.append(i)
+                    date_surcharge_total += int(item_list[1] or 0)
+                    date_surcharge_applied = True
+                    date_surcharge_indices_to_remove.append(i)
                 except (ValueError, TypeError):
-                    pass # 금액 변환 실패 시 무시
-            elif item_name_str == "기본 운임":
-                base_fare_item_for_pdf = item_list_mutable # 수정 가능한 리스트 참조
-                base_fare_item_index_for_pdf = i
-        
-        # 날짜 할증금액을 기본 운임에 합산 및 비고 수정
-        if base_fare_item_for_pdf is not None and date_surcharge_applied_flag and date_surcharge_amount_total > 0:
+                    pass
+            elif item_name == "기본 운임":
+                base_fare_item_ref = item_list # Keep reference to modify directly
+
+        if base_fare_item_ref and date_surcharge_applied and date_surcharge_total > 0:
             try:
-                current_base_fare = int(base_fare_item_for_pdf[1] or 0)
-                base_fare_item_for_pdf[1] = current_base_fare + date_surcharge_amount_total
+                current_base_fare_cost = int(base_fare_item_ref[1] or 0)
+                base_fare_item_ref[1] = current_base_fare_cost + date_surcharge_total
                 
-                original_base_fare_note = str(base_fare_item_for_pdf[2] if len(base_fare_item_for_pdf) > 2 and base_fare_item_for_pdf[2] else state_data.get('final_selected_vehicle', ''))
-                if not original_base_fare_note.endswith("기준"): # "기준" 글자가 없으면 차량명만 사용
-                    original_base_fare_note = f"{state_data.get('final_selected_vehicle', '')} 기준"
+                # 비고 업데이트 (기존 비고에 추가 또는 새로 설정)
+                original_note = str(base_fare_item_ref[2] if len(base_fare_item_ref) > 2 and base_fare_item_ref[2] else "")
+                vehicle_remark = state_data.get('final_selected_vehicle', '')
+                if not original_note or not original_note.startswith(vehicle_remark): # 비고가 없거나 차량명으로 시작 안하면
+                    original_note = f"{vehicle_remark} 기준"
+                
+                base_fare_item_ref[2] = f"{original_note} (이사 집중일 운영 요금 적용)"
+            except Exception as e_ds_merge:
+                print(f"PDF Gen: Error merging date surcharge: {e_ds_merge}")
 
-                base_fare_item_for_pdf[2] = f"{original_base_fare_note} (이사 집중일 운영 요금 적용)"
-            except Exception as e_merge:
-                print(f"Error merging date surcharge into base fare for PDF: {e_merge}")
+        for index in sorted(date_surcharge_indices_to_remove, reverse=True):
+            del working_items[index]
 
-        # 날짜 할증 항목 제거 (역순으로 삭제해야 인덱스 문제 없음)
-        for index_del in sorted(indices_to_remove, reverse=True):
-            del temp_items_for_pdf[index_del]
+        # 2. 수동 사다리 비용 처리
+        departure_manual_ladder_surcharge = 0
+        arrival_manual_ladder_surcharge = 0
+        manual_ladder_indices_to_remove = []
 
-        # 2. 수동 사다리 비용 항목 제거 (PDF 표시에서만)
-        items_to_exclude_explicitly = [
-            "출발지 수동 사다리 추가", "출발지 수동 사다리 할인",
-            "도착지 수동 사다리 추가", "도착지 수동 사다리 할인"
-        ]
+        for i, item_list in enumerate(working_items):
+            item_name = str(item_list[0])
+            cost = 0
+            try: cost = int(item_list[1] or 0)
+            except: pass
+
+            if item_name == "출발지 수동 사다리 추가" or item_name == "출발지 수동 사다리 할인":
+                departure_manual_ladder_surcharge += cost
+                manual_ladder_indices_to_remove.append(i)
+            elif item_name == "도착지 수동 사다리 추가" or item_name == "도착지 수동 사다리 할인":
+                arrival_manual_ladder_surcharge += cost
+                manual_ladder_indices_to_remove.append(i)
         
-        final_items_for_pdf_drawing = []
-        for item_list_mutable in temp_items_for_pdf:
-            if str(item_list_mutable[0]) not in items_to_exclude_explicitly:
-                final_items_for_pdf_drawing.append(item_list_mutable)
+        # 수동 사다리 비용 병합 함수
+        def merge_manual_surcharge(items_list, surcharge_amount, primary_target_prefix, secondary_target_prefix, fallback_target_name, note_suffix):
+            if surcharge_amount == 0:
+                return False # 변경 없음
+
+            merged = False
+            # 1순위: "사다리차"
+            for item_list in items_list:
+                if str(item_list[0]).startswith(primary_target_prefix + " 사다리차"):
+                    item_list[1] = int(item_list[1] or 0) + surcharge_amount
+                    item_list[2] = str(item_list[2] or "") + note_suffix
+                    merged = True
+                    break
+            if merged: return True
+            
+            # 2순위: "스카이 장비"
+            for item_list in items_list:
+                if str(item_list[0]).startswith(primary_target_prefix + " 스카이 장비"):
+                    item_list[1] = int(item_list[1] or 0) + surcharge_amount
+                    item_list[2] = str(item_list[2] or "") + note_suffix
+                    merged = True
+                    break
+            if merged: return True
+
+            # 3순위: "기본 운임"
+            for item_list in items_list:
+                if str(item_list[0]) == fallback_target_name: # "기본 운임"
+                    item_list[1] = int(item_list[1] or 0) + surcharge_amount
+                    item_list[2] = str(item_list[2] or "") + f" ({primary_target_prefix} 수동조정 포함)"
+                    merged = True
+                    break
+            return merged
+
+        note_add_manual = " (+수동조정)" # 비고에 추가할 문자열
+
+        merge_manual_surcharge(working_items, departure_manual_ladder_surcharge, "출발지", "출발지", "기본 운임", note_add_manual)
+        merge_manual_surcharge(working_items, arrival_manual_ladder_surcharge, "도착지", "도착지", "기본 운임", note_add_manual)
+
+        for index in sorted(manual_ladder_indices_to_remove, reverse=True):
+            del working_items[index]
         
-        # 가공된 최종 비용 항목 리스트 생성
-        for item_data_list in final_items_for_pdf_drawing:
+        # 최종 PDF 표시용 비용 항목 리스트 생성
+        cost_items_processed_for_pdf = []
+        for item_data_list in working_items: # working_items는 모든 병합/삭제 처리 후의 리스트
             item_desc_pdf = str(item_data_list[0])
             item_cost_int_pdf = 0
             item_note_pdf = ""
@@ -280,20 +323,19 @@ def generate_pdf(state_data, calculated_cost_items, total_cost, personnel_info):
             if len(item_data_list) > 2:
                 item_note_pdf = str(item_data_list[2] or '')
             
-            # "할인" 또는 금액이 음수인 항목이 아니면서 금액이 0인 항목은 표시하지 않음 (보관료는 제외)
             is_discount_or_negative = "할인" in item_desc_pdf or item_cost_int_pdf < 0
             if item_desc_pdf != "보관료" and item_cost_int_pdf == 0 and not is_discount_or_negative:
                 continue
-
             cost_items_processed_for_pdf.append((item_desc_pdf, item_cost_int_pdf, item_note_pdf))
         # --- 비용 항목 가공 끝 ---
 
-        if cost_items_processed_for_pdf: # 가공된 리스트 사용
+
+        if cost_items_processed_for_pdf: 
             styleDesc = ParagraphStyle(name='CostDesc', fontName=font_name, fontSize=9, leading=11, alignment=TA_LEFT)
             styleCost = ParagraphStyle(name='CostAmount', fontName=font_name, fontSize=9, leading=11, alignment=TA_RIGHT)
             styleNote = ParagraphStyle(name='CostNote', fontName=font_name, fontSize=9, leading=11, alignment=TA_LEFT)
 
-            for item_desc, item_cost, item_note in cost_items_processed_for_pdf: # 가공된 리스트 사용
+            for item_desc, item_cost, item_note in cost_items_processed_for_pdf: 
                 cost_str = f"{item_cost:,.0f} 원" if item_cost is not None else "0 원"
                 note_str = item_note if item_note else ""
                 p_desc = Paragraph(item_desc, styleDesc)
@@ -340,7 +382,7 @@ def generate_pdf(state_data, calculated_cost_items, total_cost, personnel_info):
         current_y -= line_height
 
         total_cost_num = 0
-        if isinstance(total_cost, (int, float)):
+        if isinstance(total_cost, (int, float)): # total_cost는 이미 모든 계산이 반영된 최종 금액
             total_cost_num = int(total_cost)
 
         deposit_amount_raw = state_data.get('deposit_amount', state_data.get('tab3_deposit_amount', 0))
@@ -536,7 +578,7 @@ def generate_excel(state_data, calculated_cost_items, total_cost, personnel_info
                  if use_sky_to: sky_details.append(f"도착지 {state_data.get('sky_hours_final', 1)}시간")
                  value = ", ".join(sky_details) if sky_details else '-'
             elif label == "폐기물 처리(톤)": value = f"예 ({state_data.get('waste_tons_input', 0.5):.1f} 톤)" if is_waste else '아니오'
-            elif label == "날짜 할증 선택":
+            elif label == "날짜 할증 선택": # 이 부분은 PDF와 달리 원본 '날짜 할증' 항목을 그대로 표시하도록 유지할 수 있음
                  date_options_list = list(getattr(data, "special_day_prices", {}).keys()) 
                  date_keys = [f"date_opt_{i}_widget" for i in range(len(date_options_list))]
                  selected_dates_excel = [date_options_list[i].split(" ")[0] for i, key in enumerate(date_keys) if state_data.get(key, False) or state_data.get(f"tab3_{key}", False)]
@@ -571,6 +613,7 @@ def generate_excel(state_data, calculated_cost_items, total_cost, personnel_info
         if all_items_data: df_all_items = pd.DataFrame(all_items_data, columns=["품목명", "수량"])
         else: df_all_items = pd.DataFrame({"정보": ["정의된 품목 없음 또는 수량 없음"]})
 
+        # 엑셀에서는 모든 비용 항목을 가공 없이 그대로 표시 (PDF와 달리)
         cost_details_excel = []
         if calculated_cost_items and isinstance(calculated_cost_items, list):
             for item in calculated_cost_items: # 원본 calculated_cost_items 사용
