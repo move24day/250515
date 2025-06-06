@@ -174,3 +174,42 @@ def find_files_by_name_contains(name_query, mime_types=None, folder_id=None):
         st.error(f"파일 검색 중 오류 발생 ('{name_query if name_query else '모든 JSON'}'): {e}")
         traceback.print_exc()
         return []
+
+# --- 추가된 함수: 이미지 업로드 ---
+def upload_image_to_drive(file_name, image_bytes, folder_id=None):
+    """Uploads image bytes to Google Drive and returns the file ID and name."""
+    service = get_drive_service()
+    if not service: return None
+    try:
+        ext = os.path.splitext(file_name)[1].lower()
+        mimetype_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
+        mimetype = mimetype_map.get(ext, 'application/octet-stream')
+
+        fh = io.BytesIO(image_bytes)
+        media = MediaIoBaseUpload(fh, mimetype=mimetype, resumable=True)
+        file_metadata = {'name': file_name}
+        if folder_id:
+            file_metadata['parents'] = [folder_id]
+
+        created_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id, name"
+        ).execute()
+        return {'id': created_file.get("id"), 'name': created_file.get('name')}
+    except Exception as e:
+        st.error(f"이미지 Google Drive 업로드 실패 ('{file_name}'): {e}")
+        traceback.print_exc()
+        return None
+
+# --- 추가된 함수: 파일 삭제 ---
+def delete_file_from_drive(file_id):
+    """Permanently deletes a file from Google Drive."""
+    service = get_drive_service()
+    if not service: return False
+    try:
+        service.files().delete(fileId=file_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Google Drive 파일 삭제 실패 (ID: {file_id}): {e}")
+        return False
