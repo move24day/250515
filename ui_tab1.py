@@ -1,8 +1,7 @@
-# ui_tab1.py (수정 후)
+# ui_tab1.py (이미지 처리 로직 수정 후)
 import streamlit as st
 from datetime import datetime, date, timedelta
 import pytz
-# import json # 사용 안 함
 import os
 import traceback
 import re
@@ -27,29 +26,15 @@ except Exception as e:
     traceback.print_exc()
     st.stop()
 
-try:
-    if "__file__" in locals():
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    else:
-        BASE_DIR = os.getcwd()
-    UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "images")
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-except Exception as e_path:
-    st.error(f"업로드 디렉토리 설정 중 오류 발생: {e_path}")
-    UPLOAD_DIR = None
-
 def render_tab1():
-    if UPLOAD_DIR is None:
-        st.warning("이미지 업로드 디렉토리 설정에 문제가 있어 이미지 관련 기능이 제한될 수 있습니다.")
-
     st.session_state.setdefault('image_uploader_key_counter', 0)
+    st.session_state.setdefault('uploaded_images', [])
     st.session_state.setdefault('issue_tax_invoice', False)
     st.session_state.setdefault('card_payment', False)
     st.session_state.setdefault('move_time_option', "오전")
     st.session_state.setdefault('afternoon_move_details', "")
     st.session_state.setdefault('contract_date', date.today())
-
+    
     update_basket_quantities_callback = getattr(callbacks, "update_basket_quantities", None)
     sync_move_type_callback = getattr(callbacks, 'sync_move_type', None)
     set_default_times_callback = getattr(callbacks, "set_default_times", None)
@@ -149,9 +134,9 @@ def render_tab1():
                         loaded_content = gdrive.load_json_file(json_file_id)
                     if loaded_content:
                         update_basket_callback_ref = getattr(callbacks, 'update_basket_quantities', lambda: None)
-                        if 'uploaded_image_paths' not in loaded_content or \
-                           not isinstance(loaded_content.get('uploaded_image_paths'), list):
-                            loaded_content['uploaded_image_paths'] = []
+                        if 'uploaded_images' not in loaded_content or \
+                           not isinstance(loaded_content.get('uploaded_images'), list):
+                            loaded_content['uploaded_images'] = []
 
                         load_success = load_state_from_data(loaded_content, update_basket_callback_ref)
                         if load_success:
@@ -181,11 +166,10 @@ def render_tab1():
                         st.error("저장 실패: 유효한 고객 전화번호를 입력해주세요 (예: 01012345678 또는 021234567).")
                     else:
                         json_filename = f"{sanitized_customer_phone}.json"
-                        # prepare_state_for_save 함수에 현재 세션 상태 전체를 전달
                         state_data_to_save = prepare_state_for_save(st.session_state.to_dict())
-                        if 'uploaded_image_paths' not in state_data_to_save or \
-                           not isinstance(state_data_to_save.get('uploaded_image_paths'), list):
-                             state_data_to_save['uploaded_image_paths'] = st.session_state.get('uploaded_image_paths', [])
+                        if 'uploaded_images' not in state_data_to_save or \
+                           not isinstance(state_data_to_save.get('uploaded_images'), list):
+                             state_data_to_save['uploaded_images'] = st.session_state.get('uploaded_images', [])
 
                         try:
                             with st.spinner(f"'{json_filename}' 저장 중..."):
@@ -308,7 +292,7 @@ def render_tab1():
             st.markdown("보관 후 입고 정보")
             min_arrival_date_for_storage = st.session_state.get('moving_date', date.today())
             if not isinstance(min_arrival_date_for_storage, date): min_arrival_date_for_storage = date.today()
-            min_arrival_date_for_storage = min_arrival_date_for_storage + timedelta(days=1) # 최소 보관 후 다음날
+            min_arrival_date_for_storage = min_arrival_date_for_storage + timedelta(days=1)
 
             current_arrival_date_for_storage = st.session_state.get('arrival_date')
             if not isinstance(current_arrival_date_for_storage, date) or current_arrival_date_for_storage < min_arrival_date_for_storage:
@@ -319,7 +303,7 @@ def render_tab1():
             moving_dt_for_storage, arrival_dt_for_storage = st.session_state.get('moving_date'), st.session_state.get('arrival_date')
             calculated_duration_for_storage = 1
             if isinstance(moving_dt_for_storage,date) and isinstance(arrival_dt_for_storage,date) and arrival_dt_for_storage >= moving_dt_for_storage:
-                 calculated_duration_for_storage = max(1, (arrival_dt_for_storage - moving_dt_for_storage).days +1) # 수정: 보관일수 +1
+                 calculated_duration_for_storage = max(1, (arrival_dt_for_storage - moving_dt_for_storage).days +1)
 
             st.session_state.storage_duration = calculated_duration_for_storage
             st.markdown(f"**계산된 보관 기간:** **`{calculated_duration_for_storage}`** 일")
@@ -340,99 +324,79 @@ def render_tab1():
             st.checkbox("카드 결제 (VAT 및 수수료 포함하여 총 13% 추가)", key="card_payment")
     st.divider()
 
-    if UPLOAD_DIR:
-        st.subheader("관련 이미지 업로드")
-        uploader_widget_key = f"image_uploader_tab1_instance_{st.session_state.image_uploader_key_counter}"
-        uploaded_files = st.file_uploader(
-            "이미지 파일을 선택해주세요 (여러 파일 가능)", type=["png", "jpg", "jpeg"],
-            accept_multiple_files=True, key=uploader_widget_key,
-            help="파일을 선택하거나 여기에 드래그앤드롭 하세요."
-        )
-        if uploaded_files:
-            newly_saved_paths_this_run = []
-            current_tracked_filenames = {os.path.basename(p) for p in st.session_state.get('uploaded_image_paths', []) if isinstance(p, str)}
+    st.subheader("관련 이미지 업로드")
+    
+    uploader_widget_key = f"image_uploader_tab1_instance_{st.session_state.image_uploader_key_counter}"
+    uploaded_files = st.file_uploader(
+        "이미지 파일을 선택해주세요 (여러 파일 가능)", type=["png", "jpg", "jpeg"],
+        accept_multiple_files=True, key=uploader_widget_key,
+        help="파일을 선택하거나 여기에 드래그앤드롭 하세요."
+    )
+    if uploaded_files:
+        with st.spinner('이미지를 Google Drive에 업로드 중...'):
+            current_images = st.session_state.get('uploaded_images', [])
+            current_filenames_in_drive = {img['name'] for img in current_images}
 
             img_phone_prefix = st.session_state.get('customer_phone', 'unknown_phone').strip()
             if not img_phone_prefix: img_phone_prefix = 'no_phone_img'
             img_phone_prefix = utils.sanitize_phone_number(img_phone_prefix)
-
+            
             for uploaded_file_obj in uploaded_files:
+                # 파일명 충돌 방지를 위해 타임스탬프와 고유 ID 추가
+                timestamp = datetime.now().strftime("%y%m%d%H%M%S")
                 original_filename_sanitized = "".join(c if c.isalnum() or c in ['.', '_'] else '_' for c in uploaded_file_obj.name)
                 name_part, ext_part = os.path.splitext(original_filename_sanitized)
-                base_filename = f"{img_phone_prefix}_{name_part}{ext_part if ext_part else '.jpg'}"
+                unique_filename = f"{img_phone_prefix}_{timestamp}_{name_part}{ext_part if ext_part else '.jpg'}"
 
-                counter = 1
-                filename_to_save = base_filename
-                prospective_save_path = os.path.join(UPLOAD_DIR, filename_to_save)
-                while os.path.exists(prospective_save_path):
-                    filename_to_save = f"{img_phone_prefix}_{name_part}_{counter}{ext_part if ext_part else '.jpg'}"
-                    prospective_save_path = os.path.join(UPLOAD_DIR, filename_to_save)
-                    counter += 1
-                final_save_path = prospective_save_path
-                final_filename_to_save = os.path.basename(final_save_path)
-
-                if final_filename_to_save not in current_tracked_filenames and final_save_path not in newly_saved_paths_this_run :
-                    try:
-                        with open(final_save_path, "wb") as f: f.write(uploaded_file_obj.getbuffer())
-                        newly_saved_paths_this_run.append(final_save_path)
-                    except Exception as e: st.error(f"'{uploaded_file_obj.name}' 저장 실패: {e}")
-
-            if newly_saved_paths_this_run:
-                current_paths = st.session_state.get('uploaded_image_paths', [])
-                current_paths.extend(newly_saved_paths_this_run)
-                st.session_state.uploaded_image_paths = sorted(list(set(current_paths)))
-                st.session_state.image_uploader_key_counter += 1
-                st.rerun()
-            elif uploaded_files and not newly_saved_paths_this_run:
-                 st.session_state.image_uploader_key_counter += 1
-                 st.rerun()
-
-        current_image_paths = st.session_state.get('uploaded_image_paths', [])
-        if current_image_paths:
-            st.markdown("**업로드된 이미지:**")
-            def delete_image_action(image_path_to_delete):
-                try:
-                    if os.path.exists(image_path_to_delete):
-                        os.remove(image_path_to_delete)
-                        st.toast(f"삭제 성공: {os.path.basename(image_path_to_delete)}", icon="🗑️")
+                if unique_filename not in current_filenames_in_drive:
+                    upload_result = gdrive.upload_image_to_drive(
+                        file_name=unique_filename,
+                        image_bytes=uploaded_file_obj.getbuffer(),
+                        folder_id=gdrive_folder_id_from_secrets
+                    )
+                    if upload_result:
+                        current_images.append(upload_result)
+                        st.toast(f"'{uploaded_file_obj.name}' 업로드 성공!", icon="✅")
                     else:
-                        st.toast(f"파일 없음: {os.path.basename(image_path_to_delete)}", icon="⚠️")
-                except Exception as e_del:
-                    st.error(f"파일 삭제 오류 ({os.path.basename(image_path_to_delete)}): {e_del}")
+                        st.error(f"'{uploaded_file_obj.name}' 업로드 실패.")
+            
+            st.session_state.uploaded_images = current_images
+            st.session_state.image_uploader_key_counter += 1
+            st.rerun()
 
-                paths_after_delete = st.session_state.get('uploaded_image_paths', [])
-                if image_path_to_delete in paths_after_delete:
-                    paths_after_delete.remove(image_path_to_delete)
-                    st.session_state.uploaded_image_paths = paths_after_delete
-                st.session_state.image_uploader_key_counter += 1
+    current_uploaded_images = st.session_state.get('uploaded_images', [])
+    if current_uploaded_images:
+        st.markdown("**업로드된 이미지:**")
+        
+        def delete_image_action(image_id_to_delete):
+            with st.spinner("이미지 삭제 중..."):
+                success = gdrive.delete_file_from_drive(image_id_to_delete)
+            if success:
+                st.session_state.uploaded_images = [img for img in st.session_state.uploaded_images if img['id'] != image_id_to_delete]
+                st.toast("이미지 삭제 완료.", icon="🗑️")
                 st.rerun()
+            else:
+                st.error("이미지 삭제에 실패했습니다.")
 
-            paths_to_display_and_delete = list(current_image_paths)
-            valid_display_paths = [p for p in paths_to_display_and_delete if isinstance(p, str) and os.path.exists(p)]
-
-            if len(valid_display_paths) != len(paths_to_display_and_delete):
-                st.session_state.uploaded_image_paths = valid_display_paths
-                if paths_to_display_and_delete:
-                    st.rerun()
-
-            if valid_display_paths:
-                cols_per_row_display = 3
-                for i in range(0, len(valid_display_paths), cols_per_row_display):
-                    image_paths_in_row = valid_display_paths[i:i+cols_per_row_display]
-                    cols_display = st.columns(cols_per_row_display)
-                    for col_idx, img_path_display in enumerate(image_paths_in_row):
-                        with cols_display[col_idx]:
-                            try:
-                                st.image(img_path_display, caption=os.path.basename(img_path_display), use_container_width=True)
-                                delete_btn_key = f"del_btn_{img_path_display.replace(os.sep, '_').replace('.', '_').replace(' ', '_')}_{i}_{col_idx}"
-                                if st.button(f"삭제", key=delete_btn_key, type="secondary", help=f"{os.path.basename(img_path_display)} 삭제하기"):
-                                    delete_image_action(img_path_display)
-                            except Exception as img_display_err:
-                                st.error(f"{os.path.basename(img_path_display)} 표시 오류: {img_display_err}")
-            elif not current_image_paths : st.caption("업로드된 이미지가 없습니다.")
-            elif paths_to_display_and_delete and not valid_display_paths: st.caption("표시할 유효한 이미지가 없습니다. 경로를 확인해주세요.")
-    else:
-        st.warning("이미지 업로드 디렉토리 설정 오류로 이미지 업로드 기능이 비활성화되었습니다.")
+        cols_per_row_display = 3
+        for i in range(0, len(current_uploaded_images), cols_per_row_display):
+            image_info_in_row = current_uploaded_images[i:i+cols_per_row_display]
+            cols_display = st.columns(cols_per_row_display)
+            for col_idx, img_info in enumerate(image_info_in_row):
+                with cols_display[col_idx]:
+                    try:
+                        with st.spinner(f"'{img_info['name']}' 로딩 중..."):
+                            image_bytes = gdrive.download_file_bytes(img_info['id'])
+                        
+                        if image_bytes:
+                            st.image(image_bytes, caption=img_info.get('name', '이름없음'), use_container_width=True)
+                            delete_btn_key = f"del_btn_{img_info['id']}"
+                            st.button(f"삭제", key=delete_btn_key, type="secondary", 
+                                      help=f"{img_info.get('name', '')} 삭제하기", on_click=delete_image_action, args=(img_info['id'],))
+                        else:
+                            st.error(f"'{img_info.get('name', '이름없음')}'\n이미지를 불러올 수 없습니다.")
+                    except Exception as img_display_err:
+                        st.error(f"{img_info.get('name', '알수없음')} 표시 오류: {img_display_err}")
 
     kst_time_str = utils.get_current_kst_time_str() if hasattr(utils, 'get_current_kst_time_str') else ''
     st.caption(f"견적 생성/수정 시간: {kst_time_str}")
@@ -454,25 +418,24 @@ def render_tab1():
             st.selectbox("경유지 작업 방법", options=method_options_via, index=current_via_method_idx, key="via_point_method", format_func=lambda x: x.split(" ")[0] if x else "선택")
         st.divider()
 
-    if st.session_state.get('is_storage_move'): # 이 블록이 보관 유형을 표시해야 합니다.
+    if st.session_state.get('is_storage_move'): 
         with st.container(border=True):
             st.subheader("보관이사 추가 정보")
-            # data.STORAGE_TYPE_OPTIONS 를 사용하도록 수정
             storage_options_raw = data.STORAGE_TYPE_OPTIONS if data and hasattr(data,'STORAGE_TYPE_OPTIONS') and data.STORAGE_TYPE_OPTIONS else []
 
-            if 'storage_type' not in st.session_state: # 초기화 (옵션이 있을 경우 첫번째로)
+            if 'storage_type' not in st.session_state: 
                 st.session_state.storage_type = storage_options_raw[0] if storage_options_raw else None
 
             current_storage_type_val = st.session_state.get('storage_type')
             current_storage_index = 0
             if storage_options_raw and current_storage_type_val in storage_options_raw:
                 try: current_storage_index = storage_options_raw.index(current_storage_type_val)
-                except ValueError: # 현재 값이 옵션에 없으면 첫번째 옵션으로 설정 (또는 기본값)
+                except ValueError:
                     st.session_state.storage_type = storage_options_raw[0] if storage_options_raw else \
                                                     (data.DEFAULT_STORAGE_TYPE if hasattr(data, "DEFAULT_STORAGE_TYPE") else None)
-                    current_storage_index = 0 # 인덱스도 0으로
+                    current_storage_index = 0
             elif not storage_options_raw:
-                 st.warning("보관 유형 옵션을 불러올 수 없습니다. (data.py 확인 필요)") # 경고 메시지
+                 st.warning("보관 유형 옵션을 불러올 수 없습니다. (data.py 확인 필요)")
 
             st.radio("보관 유형 선택:",
                       options=storage_options_raw,
