@@ -1,4 +1,4 @@
-# ui_tab1.py (이미지 처리 로직 수정 후)
+# ui_tab1.py (수정 후)
 import streamlit as st
 from datetime import datetime, date, timedelta
 import pytz
@@ -10,11 +10,8 @@ try:
     import data
     import utils
     import google_drive_helper as gdrive
-    from state_manager import (
-        MOVE_TYPE_OPTIONS,
-        prepare_state_for_save,
-        load_state_from_data
-    )
+    # 'from ... import ...' 대신 모듈 전체를 import 하도록 수정
+    import state_manager 
     import callbacks
 except ImportError as ie:
     st.error(f"UI Tab 1: 필수 모듈 로딩 실패 - {ie}")
@@ -26,15 +23,17 @@ except Exception as e:
     traceback.print_exc()
     st.stop()
 
+# UPLOAD_DIR 관련 코드는 이미지 영구 저장을 위해 제거됨
+
 def render_tab1():
     st.session_state.setdefault('image_uploader_key_counter', 0)
-    st.session_state.setdefault('uploaded_images', [])
+    st.session_state.setdefault('uploaded_images', []) # 키 이름 변경됨
     st.session_state.setdefault('issue_tax_invoice', False)
     st.session_state.setdefault('card_payment', False)
     st.session_state.setdefault('move_time_option', "오전")
     st.session_state.setdefault('afternoon_move_details', "")
     st.session_state.setdefault('contract_date', date.today())
-    
+
     update_basket_quantities_callback = getattr(callbacks, "update_basket_quantities", None)
     sync_move_type_callback = getattr(callbacks, 'sync_move_type', None)
     set_default_times_callback = getattr(callbacks, "set_default_times", None)
@@ -138,7 +137,8 @@ def render_tab1():
                            not isinstance(loaded_content.get('uploaded_images'), list):
                             loaded_content['uploaded_images'] = []
 
-                        load_success = load_state_from_data(loaded_content, update_basket_callback_ref)
+                        # 함수 호출 방식 변경
+                        load_success = state_manager.load_state_from_data(loaded_content, update_basket_callback_ref)
                         if load_success:
                             st.session_state.image_uploader_key_counter +=1
                             st.success("견적 데이터 로딩 완료.")
@@ -166,7 +166,8 @@ def render_tab1():
                         st.error("저장 실패: 유효한 고객 전화번호를 입력해주세요 (예: 01012345678 또는 021234567).")
                     else:
                         json_filename = f"{sanitized_customer_phone}.json"
-                        state_data_to_save = prepare_state_for_save(st.session_state.to_dict())
+                        # 함수 호출 방식 변경
+                        state_data_to_save = state_manager.prepare_state_for_save(st.session_state.to_dict())
                         if 'uploaded_images' not in state_data_to_save or \
                            not isinstance(state_data_to_save.get('uploaded_images'), list):
                              state_data_to_save['uploaded_images'] = st.session_state.get('uploaded_images', [])
@@ -188,6 +189,8 @@ def render_tab1():
 
     st.header("고객 기본 정보")
 
+    # 변수 사용 방식 변경
+    MOVE_TYPE_OPTIONS = state_manager.MOVE_TYPE_OPTIONS
     current_base_move_type_value = st.session_state.get('base_move_type', MOVE_TYPE_OPTIONS[0] if MOVE_TYPE_OPTIONS else "")
     try:
         current_index_tab1 = MOVE_TYPE_OPTIONS.index(current_base_move_type_value)
@@ -335,30 +338,29 @@ def render_tab1():
     if uploaded_files:
         with st.spinner('이미지를 Google Drive에 업로드 중...'):
             current_images = st.session_state.get('uploaded_images', [])
-            current_filenames_in_drive = {img['name'] for img in current_images}
+            current_image_ids = {img['id'] for img in current_images}
 
             img_phone_prefix = st.session_state.get('customer_phone', 'unknown_phone').strip()
             if not img_phone_prefix: img_phone_prefix = 'no_phone_img'
             img_phone_prefix = utils.sanitize_phone_number(img_phone_prefix)
             
             for uploaded_file_obj in uploaded_files:
-                # 파일명 충돌 방지를 위해 타임스탬프와 고유 ID 추가
                 timestamp = datetime.now().strftime("%y%m%d%H%M%S")
                 original_filename_sanitized = "".join(c if c.isalnum() or c in ['.', '_'] else '_' for c in uploaded_file_obj.name)
                 name_part, ext_part = os.path.splitext(original_filename_sanitized)
                 unique_filename = f"{img_phone_prefix}_{timestamp}_{name_part}{ext_part if ext_part else '.jpg'}"
 
-                if unique_filename not in current_filenames_in_drive:
-                    upload_result = gdrive.upload_image_to_drive(
-                        file_name=unique_filename,
-                        image_bytes=uploaded_file_obj.getbuffer(),
-                        folder_id=gdrive_folder_id_from_secrets
-                    )
-                    if upload_result:
-                        current_images.append(upload_result)
-                        st.toast(f"'{uploaded_file_obj.name}' 업로드 성공!", icon="✅")
-                    else:
-                        st.error(f"'{uploaded_file_obj.name}' 업로드 실패.")
+                upload_result = gdrive.upload_image_to_drive(
+                    file_name=unique_filename,
+                    image_bytes=uploaded_file_obj.getbuffer(),
+                    folder_id=gdrive_folder_id_from_secrets
+                )
+                if upload_result and upload_result['id'] not in current_image_ids:
+                    current_images.append(upload_result)
+                    current_image_ids.add(upload_result['id'])
+                    st.toast(f"'{uploaded_file_obj.name}' 업로드 성공!", icon="✅")
+                elif not upload_result:
+                    st.error(f"'{uploaded_file_obj.name}' 업로드 실패.")
             
             st.session_state.uploaded_images = current_images
             st.session_state.image_uploader_key_counter += 1
